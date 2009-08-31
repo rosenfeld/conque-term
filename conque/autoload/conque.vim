@@ -1,0 +1,553 @@
+" FILE:     autoload/conque.vim
+" AUTHOR:   Shougo Matsushita <Shougo.Matsu@gmail.com> (Original)
+"           Nico Raffo <nicoraffo@gmail.com> (Modified)
+" MODIFIED: __MODIFIED__
+" VERSION:  __VERSION__, for Vim 7.0
+" LICENSE: {{{
+" Conque - pty interaction in Vim
+" Copyright (C) 2009 Nico Raffo 
+"
+" This program is free software: you can redistribute it and/or modify
+" it under the terms of the GNU General Public License as published by
+" the Free Software Foundation, either version 3 of the License, or
+" (at your option) any later version.
+"
+" This program is distributed in the hope that it will be useful,
+" but WITHOUT ANY WARRANTY; without even the implied warranty of
+" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+" GNU General Public License for more details.
+"
+" You should have received a copy of the GNU General Public License
+" along with this program.  If not, see <http://www.gnu.org/licenses/>.
+" }}}
+
+" Open a command in Conque.
+" This is the root function that is called from Vim to start up Conque.
+function! conque#open(command)"{{{
+    call s:log.debug('<open command>')
+    call s:log.debug('command: ' . a:command)
+
+    if empty(a:command)
+        echohl WarningMsg | echomsg "No command found" | echohl None
+        call s:log.warn('command not found: ' . a:command)
+        return 0
+    endif
+
+    " set global environment variables
+    call s:set_environment()
+
+    " load vimproc C library
+    let l:proc_lib = proc#import()
+
+    " open command
+    try
+        let l:proc = l:proc_lib.ptyopen(split(a:command))
+        call s:log.info('opening command: ' . a:command . ' with ptyopen to pid: ' . l:proc.pid)
+    catch 
+        let l:error = printf('File: "%s" is not found.', a:command)
+        echohl WarningMsg | echomsg l:error | echohl None
+        return 0
+    endtry
+
+    " always check for zombies before over-writing them
+    if exists('b:proc')
+        " more zombies than usual today
+        call s:log.warn('brains!! ' . b:proc.pid)
+        call conque#force_exit()
+    endif
+
+    " Set variables.
+    let b:vimproc_lib = l:proc_lib
+    let b:proc = l:proc
+    let b:interactive_command_history = []
+    let b:prompt_history = {}
+    let b:current_command = ''
+    let b:interactive_command_position = 0
+    let b:tab_complete_history = {}
+
+    " read welcome message from command
+    call s:read()
+
+    " configure shell buffer display and key mappings
+    call s:set_buffer_settings(a:command)
+
+    call s:log.debug('</open command>')
+
+    startinsert!
+    return 1
+endfunction"}}}
+
+" set shell environment vars
+" XXX - probably should delegate this to logic in .bashrc?
+function! s:set_environment()"{{{
+    let $TERM = "dumb"
+    let $TERMCAP = "COLUMNS=" . winwidth(0)
+    let $VIMSHELL = 1
+    let $COLUMNS = winwidth(0) " these get reset by terminal anyway
+    let $LINES = winheight(0)
+    
+    call s:log.debug('<env>')
+    call s:log.debug('winwidth: ' .winwidth(0) . ' winheight: ' . winheight(0))
+    call s:log.debug('</env>')
+endfunction"}}}
+
+" buffer settings, layout, key mappings, and auto commands
+function! s:set_buffer_settings(command)"{{{
+    setlocal buftype=nofile  " this buffer is not a file, you can't save it
+    setlocal nonumber        " hide line numbers
+    setlocal foldcolumn=1    " reasonable left margin
+    setlocal nowrap          " default to no wrap (esp with MySQL)
+    setlocal noswapfile      " don't bother creating a .swp file
+    setfiletype conque        " useful
+    setlocal syntax=conque    " see syntax/conque.vim
+
+    " run the current command
+    nnoremap <buffer><silent><CR>        :<C-u>call conque#run()<CR>
+    inoremap <buffer><silent><CR>        <ESC>:<C-u>call conque#run()<CR>
+    " don't backspace over prompt
+    inoremap <buffer><silent><expr><BS>  <SID>delete_backword_char()
+    " clear current line
+    inoremap <buffer><silent><C-u>       <ESC>:<C-u>call conque#kill_line()<CR>
+    " tab complete
+    inoremap <buffer><silent><Tab>       <ESC>:<C-u>call <SID>tab_complete()<CR>
+    " previous/next command
+    inoremap <buffer><silent><Up>        <ESC>:<C-u>call <SID>previous_command()<CR>
+    inoremap <buffer><silent><Down>      <ESC>:<C-u>call <SID>next_command()<CR>
+    " interrupt
+    nnoremap <buffer><silent><C-c>       :<C-u>call conque#sigint()<CR>
+    inoremap <buffer><silent><C-c>       <ESC>:<C-u>call conque#sigint()<CR>
+
+    " handle unexpected closing of shell
+    " passes HUP to main and all child processes
+    augroup conque
+        autocmd BufUnload <buffer>   call conque#hang_up()
+    augroup END
+endfunction"}}}
+
+" controller to execute current line
+function! conque#run()"{{{
+    call s:log.debug('<keyboard triggered run>')
+
+    if !exists('b:proc')
+        call s:log.warn('no proc found, no command to execute')
+        echohl WarningMsg | echomsg "Not a shell" | echohl None
+        return
+    endif
+    call conque#write(1)
+    call s:read()
+
+    call s:log.debug('</keyboard triggered run>')
+endfunction"}}}
+
+" execute current line, but return output as string instead of printing to buffer
+function! conque#run_return()"{{{
+    call s:log.debug('<keyboard triggered run return>')
+    if !exists('b:proc')
+        call s:log.warn('no proc found, no command to execute')
+        echohl WarningMsg | echomsg "Not a shell" | echohl None
+        return
+    endif
+    call conque#write(0)
+    let l:output = conque#read_return_raw()
+    call s:log.debug('</keyboard triggered run return>')
+    return l:output
+endfunction"}}}
+
+" write current line to pty
+function! conque#write(add_newline)"{{{
+    call s:log.debug('<write>')
+
+    " pull command from the buffer
+    let l:in = s:get_command()
+    
+    " waiting
+    if l:in == '...'
+        return
+    endif
+
+    " run the command!
+    try
+        call s:log.debug('about to write command: "' . l:in . '" to pid: ' . b:proc.pid)
+        if a:add_newline == 1
+            call b:proc.write(l:in . "\<NL>")
+        else
+            call b:proc.write(l:in)
+        endif
+    catch
+        call s:log.warn('command fail: "' . l:in . '"')
+        echohl WarningMsg | echomsg 'command fail' | echohl None
+        call conque#exit()
+    endtry
+    
+    " record command history
+    if l:in != '' && l:in != '...'
+        call add(b:interactive_command_history, l:in)
+    endif
+    let b:current_command = l:in
+    let b:interactive_command_position = 0
+
+    " we're doing something
+    if a:add_newline == 1
+        call append(line('$'), '...')
+    endif
+
+    normal! G$
+    call s:log.debug('</write>')
+endfunction"}}}
+
+" parse current line to remove prompt and return command.
+" also manages multi-line commands.
+function! s:get_command()"{{{
+  call s:log.debug('<get_command>')
+  let l:in = getline('.')
+
+  if l:in == ''
+    " Do nothing.
+
+  elseif l:in == '...'
+    " Working
+
+  elseif exists("b:tab_complete_history['".line('.')."']")
+    let l:in = l:in[len(b:tab_complete_history[line('.')]) : ]
+
+  elseif exists("b:prompt_history['".line('.')."']")
+    let l:in = l:in[len(b:prompt_history[line('.')]) : ]
+
+  else
+    " Maybe line numbering got disrupted, search for a matching prompt.
+    let l:prompt_search = 0
+    for pnr in reverse(sort(keys(b:prompt_history)))
+      let l:prompt_length = len(b:prompt_history[pnr])
+      " In theory 0 length or ' ' prompt shouldn't exist, but still...
+      if l:prompt_length > 0 && b:prompt_history[pnr] != ' '
+        " Does the current line have this prompt?
+        if l:in[0 : l:prompt_length - 1] == b:prompt_history[pnr]
+          let l:in = l:in[l:prompt_length : ]
+          let l:prompt_search = pnr
+        endif
+      endif
+    endfor
+
+    " Still nothing? Maybe a multi-line command was pasted in.
+    let l:max_prompt = max(keys(b:prompt_history)) " Only count once.
+    if l:prompt_search == 0 && l:max_prompt < line('$')
+    for i in range(l:max_prompt, line('$'))
+      if i == l:max_prompt
+        let l:in = getline(i)
+        let l:in = l:in[len(b:prompt_history[i]) : ]
+      else
+        let l:in = l:in . getline(i)
+      endif
+    endfor
+      let l:prompt_search = l:max_prompt
+    endif
+
+    " Still nothing? We give up.
+    if l:prompt_search == 0
+      call s:log.warn('invalid input')
+      echohl WarningMsg | echo "Invalid input." | echohl None
+      normal! G$
+      startinsert!
+      return
+    endif
+  endif
+
+  call s:log.debug('</get_command>')
+  return l:in
+endfunction"}}}
+
+" read from pty and write to buffer
+function! s:read()"{{{
+    call s:log.debug('<read>')
+    " check for fail
+    if b:proc.eof
+        call s:log.warn('eof detected')
+        echohl WarningMsg | echomsg 'EOF' | echohl None
+        call conque#exit()
+        normal! G$
+        return
+    endif
+
+    " read AND write to buffer
+    let l:read = b:proc.read(-1, 500)
+    call s:log.debug('first read' . l:read)
+    while l:read != ''
+        call s:print_buffer(l:read)
+        " XXX - really needed?
+        redraw
+        let l:read = b:proc.read(-1, 500)
+        call s:log.debug('next read' . l:read)
+    endwhile
+    redraw
+
+    " record prompt used on this line
+    let b:prompt_history[line('.')] = getline('.')
+
+    " check for fail again
+    if b:proc.eof
+        call s:log.warn('eof really detected')
+        echohl WarningMsg | echomsg 'EOF' | echohl None
+        call conque#exit()
+        normal! G$
+        return
+    endif
+
+    " ready to insert now
+    normal! G$
+    startinsert!
+    call s:log.debug('</read>')
+endfunction"}}}
+
+" read from pty and return output as string
+function! conque#read_return_raw()"{{{
+    call s:log.debug('<read return raw>')
+
+    " read AND write to buffer
+    let l:read = b:proc.read(-1, 500)
+    call s:log.debug('first read' . l:read)
+    let l:output = l:read
+    while l:read != ''
+        let l:read = b:proc.read(-1, 500)
+        let l:output = l:output . l:read
+        call s:log.debug('next read' . l:read)
+    endwhile
+
+    " ready to insert now
+    call s:log.debug('</read return raw>')
+    return l:output
+endfunction"}}}
+
+" parse output from pty and update buffer
+function! s:print_buffer(string)"{{{
+    if a:string == ''
+        return
+    endif
+
+    " Convert encoding for system().
+    let l:string = iconv(a:string, 'utf-8', &encoding) 
+
+    " Strip <CR>.
+    let l:string = substitute(substitute(l:string, '\r', '', 'g'), '\n$', '', '')
+    let l:lines = split(l:string, '\n', 1)
+
+    " strip off command repeated by the ECHO terminal flag
+    if l:lines[0] == b:current_command
+        let l:lines = l:lines[1:]
+    endif
+
+    " special case: first line in buffer
+    if line('$') == 1 && empty(getline('$'))
+        call setline(line('$'), l:lines[0])
+        let l:lines = l:lines[1:]
+    endif
+
+    " write to buffer
+    for l:line in l:lines
+        if getline(line('$')) == '...'
+            call setline(line('$'), l:line)
+        else
+            call append(line('$'), l:line)
+        endif
+    endfor
+
+    " Set cursor.
+    normal! G$
+endfunction"}}}
+
+" kill process pid with SIGTERM
+" since most shells ignore SIGTERM there's a good chance this will do nothing
+function! conque#exit()"{{{
+    call s:log.debug('<exit>')
+    if !exists('b:proc')
+        call s:log.warn('no proc found during exit, giving up')
+        echohl WarningMsg | echomsg "huh no proc exists" | echohl None
+        return
+    endif
+
+    " Kill process.
+    try
+        " 15 == SIGTERM
+        call b:vimproc_lib.api.vp_kill(b:proc.pid, 15)
+    catch /No such process/
+    endtry
+
+    unlet b:vimproc_lib
+    unlet b:proc
+    call s:log.debug('</exit>')
+endfunction"}}}
+
+" kill process pid with SIGKILL
+" undesirable, but effective
+function! conque#force_exit()"{{{
+    call s:log.debug('<force exit>')
+
+    if !exists('b:proc')
+        call s:log.warn('no proc found during force exit, giving up')
+        return
+    endif
+
+    " Kill processes.
+    try
+        " 9 == SIGKILL
+        call b:vimproc_lib.api.vp_kill(b:proc.pid, 9)
+        call append(line('$'), '*Killed*')
+    catch /No such process/
+    endtry
+
+    unlet b:vimproc_lib
+    unlet b:proc
+
+    call s:log.debug('</force exit>')
+endfunction"}}}
+
+" kill process pid with SIGHUP
+" this gets called if the buffer is unloaded before the program has been exited
+" it should pass the signall to all children before killing the parent process
+function! conque#hang_up()"{{{
+    call s:log.debug('<hang up>')
+
+    if !exists('b:proc')
+        call s:log.warn('no proc found during force exit, giving up')
+        return
+    endif
+
+    " Kill processes.
+    try
+        " 1 == HUP
+        call b:vimproc_lib.api.vp_kill(b:proc.pid, 1)
+        call append(line('$'), '*Killed*')
+    catch /No such process/
+    endtry
+
+    unlet b:vimproc_lib
+    unlet b:proc
+
+    call s:log.debug('</hang up>')
+endfunction"}}}
+
+" load previous command
+" XXX - we should probably use native history instead, although it's slower
+function! s:previous_command()"{{{
+    " If this is the first up arrow use, save what's been typed in so far.
+    if b:interactive_command_position == 0
+        let b:current_working_command = strpart(getline('.'), len(b:prompt_history[line('.')]))
+    endif
+    " If there are no more previous commands.
+    if len(b:interactive_command_history) == b:interactive_command_position
+        echohl WarningMsg | echomsg "End of history" | echohl None
+        startinsert!
+        return
+    endif
+    let b:interactive_command_position = b:interactive_command_position + 1
+    let l:prev_command = b:interactive_command_history[len(b:interactive_command_history) - b:interactive_command_position]
+    call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))] . l:prev_command)
+    startinsert!
+endfunction"}}}
+
+" load next command
+" XXX - we should probably use native history instead, although it's slower
+function! s:next_command()"{{{
+    " If we're already at the last command.
+    if b:interactive_command_position == 0
+        echohl WarningMsg | echomsg "End of history" | echohl None
+        startinsert!
+        return
+    endif
+    let b:interactive_command_position = b:interactive_command_position - 1
+    " Back at the beginning, put back what had been typed.
+    if b:interactive_command_position == 0
+        call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))] . b:current_working_command)
+        startinsert!
+        return
+    endif
+    let l:next_command = b:interactive_command_history[len(b:interactive_command_history) - b:interactive_command_position]
+    call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))] . l:next_command)
+    startinsert!
+endfunction"}}}
+
+" catch <BS> to prevent deleting prompt
+" if tab completion has initiated, prevent deleting partial command already sent to pty
+function! s:delete_backword_char()"{{{
+    " identify prompt
+    if exists('b:tab_complete_history[line(".")]')
+        let l:prompt = b:tab_complete_history[line('.')]
+    elseif exists('b:prompt_history[line(".")]')
+        let l:prompt = b:prompt_history[line('.')]
+    else
+        return "\<BS>"
+    endif
+    
+    if getline(line('.')) != l:prompt
+        return "\<BS>"
+    else
+        return ""
+    endif
+endfunction"}}}
+
+" tab complete current line
+" TODO: integrate multiple options with Vim auto-complete menu
+function! s:tab_complete()"{{{
+    " Insert <TAB>.
+    if exists('b:tab_complete_history[line(".")]')
+        let l:prompt = b:tab_complete_history[line('.')]
+    elseif exists('b:prompt_history[line(".")]')
+        let l:prompt = b:prompt_history[line('.')]
+    else
+        let l:prompt = ''
+    endif
+
+    let l:working_line = getline('.')
+    let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
+
+    call setline(line('.'), getline('.') . "\<TAB>")
+
+    let l:candidate = conque#run_return()
+    let l:extra = substitute(l:candidate, '^'.l:working_command, '', '')
+
+    call s:log.debug('tab complete candidate: "' . l:extra . '" == "' . nr2char(7) . '"')
+    if l:extra == nr2char(7)
+        call s:log.debug('tab complete miss')
+        call setline(line('.'), l:working_line)
+        let b:tab_complete_history[line('.')] = getline(line('.'))
+        startinsert!
+        echohl WarningMsg | echomsg "No completion found" | echohl None
+        return
+    endif
+
+    call setline(line('.'), l:prompt . l:candidate)
+
+    let b:tab_complete_history[line('.')] = getline(line('.'))
+
+    startinsert!
+endfunction"}}}
+
+" implement <C-u>
+" especially useful to clear a tab completion line already sent to pty
+function! conque#kill_line()"{{{
+  " send <C-u> to pty
+  call b:proc.write("\<C-u>")
+
+  " we are throwing away the output here, assuming <C-u> never fails to do as expected
+  let l:hopefully_just_backspaces = conque#read_return_raw()
+
+  " restore empty prompt
+  call setline(line('.'), b:prompt_history[line('.')])
+  normal! G$
+  startinsert!
+endfunction"}}}
+
+" implement <C-c>
+" should send SIGINT to proc
+function! conque#sigint()"{{{
+  call s:log.debug('<sigint>')
+  " send <C-c> to pty
+  call b:proc.write("\<C-c>")
+  call s:read()
+  call s:log.debug('</sigint>')
+endfunction"}}}
+
+" define logger
+" TODO: handle production behavior
+let s:log = log#getLogger(expand('<sfile>:t'))
+
+" vim: foldmethod=marker
