@@ -59,10 +59,10 @@ function! conque#open(command)"{{{
     " Set variables.
     let b:vimproc_lib = l:proc_lib
     let b:proc = l:proc
-    let b:interactive_command_history = []
+    let b:command_history = []
     let b:prompt_history = {}
     let b:current_command = ''
-    let b:interactive_command_position = 0
+    let b:command_position = 0
     let b:tab_complete_history = {}
 
     " read welcome message from command
@@ -180,11 +180,23 @@ function! conque#write(add_newline)"{{{
     endtry
     
     " record command history
-    if l:in != '' && l:in != '...'
-        call add(b:interactive_command_history, l:in)
+    let l:hc = ''
+    if exists("b:prompt_history['".line('.')."']")
+        call s:log.debug('command history from getline')
+        let l:hc = getline('.')
+        let l:hc = l:hc[len(b:prompt_history[line('.')]) : ]
+    else
+        call s:log.debug('command history from l:in')
+        let l:hc = l:in
+    endif
+    if l:hc != '' && l:hc != '...' && l:hc !~ '\t$'
+        call add(b:command_history, l:hc)
     endif
     let b:current_command = l:in
-    let b:interactive_command_position = 0
+    let b:command_position = 0
+    if exists("b:tab_complete_history['".line('.')."']")
+        call remove(b:tab_complete_history, line('.'))
+    endif
 
     " we're doing something
     if a:add_newline == 1
@@ -269,12 +281,12 @@ function! s:read()"{{{
     endif
 
     " read AND write to buffer
-    let l:read = b:proc.read(-1, 20)
+    let l:read = b:proc.read(-1, 10)
     call s:log.debug('first read -> "' . l:read . '" < -')
     let l:output = ''
     while l:read != ''
         let l:output = l:output . l:read
-        let l:read = b:proc.read(-1, 20)
+        let l:read = b:proc.read(-1, 10)
         call s:log.debug('next read -> "' . l:read . '" < -')
     endwhile
     call s:print_buffer(l:output)
@@ -429,17 +441,17 @@ endfunction"}}}
 " XXX - we should probably use native history instead, although it's slower
 function! s:previous_command()"{{{
     " If this is the first up arrow use, save what's been typed in so far.
-    if b:interactive_command_position == 0
+    if b:command_position == 0
         let b:current_working_command = strpart(getline('.'), len(b:prompt_history[line('.')]))
     endif
     " If there are no more previous commands.
-    if len(b:interactive_command_history) == b:interactive_command_position
+    if len(b:command_history) == b:command_position
         echohl WarningMsg | echomsg "End of history" | echohl None
         startinsert!
         return
     endif
-    let b:interactive_command_position = b:interactive_command_position + 1
-    let l:prev_command = b:interactive_command_history[len(b:interactive_command_history) - b:interactive_command_position]
+    let b:command_position = b:command_position + 1
+    let l:prev_command = b:command_history[len(b:command_history) - b:command_position]
     call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))] . l:prev_command)
     startinsert!
 endfunction"}}}
@@ -448,19 +460,19 @@ endfunction"}}}
 " XXX - we should probably use native history instead, although it's slower
 function! s:next_command()"{{{
     " If we're already at the last command.
-    if b:interactive_command_position == 0
+    if b:command_position == 0
         echohl WarningMsg | echomsg "End of history" | echohl None
         startinsert!
         return
     endif
-    let b:interactive_command_position = b:interactive_command_position - 1
+    let b:command_position = b:command_position - 1
     " Back at the beginning, put back what had been typed.
-    if b:interactive_command_position == 0
+    if b:command_position == 0
         call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))] . b:current_working_command)
         startinsert!
         return
     endif
-    let l:next_command = b:interactive_command_history[len(b:interactive_command_history) - b:interactive_command_position]
+    let l:next_command = b:command_history[len(b:command_history) - b:command_position]
     call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))] . l:next_command)
     startinsert!
 endfunction"}}}
