@@ -162,6 +162,7 @@ function! conque#write(add_newline)"{{{
     
     " waiting
     if l:in == '...'
+        call append(line('$'), '...')
         return
     endif
 
@@ -354,13 +355,7 @@ function! s:print_buffer(string)"{{{
     endif
 
     " write to buffer
-    for l:line in l:lines
-        if getline(line('$')) == '...'
-            call setline(line('$'), l:line)
-        else
-            call append(line('$'), l:line)
-        endif
-    endfor
+    call setline(line('$'), l:lines)
 
     " Set cursor.
     normal! G$
