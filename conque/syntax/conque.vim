@@ -21,12 +21,9 @@
 " along with this program.  If not, see <http://www.gnu.org/licenses/>.
 " }}}
 
-" Typical Prompt
-syn match ConquePrompt "^\[.\+\]\$" oneline
-
 " MySQL
 syn match MySQLTableHead "^|.*|$" nextgroup=MySQLTableDivide contains=MySQLTableBar oneline skipwhite skipnl
-syn match MySQLTableBody "^|.*|$" nextgroup=MySQLTableBody,MySQLTableEnd contains=MySQLTableBar,MySQLNull,MySQLSpecial,MySQLNumber oneline skipwhite skipnl
+syn match MySQLTableBody "^|.*|$" nextgroup=MySQLTableBody,MySQLTableEnd contains=MySQLTableBar,MySQLNull,MySQLSpecial,MySQLNumber,String,Number oneline skipwhite skipnl
 syn match MySQLTableEnd "^+[+-]\++$" oneline 
 syn match MySQLTableDivide "^+[+-]\++$" nextgroup=MySQLTableBody oneline skipwhite skipnl
 syn match MySQLTableStart "^+[+-]\++$" nextgroup=MySQLTableHead oneline skipwhite skipnl
@@ -47,3 +44,13 @@ syn case ignore
 syn keyword Keyword select count max show table status like as from left right outer inner join where group by having limit offset order desc asc show
 syn case match
 
+" Typical Prompt
+syn match ConquePrompt "^\[.\+\]\$" oneline
+syn match ConqueWait "^\.\.\.$" oneline
+syn region String start=+'+ end=+'+ skip=+\\'+  oneline
+syn region String start=+"+ end=+"+ skip=+\\"+  oneline
+syn region String start=+`+ end=+`+ skip=+\\`+ oneline
+
+
+
+" vim: foldmethod=marker
