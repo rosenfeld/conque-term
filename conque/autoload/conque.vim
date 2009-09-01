@@ -269,15 +269,15 @@ function! s:read()"{{{
     endif
 
     " read AND write to buffer
-    let l:read = b:proc.read(-1, 500)
-    call s:log.debug('first read' . l:read)
+    let l:read = b:proc.read(-1, 20)
+    call s:log.debug('first read -> "' . l:read . '" < -')
+    let l:output = ''
     while l:read != ''
-        call s:print_buffer(l:read)
-        " XXX - really needed?
-        redraw
-        let l:read = b:proc.read(-1, 500)
-        call s:log.debug('next read' . l:read)
+        let l:output = l:output . l:read
+        let l:read = b:proc.read(-1, 20)
+        call s:log.debug('next read -> "' . l:read . '" < -')
     endwhile
+    call s:print_buffer(l:output)
     redraw
 
     " record prompt used on this line
