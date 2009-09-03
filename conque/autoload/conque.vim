@@ -542,6 +542,11 @@ function! conque#kill_line()"{{{
   " we are throwing away the output here, assuming <C-u> never fails to do as expected
   let l:hopefully_just_backspaces = conque#read_return_raw()
 
+  " clear tab completion for this line
+  if exists("b:tab_complete_history['".line('.')."']")
+      call remove(b:tab_complete_history, line('.'))
+  endif
+
   " restore empty prompt
   call setline(line('.'), b:prompt_history[line('.')])
   normal! G$
