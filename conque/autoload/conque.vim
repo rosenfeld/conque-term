@@ -1,6 +1,7 @@
 " FILE:     autoload/conque.vim
-" AUTHOR:   Shougo Matsushita <Shougo.Matsu@gmail.com> (Original)
-"           Nico Raffo <nicoraffo@gmail.com> (Modified)
+" AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+"           Shougo Matsushita <Shougo.Matsu@gmail.com> (original VimShell)
+"           Yukihiro Nakadaira (vimproc)
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
 " LICENSE: {{{

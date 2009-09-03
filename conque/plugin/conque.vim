@@ -1,6 +1,7 @@
 " FILE:     plugin/conque.vim
-" AUTHOR:   Shougo Matsushita <Shougo.Matsu@gmail.com> (Original)
-"           Nico Raffo <nicoraffo@gmail.com> (Modified)
+" AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+"           Shougo Matsushita <Shougo.Matsu@gmail.com> (original VimShell)
+"           Yukihiro Nakadaira (vimproc)
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
 " LICENSE: {{{
@@ -21,12 +22,12 @@
 " along with this program.  If not, see <http://www.gnu.org/licenses/>.
 " }}}
 
-if exists('g:loaded_conque') || v:version < 700
+if exists('g:Loaded_Conque') || v:version < 700
   finish
 endif
 
 command! -nargs=+ -complete=shellcmd Conque call conque#open(<q-args>)
 
-let g:loaded_conque = 1
+let g:Loaded_Conque = 1
 
 " vim: foldmethod=marker

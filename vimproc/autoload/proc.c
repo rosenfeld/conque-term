@@ -1,4 +1,9 @@
 /* vim:set sw=4 sts=4 et: */
+/**
+ * FILE:   proc.c
+ * AUTHOR: Yukihiro Nakadaira <http://yukihiro.nakadaira.googlepages.com/#vimproc> (original)
+ *         Nico Raffo <nicoraffo@gmail.com> (modified)
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
