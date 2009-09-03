@@ -118,6 +118,9 @@ function! s:set_buffer_settings(command)"{{{
     " interrupt
     nnoremap <buffer><silent><C-c>       :<C-u>call conque#sigint()<CR>
     inoremap <buffer><silent><C-c>       <ESC>:<C-u>call conque#sigint()<CR>
+    " escape
+    nnoremap <buffer><silent><C-e>       :<C-u>call conque#escape()<CR>
+    inoremap <buffer><silent><C-e>       <ESC>:<C-u>call conque#escape()<CR>
 
     " handle unexpected closing of shell
     " passes HUP to main and all child processes
@@ -553,6 +556,17 @@ function! conque#sigint()"{{{
   call b:proc.write("\<C-c>")
   call s:read()
   call s:log.debug('</sigint>')
+endfunction"}}}
+
+" implement <Esc>
+" should send <Esc> to proc
+" Useful if Vim is launched inside of conque
+function! conque#escape()"{{{
+  call s:log.debug('<escape>')
+  " send <Esc> to pty
+  call b:proc.write("\<Esc>")
+  call s:read()
+  call s:log.debug('</escape>')
 endfunction"}}}
 
 " Logging {{{
