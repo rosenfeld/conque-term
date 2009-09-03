@@ -33,6 +33,9 @@ function! conque#open(command)"{{{
         return 0
     endif
 
+    " configure shell buffer display and key mappings
+    call s:set_buffer_settings(a:command)
+
     " set global environment variables
     call s:set_environment()
 
@@ -68,9 +71,6 @@ function! conque#open(command)"{{{
     " read welcome message from command
     call s:read()
 
-    " configure shell buffer display and key mappings
-    call s:set_buffer_settings(a:command)
-
     call s:log.debug('</open command>')
 
     startinsert!
@@ -93,6 +93,8 @@ endfunction"}}}
 
 " buffer settings, layout, key mappings, and auto commands
 function! s:set_buffer_settings(command)"{{{
+    split
+    execute "edit " . substitute(a:command, ' ', '_', 'g') . "@conque"
     setlocal buftype=nofile  " this buffer is not a file, you can't save it
     setlocal nonumber        " hide line numbers
     setlocal foldcolumn=1    " reasonable left margin
@@ -272,6 +274,21 @@ endfunction"}}}
 " read from pty and write to buffer
 function! s:read()"{{{
     call s:log.debug('<read>')
+
+    " read AND write to buffer
+    let l:read = b:proc.read(-1, 40)
+    call s:log.debug('first read -> "' . l:read . '" < -')
+    let l:output = ''
+    while l:read != ''
+        let l:output = l:output . l:read
+        let l:read = b:proc.read(-1, 40)
+        call s:log.debug('next read -> "' . l:read . '" < -')
+    endwhile
+    " print to buffer
+    call s:print_buffer(l:output)
+    redraw
+
+
     " check for fail
     if b:proc.eof
         call s:log.warn('eof detected')
@@ -281,29 +298,8 @@ function! s:read()"{{{
         return
     endif
 
-    " read AND write to buffer
-    let l:read = b:proc.read(-1, 10)
-    call s:log.debug('first read -> "' . l:read . '" < -')
-    let l:output = ''
-    while l:read != ''
-        let l:output = l:output . l:read
-        let l:read = b:proc.read(-1, 10)
-        call s:log.debug('next read -> "' . l:read . '" < -')
-    endwhile
-    call s:print_buffer(l:output)
-    redraw
-
     " record prompt used on this line
     let b:prompt_history[line('.')] = getline('.')
-
-    " check for fail again
-    if b:proc.eof
-        call s:log.warn('eof really detected')
-        echohl WarningMsg | echomsg 'EOF' | echohl None
-        call conque#exit()
-        normal! G$
-        return
-    endif
 
     " ready to insert now
     normal! G$
@@ -338,6 +334,12 @@ function! s:print_buffer(string)"{{{
 
     " Convert encoding for system().
     let l:string = iconv(a:string, 'utf-8', &encoding) 
+
+    " check for Bells
+    if l:string =~ nr2char(7)
+        let l:string = substitute(l:string, nr2char(7), '', 'g')
+        echohl WarningMsg | echomsg "For shame!" | echohl None
+    endif
 
     " Strip <CR>.
     let l:string = substitute(substitute(l:string, '\r', '', 'g'), '\n$', '', '')
@@ -553,8 +555,22 @@ function! conque#sigint()"{{{
   call s:log.debug('</sigint>')
 endfunction"}}}
 
-" define logger
-" TODO: handle production behavior
-let s:log = log#getLogger(expand('<sfile>:t'))
+" Logging {{{
+if exists('g:Conque_Logging') && g:Conque_Logging == 1
+    let s:log = log#getLogger(expand('<sfile>:t'))
+else
+    let s:log = {}
+    function! s:log.debug(msg)
+    endfunction
+    function! s:log.info(msg)
+    endfunction
+    function! s:log.warn(msg)
+    endfunction
+    function! s:log.error(msg)
+    endfunction
+    function! s:log.fatal(msg)
+    endfunction
+endif
+" }}}
 
 " vim: foldmethod=marker
