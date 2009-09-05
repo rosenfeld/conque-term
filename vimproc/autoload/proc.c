@@ -497,7 +497,8 @@ vp_pty_open(char *args)
         /* parent */
         vp_stack_push_num(&_result, "%d", pid);
         vp_stack_push_num(&_result, "%d", fdm);
-        vp_stack_push_str(&_result, ttyname(fdm));
+        /* XXX - ttyname(fdm) breaks in OS X */
+        vp_stack_push_str(&_result, "unused");
         return vp_stack_return(&_result);
     }
     /* DO NOT REACH HEAR */
