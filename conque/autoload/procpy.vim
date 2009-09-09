@@ -1,35 +1,47 @@
-" beginning of python pty/popen library to share common interface with proc.c
+" FILE:     autoload/proc_py.vim
+" AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+" MODIFIED: __MODIFIED__
+" VERSION:  __VERSION__, for Vim 7.0
+" LICENSE:  MIT License "{{{
+" Permission is hereby granted, free of charge, to any person obtaining a copy
+" of this software and associated documentation files (the "Software"), to deal
+" in the Software without restriction, including without limitation the rights
+" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+" copies of the Software, and to permit persons to whom the Software is
+" furnished to do so, subject to the following conditions:
+" 
+" The above copyright notice and this permission notice shall be included in
+" all copies or substantial portions of the Software.
+" 
+" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+" THE SOFTWARE.
+" }}}
+"
 
-function! procpy#test()
-    call procpy#open('/bin/bash')
-    call append(line('$'), procpy#read(0.2))
+let s:lib = {}
 
-    call procpy#write("stty -a\n")
-    call append(line('$'), procpy#read(0.2))
-
-    call procpy#write("cd ~/.vi\t")
-    call append(line('$'), procpy#read(0.2))
-
-    call procpy#write("/autoload\n")
-    call append(line('$'), procpy#read(0.2))
-
-    call procpy#write("pwd\n")
-    call append(line('$'), procpy#read(0.2))
+function! procpy#import()
+  return s:lib
 endfunction
 
-function! procpy#open(command)
-    execute ":python proc = procpy('" . substitute(a:command, "'", "''", "g") . "')"
-    python proc.open()
+function! s:lib.open(command)
+    python proc = procpy()
+    execute ":python proc.open('" . substitute(a:command, "'", "''", "g") . "')"
 endfunction
 
-" XXX - python needs to write to l:output
-function! procpy#read(timeout)
+" XXX - python needs to write to b:procpy_output
+function! s:lib.read(timeout)
     let b:procpy_output = []
     execute ":python proc.read(" . string(a:timeout) . ")"
     return b:procpy_output
 endfunction
 
-function! procpy#write(command)
+function! s:lib.write(command)
     let l:cleaned = a:command
     " newlines between python and vim are a mess
     let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
@@ -51,18 +63,16 @@ class procpy:
 
 
     # constructor I guess (anything could be possible in python?)
-    def __init__( self, command ):
-        command_arr  = command.split()
-        self.command = command_arr[0]
-        self.args    = command_arr
+    def __init__(self):
         self.buffer  = vim.current.buffer
-
-        # sanity checks
-        self._max_read_loops = 10
 
 
     # create the pty or whatever
-    def open(self):
+    def open(self, command):
+        command_arr  = command.split()
+        self.command = command_arr[0]
+        self.args    = command_arr
+
         try:
             self.pid, self.fd = pty.fork()
         except:
@@ -122,7 +132,7 @@ class procpy:
         return 
 
 
-    # I guess this ones not bad
+    # I guess this one's not bad
     def write(self, command):
         os.write(self.fd, command)
 
