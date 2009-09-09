@@ -1,19 +1,41 @@
 " beginning of python pty/popen library to share common interface with proc.c
 
+function! procpy#test()
+    call procpy#open('/bin/bash')
+    call append(line('$'), procpy#read(0.2))
+
+    call procpy#write("stty -a\n")
+    call append(line('$'), procpy#read(0.2))
+
+    call procpy#write("cd ~/.vi\t")
+    call append(line('$'), procpy#read(0.2))
+
+    call procpy#write("/autoload\n")
+    call append(line('$'), procpy#read(0.2))
+
+    call procpy#write("pwd\n")
+    call append(line('$'), procpy#read(0.2))
+endfunction
+
 function! procpy#open(command)
-    execute ":python proc = procpy('" . a:command . "')"
+    execute ":python proc = procpy('" . substitute(a:command, "'", "''", "g") . "')"
     python proc.open()
-endfnction
+endfunction
 
 " XXX - python needs to write to l:output
 function! procpy#read(timeout)
-    let l:output = ''
-    execute ":python proc.read(" . a:timeout. ")"
-    return l:output
+    let b:procpy_output = []
+    execute ":python proc.read(" . string(a:timeout) . ")"
+    return b:procpy_output
 endfunction
 
 function! procpy#write(command)
-    execute ":python proc.write(" . a:command. ")"
+    let l:cleaned = a:command
+    " newlines between python and vim are a mess
+    let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
+    let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
+    let l:cleaned = substitute(l:cleaned, "'", "''", 'g')
+    execute ":python proc.write('" . l:cleaned . "')"
 endfunction
 
 python << EOF
@@ -55,7 +77,7 @@ class procpy:
             attrs[ 6 ][ tty.VTIME ] = 0
             attrs[ 0 ] = attrs[ 0 ] | tty.BRKINT
             attrs[ 0 ] = attrs[ 0 ] & tty.IGNBRK
-            attrs[ 3 ] = attrs[ 3 ] & ~tty.ICANON & ~tty.ECHO
+            attrs[ 3 ] = attrs[ 3 ] | tty.ICANON | tty.ECHO | tty.ISIG
             tty.tcsetattr( 1, tty.TCSANOW, attrs )
 
             os.execv( self.command, self.args )
@@ -77,10 +99,11 @@ class procpy:
 
         output = ''
 
+        # what, no do/while?
         while 1:
             s_read, s_write, s_error = select.select( [ self.fd ], [], [], timeout)
-            lines = ''
 
+            lines = ''
             for s_fd in s_read:
                 lines = os.read( self.fd, 32 )
                 output = output + lines
@@ -88,7 +111,15 @@ class procpy:
             if lines == '':
                 break
 
-        return output
+        #self.buffer.append(output)
+
+        # XXX - BRUTAL
+        lines_arr = re.split('\n', output)
+        for v_line in lines_arr:
+            command = 'call add(b:procpy_output, "' + re.sub('"', '""', v_line) + '")'
+            vim.command(command)
+
+        return 
 
 
     # I guess this ones not bad
@@ -99,18 +130,5 @@ class procpy:
         os.kill( self.pid, signal.SIGKILL )
 
 
-test_ing = procpy('/bin/sh')
-test_ing.open()
-foo = test_ing.read(0.4)
-test_ing.write("ls\n")
-foo += test_ing.read(0.4)
-test_ing.write("pwd\n")
-foo += test_ing.read(0.4)
-for ln in foo.split("\n"):
-    test_ing.buffer.append(ln)
-test_ing.kill()
-
 EOF
-
-
 
