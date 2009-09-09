@@ -25,20 +25,20 @@
 
 let s:lib = {}
 
-function! procpy#import()
+function! proc_py#import()
   return s:lib
 endfunction
 
 function! s:lib.open(command)
-    python proc = procpy()
+    python proc = proc_py()
     execute ":python proc.open('" . substitute(a:command, "'", "''", "g") . "')"
 endfunction
 
-" XXX - python needs to write to b:procpy_output
+" XXX - python needs to write to b:proc_py_output
 function! s:lib.read(timeout)
-    let b:procpy_output = []
+    let b:proc_py_output = []
     execute ":python proc.read(" . string(a:timeout) . ")"
-    return b:procpy_output
+    return b:proc_py_output
 endfunction
 
 function! s:lib.write(command)
@@ -55,11 +55,11 @@ python << EOF
 # Heavily borrowed from vimsh.py <http://www.vim.org/scripts/script.php?script_id=165>
 #
 # TODO: Windows (popens)
-# TODO: merge proc.c/vim into unified interface with procpy
+# TODO: merge proc.c/vim into unified interface with proc_py
 
 import vim, sys, os, string, signal, re, time, pty, tty, select
 
-class procpy:
+class proc_py:
 
 
     # constructor I guess (anything could be possible in python?)
@@ -126,7 +126,7 @@ class procpy:
         # XXX - BRUTAL
         lines_arr = re.split('\n', output)
         for v_line in lines_arr:
-            command = 'call add(b:procpy_output, "' + re.sub('"', '""', v_line) + '")'
+            command = 'call add(b:proc_py_output, "' + re.sub('"', '""', v_line) + '")'
             vim.command(command)
 
         return 
