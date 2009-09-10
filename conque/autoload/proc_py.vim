@@ -44,6 +44,7 @@ endfunction
 function! s:lib.write(command)
     let l:cleaned = a:command
     " newlines between python and vim are a mess
+    let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
     let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
     let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
     let l:cleaned = substitute(l:cleaned, "'", "''", 'g')
@@ -57,7 +58,15 @@ python << EOF
 # TODO: Windows (popens)
 # TODO: merge proc.c/vim into unified interface with proc_py
 
-import vim, sys, os, string, signal, re, time, pty, tty, select
+import vim, sys, os, string, signal, re, time
+
+if sys.platform == 'win32' or sys.platform == 'win64':
+    import popen2, stat
+    use_pty = 0
+else:
+    import pty, tty, select
+    use_pty = 1
+
 
 class proc_py:
 
@@ -67,40 +76,58 @@ class proc_py:
         self.buffer  = vim.current.buffer
 
 
-    # create the pty or whatever
+    # create the pty or whatever (whatever == windows)
     def open(self, command):
         command_arr  = command.split()
         self.command = command_arr[0]
         self.args    = command_arr
 
-        try:
-            self.pid, self.fd = pty.fork()
-        except:
-            print "pty.fork() failed. Did you mean pty.spork() ???"
-
-        # child proc, replace with command after fucking with terminal attributes
-        if self.pid == 0:
-
-            # set some attributes
-            attrs = tty.tcgetattr( 1 )
-            attrs[ 6 ][ tty.VMIN ]  = 1
-            attrs[ 6 ][ tty.VTIME ] = 0
-            attrs[ 0 ] = attrs[ 0 ] | tty.BRKINT
-            attrs[ 0 ] = attrs[ 0 ] & tty.IGNBRK
-            attrs[ 3 ] = attrs[ 3 ] | tty.ICANON | tty.ECHO | tty.ISIG
-            tty.tcsetattr( 1, tty.TCSANOW, attrs )
-
-            os.execv( self.command, self.args )
-
-        # else master, pull termios settings and move on
-        else:
+        # pty: praise jesus!
+        if use_pty:
 
             try:
-                attrs = tty.tcgetattr( 1 )
-                self.termios_keys = attrs[ 6 ]
-
+                self.pid, self.fd = pty.fork()
             except:
-                print  'setup_pty: tcgetattr failed. I guess <C-c> will have to work for you' 
+                print "pty.fork() failed. Did you mean pty.spork() ???"
+
+            # child proc, replace with command after fucking with terminal attributes
+            if self.pid == 0:
+
+                # set some attributes
+                attrs = tty.tcgetattr( 1 )
+                attrs[ 6 ][ tty.VMIN ]  = 1
+                attrs[ 6 ][ tty.VTIME ] = 0
+                attrs[ 0 ] = attrs[ 0 ] | tty.BRKINT
+                attrs[ 0 ] = attrs[ 0 ] & tty.IGNBRK
+                attrs[ 3 ] = attrs[ 3 ] | tty.ICANON | tty.ECHO | tty.ISIG
+                tty.tcsetattr( 1, tty.TCSANOW, attrs )
+
+                os.execv( self.command, self.args )
+
+            # else master, pull termios settings and move on
+            else:
+
+                try:
+                    attrs = tty.tcgetattr( 1 )
+                    self.termios_keys = attrs[ 6 ]
+
+                except:
+                    print  'setup_pty: tcgetattr failed. I guess <C-c> will have to work for you' 
+
+        # no pty, dagnabit
+        else:
+            # apparently pipes > popen2
+            try:
+                import win32pipe
+                self.stdin, self.stdout, self.stderr = win32pipe.popen3(command)
+
+            except ImportError:
+                print 'w32 === fail!' # this always fails for me
+                self.stdout, self.stdin, self.stderr = popen2.popen3(command, -1, 'b')
+
+            self.outd = self.stdout.fileno()
+            self.ind  = self.stdin.fileno ()
+            self.errd = self.stderr.fileno()
 
 
     # read from pty
@@ -109,24 +136,46 @@ class proc_py:
 
         output = ''
 
-        # what, no do/while?
-        while 1:
-            s_read, s_write, s_error = select.select( [ self.fd ], [], [], timeout)
+        # score
+        if use_pty:
 
-            lines = ''
-            for s_fd in s_read:
-                lines = os.read( self.fd, 32 )
-                output = output + lines
+            # what, no do/while?
+            while 1:
+                s_read, s_write, s_error = select.select( [ self.fd ], [], [], timeout)
 
-            if lines == '':
-                break
+                lines = ''
+                for s_fd in s_read:
+                    lines = os.read( self.fd, 32 )
+                    output = output + lines
 
-        #self.buffer.append(output)
+                if lines == '':
+                    break
+
+        # urk, windows
+        else: 
+            time.sleep(timeout)
+
+            count = 0
+            count = os.fstat(self.outd)[stat.ST_SIZE]
+
+            while (count > 0):
+
+                tmp = os.read(self.outd, 1)
+                output += tmp
+
+                count = os.fstat(self.outd)[stat.ST_SIZE]
+
+                if len(tmp) == 0:
+                    break
+
 
         # XXX - BRUTAL
         lines_arr = re.split('\n', output)
         for v_line in lines_arr:
-            command = 'call add(b:proc_py_output, "' + re.sub('"', '""', v_line) + '")'
+            cleaned = v_line
+            cleaned = re.sub('\\\\', '\\\\\\\\', cleaned) # ftw!
+            cleaned = re.sub('"', '""', cleaned)
+            command = 'call add(b:proc_py_output, "' + cleaned + '")'
             vim.command(command)
 
         return 
@@ -134,10 +183,19 @@ class proc_py:
 
     # I guess this one's not bad
     def write(self, command):
-        os.write(self.fd, command)
+        if use_pty:
+            os.write(self.fd, command)
+        else:
+            os.write(self.ind, command)
 
     def kill(self):
-        os.kill( self.pid, signal.SIGKILL )
+        if use_pty:
+            os.kill( self.pid, signal.SIGKILL )
+        else:
+            os.close(self.ind)
+            os.close(self.outd)
+            os.close(self.errd)
+
 
 
 EOF
