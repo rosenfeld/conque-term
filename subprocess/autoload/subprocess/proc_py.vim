@@ -1,4 +1,4 @@
-" FILE:     autoload/proc_py.vim
+" FILE:     autoload/subprocess/proc_py.vim
 " AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
@@ -25,38 +25,53 @@
 
 let s:lib = {}
 
-function! proc_py#import()
+function! subprocess#proc_py#import() "{{{
   return s:lib
-endfunction
+endfunction "}}}
 
-function! s:lib.open(command)
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" API methods
+
+function! s:lib.open(command) "{{{
     python proc = proc_py()
-    execute ":python proc.open('" . substitute(a:command, "'", "''", "g") . "')"
-endfunction
+    execute ":python proc.open('" . s:python_escape(a:command) . "')"
+endfunction "}}}
 
-" XXX - python needs to write to b:proc_py_output
-function! s:lib.read(timeout)
+function! s:lib.read(...) "{{{
+    let timeout = get(a:000, 0, 0.2)
     let b:proc_py_output = []
-    execute ":python proc.read(" . string(a:timeout) . ")"
+    execute ":python proc.read(" . string(timeout) . ")"
     return b:proc_py_output
-endfunction
+endfunction "}}}
 
-function! s:lib.write(command)
-    let l:cleaned = a:command
+function! s:lib.write(command) "{{{
+    execute ":python proc.write('" . s:python_escape(a:command) . "')"
+endfunction "}}}
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Util
+
+function! s:python_escape(str_in) "{{{
+    let l:cleaned = a:str_in
     " newlines between python and vim are a mess
     let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
     let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
     let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
     let l:cleaned = substitute(l:cleaned, "'", "''", 'g')
-    execute ":python proc.write('" . l:cleaned . "')"
-endfunction
+    return l:cleaned
+endfunction "}}}
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Python {{{
 python << EOF
 
-# Heavily borrowed from vimsh.py <http://www.vim.org/scripts/script.php?script_id=165>
+# Subprocess management in python.
+# Uses 'pty' when possible 'popen' otherwise.
+# 
+# TODO: Beat interactive Windows commands into submission.
+# TODO: Investigate win32pipe
 #
-# TODO: Windows (popens)
-# TODO: merge proc.c/vim into unified interface with proc_py
+# Heavily borrowed from vimsh.py <http://www.vim.org/scripts/script.php?script_id=165>
 
 import vim, sys, os, string, signal, re, time
 
@@ -199,4 +214,6 @@ class proc_py:
 
 
 EOF
+
+"}}}
 

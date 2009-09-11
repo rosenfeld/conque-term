@@ -1,6 +1,6 @@
  
-function! ProcPyTestPty()
-     let p = proc_py#import()
+function! TestPty()
+     let p = subprocess#new()
  
      call p.open('/bin/bash')
      call append(line('$'), p.read(0.2))
@@ -18,8 +18,8 @@ function! ProcPyTestPty()
      call append(line('$'), p.read(0.2))
  endfunction
 
-function! ProcPyTestPopen()
-     let p = proc_py#import()
+function! TestPopen()
+     let p = subprocess#new()
  
      call p.open('cmd.exe')
      call append(line('$'), p.read(0.2))

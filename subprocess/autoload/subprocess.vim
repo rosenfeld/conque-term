@@ -24,11 +24,11 @@
 "
 
 " XXX do we care about proc library at this level?
-function! subprocess#new()
+function! subprocess#new() "{{{
 
     " try to load python
     if has('python')
-        return proc_py#import()
+        return subprocess#proc_py#import()
     endif
 
     " try to load C
@@ -37,5 +37,5 @@ function! subprocess#new()
     " FAIL
     echoerr "no compatible subprocess library found"
 
-endfunction
+endfunction "}}}
 
