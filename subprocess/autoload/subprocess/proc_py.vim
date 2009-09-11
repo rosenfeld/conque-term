@@ -1,5 +1,3 @@
-" FILE:     autoload/subprocess/proc_py.vim
-" AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
 " LICENSE:  MIT License "{{{
@@ -22,6 +20,7 @@
 " THE SOFTWARE.
 " }}}
 "
+scriptencoding utf-8
 
 let s:lib = {}
 
@@ -46,6 +45,37 @@ endfunction "}}}
 
 function! s:lib.write(command) "{{{
     execute ":python proc.write('" . s:python_escape(a:command) . "')"
+endfunction "}}}
+
+" Try to close process gracefully
+" Linux signal 15, Windows close()
+function! s:lib.close() "{{{
+    python proc.close()
+endfunction "}}}
+
+" Close process forcefully
+" Linux signal 9, Windows close()
+function! s:lib.kill() "{{{
+    python proc.kill()
+endfunction "}}}
+
+" Abandon process
+" Linux signal 1, Windows close()
+function! s:lib.hang_up() "{{{
+    python proc.hang_up()
+endfunction "}}}
+
+" Send an interrupt to process
+" Typically <C-c>
+function! s:lib.interrupt() "{{{
+    python proc.interrupt()
+endfunction "}}}
+
+" Am I alive?
+function! s:lib.get_status() "{{{
+    let b:proc_py_status = 1
+    python proc.get_status()
+    return b:proc_py_status
 endfunction "}}}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -87,12 +117,12 @@ class proc_py:
 
 
     # constructor I guess (anything could be possible in python?)
-    def __init__(self):
+    def __init__(self): # {{{
         self.buffer  = vim.current.buffer
-
+        # }}}
 
     # create the pty or whatever (whatever == windows)
-    def open(self, command):
+    def open(self, command): # {{{
         command_arr  = command.split()
         self.command = command_arr[0]
         self.args    = command_arr
@@ -124,7 +154,14 @@ class proc_py:
 
                 try:
                     attrs = tty.tcgetattr( 1 )
-                    self.termios_keys = attrs[ 6 ]
+                    termios_keys = attrs[ 6 ]
+
+                    self.eof_key   = termios_keys[ tty.VEOF ]
+                    self.eol_key   = termios_keys[ tty.VEOL ]
+                    self.erase_key = termios_keys[ tty.VERASE ]
+                    self.intr_key  = termios_keys[ tty.VINTR ]
+                    self.kill_key  = termios_keys[ tty.VKILL ]
+                    self.susp_key  = termios_keys[ tty.VSUSP ]
 
                 except:
                     print  'setup_pty: tcgetattr failed. I guess <C-c> will have to work for you' 
@@ -144,10 +181,13 @@ class proc_py:
             self.ind  = self.stdin.fileno ()
             self.errd = self.stderr.fileno()
 
+            self.intr_key = ''
+            self.eof_key  = ''
+            # }}}
 
     # read from pty
     # XXX - select.poll() doesn't work in OS X!!!!!!!
-    def read(self, timeout = 0.1):
+    def read(self, timeout = 0.1): # {{{
 
         output = ''
 
@@ -194,22 +234,61 @@ class proc_py:
             vim.command(command)
 
         return 
-
+        # }}}
 
     # I guess this one's not bad
-    def write(self, command):
+    def write(self, command): # {{{
         if use_pty:
             os.write(self.fd, command)
         else:
             os.write(self.ind, command)
+        # }}}
 
-    def kill(self):
+    def close(self): # {{{
         if use_pty:
-            os.kill( self.pid, signal.SIGKILL )
+            os.kill(self.pid, signal.SIGTERM)
         else:
             os.close(self.ind)
             os.close(self.outd)
             os.close(self.errd)
+        # }}}
+
+    def kill(self): # {{{
+        if use_pty:
+            os.kill(self.pid, signal.SIGKILL)
+        else:
+            os.close(self.ind)
+            os.close(self.outd)
+            os.close(self.errd)
+        # }}}
+
+    def hang_up(self): # {{{
+        if use_pty:
+            os.kill(self.pid, signal.SIGHUP)
+        else:
+            os.close(self.ind)
+            os.close(self.outd)
+            os.close(self.errd)
+        # }}}
+
+    def interrupt(self): # {{{
+        self.write(self.intr_key)
+        # }}}
+
+    # TODO: windows
+    def get_status(self): #{{{
+
+        if use_pty:
+            if os.waitpid( self.pid, os.WNOHANG )[0]:
+                p_status = 0
+            else:
+                p_status = 1
+
+        p_status = 1 # boooooooooooooooooogus
+
+        command = 'let b:proc_py_status = ' + p_status
+        vim.command(command)
+        # }}}
 
 
 
