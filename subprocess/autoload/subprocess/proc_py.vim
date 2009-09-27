@@ -25,56 +25,58 @@ scriptencoding utf-8
 let s:lib = {}
 
 function! subprocess#proc_py#import() "{{{
-  return s:lib
+  let l:lib = deepcopy(s:lib, 1)
+  return l:lib
 endfunction "}}}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " API methods
 
 function! s:lib.open(command) "{{{
-    python proc = proc_py()
-    execute ":python proc.open('" . s:python_escape(a:command) . "')"
+    let b:conque_id = string(bufnr('.', 1))
+    execute ":python proc".b:conque_id." = proc_py()"
+    execute ":python proc".b:conque_id.".open('" . s:python_escape(a:command) . "')"
 endfunction "}}}
 
 function! s:lib.read(...) "{{{
     let timeout = get(a:000, 0, 0.2)
     let b:proc_py_output = []
-    execute ":python proc.read(" . string(timeout) . ")"
+    execute ":python proc".b:conque_id.".read(" . string(timeout) . ")"
     return b:proc_py_output
 endfunction "}}}
 
 function! s:lib.write(command) "{{{
-    execute ":python proc.write('" . s:python_escape(a:command) . "')"
+    execute ":python proc".b:conque_id.".write('" . s:python_escape(a:command) . "')"
 endfunction "}}}
 
 " Try to close process gracefully
 " Linux signal 15, Windows close()
 function! s:lib.close() "{{{
-    python proc.close()
+    execute ":python proc".b:conque_id.".close()"
 endfunction "}}}
 
 " Close process forcefully
 " Linux signal 9, Windows close()
 function! s:lib.kill() "{{{
-    python proc.kill()
+    execute ":python proc".b:conque_id.".kill()"
 endfunction "}}}
 
 " Abandon process
 " Linux signal 1, Windows close()
 function! s:lib.hang_up() "{{{
-    python proc.hang_up()
+    execute ":python proc".b:conque_id.".hang_up()"
 endfunction "}}}
 
 " Send an interrupt to process
 " Typically <C-c>
 function! s:lib.interrupt() "{{{
-    python proc.interrupt()
+    execute ":python proc".b:conque_id.".interrupt()"
 endfunction "}}}
 
 " Am I alive?
 function! s:lib.get_status() "{{{
     let b:proc_py_status = 1
-    python proc.get_status()
+    execute ":python proc".b:conque_id.".get_status()"
     return b:proc_py_status
 endfunction "}}}
 
@@ -138,16 +140,22 @@ class proc_py:
             # child proc, replace with command after fucking with terminal attributes
             if self.pid == 0:
 
+                os.environ['TERM'] = 'dumb'
+                os.environ['CONQUE'] = '1'
+                os.environ['COLUMNS'] = '80'
+                os.environ['LINES'] = '20'
+
                 # set some attributes
                 attrs = tty.tcgetattr( 1 )
                 attrs[ 6 ][ tty.VMIN ]  = 1
                 attrs[ 6 ][ tty.VTIME ] = 0
                 attrs[ 0 ] = attrs[ 0 ] | tty.BRKINT
-                attrs[ 0 ] = attrs[ 0 ] & tty.IGNBRK
+                attrs[ 0 ] = attrs[ 0 ] ^ tty.IGNBRK
                 attrs[ 3 ] = attrs[ 3 ] | tty.ICANON | tty.ECHO | tty.ISIG
+                attrs[ 3 ] = attrs[ 3 ] ^ tty.ECHOKE
                 tty.tcsetattr( 1, tty.TCSANOW, attrs )
 
-                os.execv( self.command, self.args )
+                os.execvp( self.command, self.args )
 
             # else master, pull termios settings and move on
             else:
@@ -223,14 +231,17 @@ class proc_py:
                 if len(tmp) == 0:
                     break
 
+        #print output
 
         # XXX - BRUTAL
         lines_arr = re.split('\n', output)
         for v_line in lines_arr:
             cleaned = v_line
             cleaned = re.sub('\\\\', '\\\\\\\\', cleaned) # ftw!
-            cleaned = re.sub('"', '""', cleaned)
+            cleaned = re.sub('"', '\\\\"', cleaned)
             command = 'call add(b:proc_py_output, "' + cleaned + '")'
+            #self.buffer.append(command)
+            #self.buffer.append('')
             vim.command(command)
 
         return 
@@ -278,15 +289,18 @@ class proc_py:
     # TODO: windows
     def get_status(self): #{{{
 
-        if use_pty:
-            if os.waitpid( self.pid, os.WNOHANG )[0]:
-                p_status = 0
-            else:
-                p_status = 1
-
         p_status = 1 # boooooooooooooooooogus
 
-        command = 'let b:proc_py_status = ' + p_status
+        if use_pty:
+            try:
+                if os.waitpid( self.pid, os.WNOHANG )[0]:
+                    p_status = 0
+                else:
+                    p_status = 1
+            except:
+                p_status = 0
+
+        command = 'let b:proc_py_status = ' + str(p_status)
         vim.command(command)
         # }}}
 
