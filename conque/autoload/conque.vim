@@ -148,10 +148,19 @@ function! conque#run_return(timeout)"{{{
     let l:output = conque#read_return_raw(a:timeout)
     call s:log.debug('</keyboard triggered run return>')
     let l:output_string = join(l:output, "\n")
+
+    " strip bells, leave whistles
     if l:output_string =~ nr2char(7)
         let l:output_string = substitute(l:output_string, nr2char(7), '', 'g')
         echohl WarningMsg | echomsg "For shame!" | echohl None
     endif
+
+    " strip backspaces out of output
+    while l:output_string =~ '\b'
+        let l:output_string = substitute(l:output_string, '[^\b]\b', '', 'g')
+        let l:output_string = substitute(l:output_string, '^\b', '', 'g')
+    endwhile
+
     return l:output_string
 endfunction"}}}
 
@@ -331,6 +340,12 @@ function! s:print_buffer(read_lines)"{{{
         let l:string = substitute(l:string, nr2char(7), '', 'g')
         echohl WarningMsg | echomsg "For shame!" | echohl None
     endif
+
+    " strip backspaces out of output
+    while l:string =~ '\b'
+        let l:string = substitute(l:string, '[^\b]\b', '', 'g')
+        let l:string = substitute(l:string, '^\b', '', 'g')
+    endwhile
 
     " Strip <CR>.
     let l:string = substitute(substitute(l:string, '\r', '', 'g'), '\n$', '', '')
