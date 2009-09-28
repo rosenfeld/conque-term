@@ -89,7 +89,7 @@ function! s:python_escape(str_in) "{{{
     let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
     let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
     let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
-    let l:cleaned = substitute(l:cleaned, "'", "''", 'g')
+    let l:cleaned = substitute(l:cleaned, "'", "\\\\'", 'g')
     return l:cleaned
 endfunction "}}}
 

@@ -511,7 +511,11 @@ function! s:tab_complete()"{{{
 
     let l:candidate = conque#run_return(0.003)
     call setline(line('.'), l:working_line)
-    let l:extra = substitute(l:candidate, '^'.l:working_command, '', '')
+    let l:extra = l:candidate
+    let l:wlen = len(l:working_command)
+    if l:candidate[0 : l:wlen - 1] == l:working_command
+        let l:extra = l:candidate[l:wlen :]
+    endif
 
     call s:log.debug('tab complete candidate: "' . l:extra . '" == "' . nr2char(7) . '"')
     if l:extra == nr2char(7) || l:extra == ''
