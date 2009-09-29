@@ -33,7 +33,33 @@ if exists('g:Loaded_Conque') || v:version < 700
   finish
 endif
 
+" Configuration globals {{{
+""""""""""""""""""""""""""""""""""""""""""
+" Use '...' filler characters while waiting for output
+" Using the filler functionality will prevent commands from piling up while you wait, but it diverges from typical shell behavior
+if !exists('g:Conque_Use_Filler')
+    let g:Conque_Use_Filler  = 1
+endif
+" Default read timeout for running a command, in seconds.
+" Decreasing this value will make Conque seem more responsive, but you will get more '...' read timeouts
+if !exists('g:Conque_Read_Timeout')
+    let g:Conque_Read_Timeout = 0.04
+endif
+" Default read timeout for tab completion
+" Since tab completion is typically nearly instant, this value can be very, very small before timeouts occur
+if !exists('g:Conque_Tab_Timeout')
+    let g:Conque_Tab_Timeout = 0.003
+endif
+" Syntax for your buffer
+if !exists('g:Conque_Syntax')
+    let g:Conque_Syntax = 'conque'
+endif
+""""""""""""""""""""""""""""""""""""""""""
+" }}}
+
 command! -nargs=+ -complete=shellcmd Conque call conque#open(<q-args>)
+command! -nargs=+ -complete=shellcmd ConqueSplit call conque#open(<q-args>, ['split'])
+command! -nargs=+ -complete=shellcmd ConqueVSplit call conque#open(<q-args>, ['vsplit'])
 
 let g:Loaded_Conque = 1
 

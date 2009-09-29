@@ -31,18 +31,21 @@
 
 " Open a command in Conque.
 " This is the root function that is called from Vim to start up Conque.
-function! conque#open(command)"{{{
-    call s:log.debug('<open command>')
-    call s:log.debug('command: ' . a:command)
+function! conque#open(...)"{{{
+    let command = get(a:000, 0, '')
+    let hooks   = get(a:000, 1, [])
 
-    if empty(a:command)
+    call s:log.debug('<open command>')
+    call s:log.debug('command: ' . command)
+
+    if empty(command)
         echohl WarningMsg | echomsg "No command found" | echohl None
-        call s:log.warn('command not found: ' . a:command)
+        call s:log.warn('command not found: ' . command)
         return 0
     endif
 
     " configure shell buffer display and key mappings
-    call s:set_buffer_settings(a:command)
+    call s:set_buffer_settings(command, hooks)
 
     " set global environment variables
     call s:set_environment()
@@ -50,10 +53,10 @@ function! conque#open(command)"{{{
     " open command
     try
         let b:subprocess = subprocess#new()
-        call b:subprocess.open(a:command)
-        call s:log.info('opening command: ' . a:command . ' with ptyopen')
+        call b:subprocess.open(command)
+        call s:log.info('opening command: ' . command . ' with ptyopen')
     catch 
-        let l:error = printf('Unable to open command: ', a:command)
+        let l:error = printf('Unable to open command: ', command)
         echohl WarningMsg | echomsg l:error | echohl None
         return 0
     endtry
@@ -63,7 +66,6 @@ function! conque#open(command)"{{{
     let b:prompt_history = {}
     let b:current_command = ''
     let b:command_position = 0
-    let b:tab_complete_history = {}
 
     " read welcome message from command
     call s:read(0.5)
@@ -80,7 +82,7 @@ function! s:set_environment()"{{{
     let $TERM = "dumb"
     "let $TERMCAP = "COLUMNS=" . winwidth(0)
     let $VIMSHELL = 1
-    let $COLUMNS = winwidth(0) " these get reset by terminal anyway
+    let $COLUMNS = winwidth(0) - 8 " these get reset by terminal anyway
     let $LINES = winheight(0)
     
     call s:log.debug('<env>')
@@ -89,8 +91,12 @@ function! s:set_environment()"{{{
 endfunction"}}}
 
 " buffer settings, layout, key mappings, and auto commands
-function! s:set_buffer_settings(command)"{{{
-    split
+function! s:set_buffer_settings(command, pre_hooks)"{{{
+    " optional hooks to execute, e.g. 'split'
+    for h in a:pre_hooks
+        execute h
+    endfor
+
     execute "edit " . substitute(a:command, ' ', '_', 'g') . "@" . bufnr('.', 1)
     setlocal buftype=nofile  " this buffer is not a file, you can't save it
     setlocal nonumber        " hide line numbers
@@ -98,7 +104,7 @@ function! s:set_buffer_settings(command)"{{{
     setlocal nowrap          " default to no wrap (esp with MySQL)
     setlocal noswapfile      " don't bother creating a .swp file
     setfiletype conque        " useful
-    setlocal syntax=conque    " see syntax/conque.vim
+    execute "setlocal syntax=".g:Conque_Syntax
 
     " run the current command
     nnoremap <buffer><silent><CR>        :<C-u>call conque#run()<CR>
@@ -136,7 +142,7 @@ function! conque#run()"{{{
     call s:log.debug('status: ' . string(b:subprocess.get_status()))
 
     call conque#write(1)
-    call s:read(0.04)
+    call s:read(g:Conque_Read_Timeout)
 
     call s:log.debug('</keyboard triggered run>')
 endfunction"}}}
@@ -207,13 +213,14 @@ function! conque#write(add_newline)"{{{
     endif
     let b:current_command = l:in
     let b:command_position = 0
-    if exists("b:tab_complete_history['".line('.')."']")
-        call remove(b:tab_complete_history, line('.'))
-    endif
 
     " we're doing something
     if a:add_newline == 1
-        call append(line('$'), '...')
+        if g:Conque_Use_Filler == 1
+            call append(line('$'), '...')
+        else
+            call append(line('$'), '')
+        endif
     endif
 
     normal! G$
@@ -231,9 +238,6 @@ function! s:get_command()"{{{
 
   elseif l:in == '...'
     " Working
-
-  elseif exists("b:tab_complete_history['".line('.')."']")
-    let l:in = l:in[len(b:tab_complete_history[line('.')]) : ]
 
   elseif exists("b:prompt_history['".line('.')."']")
     let l:in = l:in[len(b:prompt_history[line('.')]) : ]
@@ -485,9 +489,7 @@ endfunction"}}}
 " if tab completion has initiated, prevent deleting partial command already sent to pty
 function! s:delete_backword_char()"{{{
     " identify prompt
-    if exists('b:tab_complete_history[line(".")]')
-        let l:prompt = b:tab_complete_history[line('.')]
-    elseif exists('b:prompt_history[line(".")]')
+    if exists('b:prompt_history[line(".")]')
         let l:prompt = b:prompt_history[line('.')]
     else
         return "\<BS>"
@@ -524,7 +526,7 @@ function! s:tab_complete()"{{{
         call setline(line('.'), getline('.') . "\<TAB>")
     endfor
 
-    let l:candidate = conque#run_return(0.003)
+    let l:candidate = conque#run_return(g:Conque_Tab_Timeout)
     call setline(line('.'), l:working_line)
     let l:extra = l:candidate
     let l:wlen = len(l:working_command)
@@ -591,11 +593,6 @@ function! conque#kill_line()"{{{
 
     " we are throwing away the output here, assuming <C-u> never fails to do as expected
     let l:hopefully_just_backspaces = conque#read_return_raw(0.5)
-
-    " clear tab completion for this line
-    if exists("b:tab_complete_history['".line('.')."']")
-        call remove(b:tab_complete_history, line('.'))
-    endif
 
     " restore empty prompt
     call setline(line('.'), b:prompt_history[line('.')])

@@ -142,20 +142,20 @@ class proc_py:
 
                 os.environ['TERM'] = 'dumb'
                 os.environ['CONQUE'] = '1'
-                os.environ['COLUMNS'] = '80'
-                os.environ['LINES'] = '20'
+                #os.environ['COLUMNS'] = w.width
+                #os.environ['LINES'] = w.height
 
                 # set some attributes
-                attrs = tty.tcgetattr( 1 )
-                attrs[ 6 ][ tty.VMIN ]  = 1
-                attrs[ 6 ][ tty.VTIME ] = 0
-                attrs[ 0 ] = attrs[ 0 ] | tty.BRKINT
-                attrs[ 0 ] = attrs[ 0 ] ^ tty.IGNBRK
-                attrs[ 3 ] = attrs[ 3 ] | tty.ICANON | tty.ECHO | tty.ISIG
-                attrs[ 3 ] = attrs[ 3 ] ^ tty.ECHOKE
-                tty.tcsetattr( 1, tty.TCSANOW, attrs )
+                attrs = tty.tcgetattr(1)
+                attrs[0] = attrs[0] ^ tty.IGNBRK
+                attrs[0] = attrs[0] | tty.BRKINT | tty.IXANY | tty.IMAXBEL
+                attrs[2] = attrs[2] | tty.HUPCL
+                attrs[3] = attrs[3] | tty.ICANON | tty.ECHO | tty.ISIG | tty.ECHOKE
+                attrs[6][tty.VMIN]  = 1
+                attrs[6][tty.VTIME] = 0
+                tty.tcsetattr(1, tty.TCSANOW, attrs)
 
-                os.execvp( self.command, self.args )
+                os.execvp(self.command, self.args)
 
             # else master, pull termios settings and move on
             else:
