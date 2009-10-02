@@ -124,6 +124,15 @@ function! s:set_buffer_settings(command, pre_hooks)"{{{
     " escape
     nnoremap <buffer><silent><C-e>       :<C-u>call conque#escape()<CR>
     inoremap <buffer><silent><C-e>       <ESC>:<C-u>call conque#escape()<CR>
+    " eof
+    nnoremap <buffer><silent><C-d>       :<C-u>call conque#eof()<CR>
+    inoremap <buffer><silent><C-d>       <ESC>:<C-u>call conque#eof()<CR>
+    " suspend
+    nnoremap <buffer><silent><C-z>       :<C-u>call conque#suspend()<CR>
+    inoremap <buffer><silent><C-z>       <ESC>:<C-u>call conque#suspend()<CR>
+    " quit
+    nnoremap <buffer><silent><C-\>       :<C-u>call conque#quit()<CR>
+    inoremap <buffer><silent><C-\>       <ESC>:<C-u>call conque#quit()<CR>
 
     " handle unexpected closing of shell
     " passes HUP to main and all child processes
@@ -158,7 +167,7 @@ function! conque#run_return(timeout)"{{{
     " strip bells, leave whistles
     if l:output_string =~ nr2char(7)
         let l:output_string = substitute(l:output_string, nr2char(7), '', 'g')
-        echohl WarningMsg | echomsg "For shame!" | echohl None
+        echohl WarningMsg | echomsg "!!!BELL!!!" | echohl None
     endif
 
     " strip backspaces out of output
@@ -358,6 +367,9 @@ function! s:print_buffer(read_lines)"{{{
     " strip off command repeated by the ECHO terminal flag
     if l:lines[0] == b:current_command
         let l:lines = l:lines[1:]
+    " will usually get rid of ugly trash produced by ECHO + super long commands
+    elseif len(b:current_command) > winwidth(0) - 20 && l:lines[0][0:20] == b:current_command[0:20] && l:lines[0][-5:] == b:current_command[-5:]
+        let l:lines = l:lines[1:]
     endif
 
     " special case: first line in buffer
@@ -503,8 +515,15 @@ function! s:delete_backword_char()"{{{
 endfunction"}}}
 
 " tab complete current line
-" TODO: integrate multiple options with Vim auto-complete menu
+" TODO: integrate multiple options with Vim auto-complete menu?
+" XXX XXX XXX: The stupidity of this function is spiraling out of control
 function! s:tab_complete()"{{{
+    " this stuff only really works with pty
+    if b:subprocess.get_library_name() != 'pty'
+        echohl WarningMsg | echomsg "Tab complete disabled when using 'popen' library" | echohl None
+        return
+    endif
+
     " Insert <TAB>.
     if exists('b:tab_complete_history[line(".")]')
         let l:prompt = b:tab_complete_history[line('.')]
@@ -548,8 +567,24 @@ function! s:tab_complete()"{{{
         return
     endif
 
+    let b:tab_count = 1
+
     let l:extra = substitute(l:extra, '\r', '', 'g')
     let l:extra_lines = split(l:extra, '\n', 1)
+
+    " automatically squash extended listing
+    if l:extra =~ '(y or n)$'
+        call append(line('$'), l:extra_lines)
+        call append(line('$'), '... Conque has kill extended listing until a later version ...')
+        call b:subprocess.write("n")
+        call b:subprocess.write("\<C-u>")
+        let l:throwaway = conque#read_return_raw(0.001)
+        call append(line('$'), l:working_line)
+        let b:prompt_history[line('$')] = l:prompt
+        normal G$
+        startinsert!
+        return
+    endif
 
     let l:pos = 1
     for l:line in l:extra_lines
@@ -571,8 +606,6 @@ function! s:tab_complete()"{{{
         let l:throwaway = conque#read_return_raw(0.001)
         let b:prompt_history[line('$')] = l:prompt
     "endif
-
-    let b:tab_count = 1
 
     normal G$
     startinsert!
@@ -634,6 +667,58 @@ function! conque#escape()"{{{
     call s:read(0.5)
     call s:log.debug('</escape>')
 endfunction"}}}
+
+" implement <C-z>
+" should suspend foreground process
+function! conque#suspend()"{{{
+    call s:log.debug('<suspend>')
+    " send <C-z> to pty
+    try
+        call b:subprocess.write("\<C-z>")
+    catch
+        call s:log.warn('suspend ex')
+        echohl WarningMsg | echomsg 'no process' | echohl None
+        call conque#exit()
+        return
+    endtry
+    call s:read(0.5)
+    call s:log.debug('</suspend>')
+endfunction"}}}
+
+" implement <C-d>
+" should send EOF
+function! conque#eof()"{{{
+    call s:log.debug('<eof>')
+    " send <C-d> to pty
+    try
+        call b:subprocess.write("\<C-d>")
+    catch
+        call s:log.warn('eof ex')
+        echohl WarningMsg | echomsg 'no process' | echohl None
+        call conque#exit()
+        return
+    endtry
+    call s:read(0.5)
+    call s:log.debug('</eof>')
+endfunction"}}}
+
+" implement <C-\>
+" should send QUIT
+function! conque#quit()"{{{
+    call s:log.debug('<quit>')
+    " send <C-\> to pty
+    try
+        call b:subprocess.write("\<C-\\>")
+    catch
+        call s:log.warn('quit ex')
+        echohl WarningMsg | echomsg 'no process' | echohl None
+        call conque#exit()
+        return
+    endtry
+    call s:read(0.5)
+    call s:log.debug('</quit>')
+endfunction"}}}
+
 
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1

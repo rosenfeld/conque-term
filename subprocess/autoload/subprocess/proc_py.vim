@@ -80,6 +80,13 @@ function! s:lib.get_status() "{{{
     return b:proc_py_status
 endfunction "}}}
 
+" what library am I using to run the subprocess
+function! s:lib.get_library_name() "{{{
+    let b:proc_py_lib = 'unknown'
+    execute ":python proc".b:conque_id.".get_library_name()"
+    return b:proc_py_lib
+endfunction "}}}
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Util
 
@@ -303,6 +310,18 @@ class proc_py:
         command = 'let b:proc_py_status = ' + str(p_status)
         vim.command(command)
         # }}}
+
+    def get_library_name(self): #{{{
+
+        if use_pty:
+            command = 'let b:proc_py_lib = "pty"'
+        else:
+            command = 'let b:proc_py_lib = "popen"'
+
+        vim.command(command)
+        # }}}
+
+
 
 
 
