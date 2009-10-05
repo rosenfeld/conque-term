@@ -81,7 +81,6 @@ endfunction"}}}
 function! s:set_environment()"{{{
     let $TERM = "dumb"
     "let $TERMCAP = "COLUMNS=" . winwidth(0)
-    let $VIMSHELL = 1
     let $COLUMNS = winwidth(0) - 8 " these get reset by terminal anyway
     let $LINES = winheight(0)
     
@@ -103,7 +102,7 @@ function! s:set_buffer_settings(command, pre_hooks)"{{{
     setlocal foldcolumn=1    " reasonable left margin
     setlocal nowrap          " default to no wrap (esp with MySQL)
     setlocal noswapfile      " don't bother creating a .swp file
-    setfiletype conque        " useful
+    setfiletype sh           " useful
     execute "setlocal syntax=".g:Conque_Syntax
 
     " run the current command

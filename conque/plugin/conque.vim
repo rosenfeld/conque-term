@@ -52,7 +52,7 @@ if !exists('g:Conque_Tab_Timeout')
 endif
 " Syntax for your buffer
 if !exists('g:Conque_Syntax')
-    let g:Conque_Syntax = 'conque'
+    let g:Conque_Syntax = 'sh'
 endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}

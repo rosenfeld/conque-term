@@ -53,12 +53,13 @@ syn keyword Keyword select count max show table status like as from left right o
 syn case match
 
 " Typical Prompt
-syn match ConquePrompt "^\[.\+\]\$" oneline
+syn match ConquePrompt '^.*\$' oneline
 syn match ConqueWait "^\.\.\.$" oneline
-syn region String start=+'+ end=+'+ skip=+\\'+  oneline
-syn region String start=+"+ end=+"+ skip=+\\"+  oneline
-syn region String start=+`+ end=+`+ skip=+\\`+ oneline
+syn region ConqueString start=+'+ end=+'+ skip=+\\'+  oneline
+syn region ConqueString start=+"+ end=+"+ skip=+\\"+  oneline
+syn region ConqueString start=+`+ end=+`+ skip=+\\`+ oneline
 
-
+hi def link ConqueString String
+hi def link ConquePrompt Special
 
 " vim: foldmethod=marker
