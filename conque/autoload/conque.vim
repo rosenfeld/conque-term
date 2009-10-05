@@ -97,7 +97,7 @@ function! s:set_buffer_settings(command, pre_hooks)"{{{
         execute h
     endfor
 
-    execute "edit " . substitute(a:command, ' ', '_', 'g') . "@" . bufnr('.', 1)
+    execute "edit " . substitute(a:command, ' ', '_', 'g') . "@" . string(bufnr('$', 1)+1)
     setlocal buftype=nofile  " this buffer is not a file, you can't save it
     setlocal nonumber        " hide line numbers
     setlocal foldcolumn=1    " reasonable left margin

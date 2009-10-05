@@ -33,57 +33,57 @@ endfunction "}}}
 " API methods
 
 function! s:lib.open(command) "{{{
-    let b:conque_id = string(bufnr('.', 1))
-    execute ":python proc".b:conque_id." = proc_py()"
-    execute ":python proc".b:conque_id.".open('" . s:python_escape(a:command) . "')"
+    let b:subprocess_id = 'b' . string(localtime())
+    execute ":python proc".b:subprocess_id." = proc_py()"
+    execute ":python proc".b:subprocess_id.".open('" . s:python_escape(a:command) . "')"
 endfunction "}}}
 
 function! s:lib.read(...) "{{{
     let timeout = get(a:000, 0, 0.2)
     let b:proc_py_output = []
-    execute ":python proc".b:conque_id.".read(" . string(timeout) . ")"
+    execute ":python proc".b:subprocess_id.".read(" . string(timeout) . ")"
     return b:proc_py_output
 endfunction "}}}
 
 function! s:lib.write(command) "{{{
-    execute ":python proc".b:conque_id.".write('" . s:python_escape(a:command) . "')"
+    execute ":python proc".b:subprocess_id.".write('" . s:python_escape(a:command) . "')"
 endfunction "}}}
 
 " Try to close process gracefully
 " Linux signal 15, Windows close()
 function! s:lib.close() "{{{
-    execute ":python proc".b:conque_id.".close()"
+    execute ":python proc".b:subprocess_id.".close()"
 endfunction "}}}
 
 " Close process forcefully
 " Linux signal 9, Windows close()
 function! s:lib.kill() "{{{
-    execute ":python proc".b:conque_id.".kill()"
+    execute ":python proc".b:subprocess_id.".kill()"
 endfunction "}}}
 
 " Abandon process
 " Linux signal 1, Windows close()
 function! s:lib.hang_up() "{{{
-    execute ":python proc".b:conque_id.".hang_up()"
+    execute ":python proc".b:subprocess_id.".hang_up()"
 endfunction "}}}
 
 " Send an interrupt to process
 " Typically <C-c>
 function! s:lib.interrupt() "{{{
-    execute ":python proc".b:conque_id.".interrupt()"
+    execute ":python proc".b:subprocess_id.".interrupt()"
 endfunction "}}}
 
 " Am I alive?
 function! s:lib.get_status() "{{{
     let b:proc_py_status = 1
-    execute ":python proc".b:conque_id.".get_status()"
+    execute ":python proc".b:subprocess_id.".get_status()"
     return b:proc_py_status
 endfunction "}}}
 
 " what library am I using to run the subprocess
 function! s:lib.get_library_name() "{{{
     let b:proc_py_lib = 'unknown'
-    execute ":python proc".b:conque_id.".get_library_name()"
+    execute ":python proc".b:subprocess_id.".get_library_name()"
     return b:proc_py_lib
 endfunction "}}}
 
