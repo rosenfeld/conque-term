@@ -102,7 +102,7 @@ function! s:set_buffer_settings(command, pre_hooks)"{{{
     setlocal foldcolumn=1    " reasonable left margin
     setlocal nowrap          " default to no wrap (esp with MySQL)
     setlocal noswapfile      " don't bother creating a .swp file
-    setfiletype sh           " useful
+    setfiletype conque       " useful
     execute "setlocal syntax=".g:Conque_Syntax
 
     " run the current command
