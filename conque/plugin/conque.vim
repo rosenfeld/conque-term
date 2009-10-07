@@ -54,6 +54,10 @@ endif
 if !exists('g:Conque_Syntax')
     let g:Conque_Syntax = 'conque'
 endif
+" Enable command folding
+if !exists('g:Conque_Folding')
+    let g:Conque_Folding = 0 
+endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}
 

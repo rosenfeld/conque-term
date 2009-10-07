@@ -64,6 +64,7 @@ function! conque#open(...)"{{{
     " Set variables.
     let b:command_history = []
     let b:prompt_history = {}
+    let b:fold_history = {}
     let b:current_command = ''
     let b:command_position = 0
 
@@ -104,6 +105,7 @@ function! s:set_buffer_settings(command, pre_hooks)"{{{
     setlocal noswapfile      " don't bother creating a .swp file
     setfiletype conque       " useful
     execute "setlocal syntax=".g:Conque_Syntax
+    setlocal foldmethod=manual
 
     " run the current command
     nnoremap <buffer><silent><CR>        :<C-u>call conque#run()<CR>
@@ -217,6 +219,7 @@ function! conque#write(add_newline)"{{{
         let l:hc = l:in
     endif
     if l:hc != '' && l:hc != '...' && l:hc !~ '\t$'
+        let b:fold_history[line('.')] = 1
         call add(b:command_history, l:hc)
     endif
     let b:current_command = l:in
@@ -382,6 +385,16 @@ function! s:print_buffer(read_lines)"{{{
 
     " Set cursor.
     normal! G$
+
+    " fold output
+    if g:Conque_Folding == 1
+        if !exists('b:fold_history[line("$")-1]') && max(keys(b:fold_history)) < line("$")-1 && len(keys(b:fold_history)) > 0 && getline(line('$')) != getline(line('$')-1)
+            let l:fold_command = max(keys(b:fold_history)) . "," . (line("$")-1) . "fo"
+            call s:log.debug('fold command: ' . l:fold_command)
+            execute l:fold_command
+            normal! kzoG$
+        endif
+    endif
 endfunction"}}}
 
 function! conque#on_exit() "{{{
