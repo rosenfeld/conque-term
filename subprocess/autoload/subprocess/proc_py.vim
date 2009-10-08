@@ -41,7 +41,7 @@ endfunction "}}}
 function! s:lib.read(...) "{{{
     let timeout = get(a:000, 0, 0.2)
     let b:proc_py_output = []
-    execute ":python proc".b:subprocess_id.".read(" . string(timeout) . ")"
+    execute ":python proc".b:subprocess_id.".read(" . string(timeout * 1000) . ")"
     return b:proc_py_output
 endfunction "}}}
 
@@ -205,13 +205,14 @@ class proc_py:
     def read(self, timeout = 0.1): # {{{
 
         output = ''
+        rtimeout = timeout / 1000
 
         # score
         if use_pty:
 
             # what, no do/while?
             while 1:
-                s_read, s_write, s_error = select.select( [ self.fd ], [], [], timeout)
+                s_read, s_write, s_error = select.select( [ self.fd ], [], [], rtimeout)
 
                 lines = ''
                 for s_fd in s_read:
@@ -223,7 +224,7 @@ class proc_py:
 
         # urk, windows
         else: 
-            time.sleep(timeout)
+            time.sleep(rtimeout)
 
             count = 0
             count = os.fstat(self.outd)[stat.ST_SIZE]
