@@ -580,7 +580,6 @@ function! s:tab_complete()"{{{
         call setline(line('.'), l:working_line)
         "let b:tab_complete_history[line('.')] = getline(line('.'))
         startinsert!
-        echohl WarningMsg | echomsg "No completion found" | echohl None
         call b:subprocess.write("\<C-u>")
         let l:throwaway = conque#read_return_raw(0.001)
         let b:prompt_history[line('$')] = l:prompt
