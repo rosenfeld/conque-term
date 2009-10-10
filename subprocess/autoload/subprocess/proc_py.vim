@@ -41,7 +41,7 @@ endfunction "}}}
 function! s:lib.read(...) "{{{
     let timeout = get(a:000, 0, 0.2)
     let b:proc_py_output = []
-    execute ":python proc".b:subprocess_id.".read(" . string(timeout * 1000) . ")"
+    execute ":python proc".b:subprocess_id.".read(" . string(timeout) . ")"
     return b:proc_py_output
 endfunction "}}}
 
@@ -202,10 +202,10 @@ class proc_py:
 
     # read from pty
     # XXX - select.poll() doesn't work in OS X!!!!!!!
-    def read(self, timeout = 0.1): # {{{
+    def read(self, timeout = 100): # {{{
 
         output = ''
-        rtimeout = timeout / 1000
+        rtimeout = float(timeout) / 1000
 
         # score
         if use_pty:

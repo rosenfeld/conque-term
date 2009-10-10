@@ -69,7 +69,7 @@ function! conque#open(...)"{{{
     let b:command_position = 0
 
     " read welcome message from command
-    call s:read(0.5)
+    call s:read(500)
 
     call s:log.debug('</open command>')
 
@@ -667,7 +667,7 @@ function! conque#sigint()"{{{
         call conque#exit()
         return
     endtry
-    call s:read(0.5)
+    call s:read(500)
     call s:log.debug('</sigint>')
 endfunction"}}}
 
@@ -685,7 +685,7 @@ function! conque#escape()"{{{
         call conque#exit()
         return
     endtry
-    call s:read(0.5)
+    call s:read(500)
     call s:log.debug('</escape>')
 endfunction"}}}
 
@@ -702,7 +702,7 @@ function! conque#suspend()"{{{
         call conque#exit()
         return
     endtry
-    call s:read(0.5)
+    call s:read(500)
     call s:log.debug('</suspend>')
 endfunction"}}}
 
@@ -719,7 +719,7 @@ function! conque#eof()"{{{
         call conque#exit()
         return
     endtry
-    call s:read(0.5)
+    call s:read(500)
     call s:log.debug('</eof>')
 endfunction"}}}
 
@@ -736,7 +736,7 @@ function! conque#quit()"{{{
         call conque#exit()
         return
     endtry
-    call s:read(0.5)
+    call s:read(500)
     call s:log.debug('</quit>')
 endfunction"}}}
 

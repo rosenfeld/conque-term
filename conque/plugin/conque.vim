@@ -43,12 +43,12 @@ endif
 " Default read timeout for running a command, in seconds.
 " Decreasing this value will make Conque seem more responsive, but you will get more '...' read timeouts
 if !exists('g:Conque_Read_Timeout')
-    let g:Conque_Read_Timeout = 0.04
+    let g:Conque_Read_Timeout = 40
 endif
 " Default read timeout for tab completion
 " Since tab completion is typically nearly instant, this value can be very, very small before timeouts occur
 if !exists('g:Conque_Tab_Timeout')
-    let g:Conque_Tab_Timeout = 0.003
+    let g:Conque_Tab_Timeout = 3
 endif
 " Syntax for your buffer
 if !exists('g:Conque_Syntax')
