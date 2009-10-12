@@ -1,3 +1,5 @@
+" FILE:     autoload/subprocess/proc_py.vim
+" AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
 " LICENSE:  MIT License "{{{
