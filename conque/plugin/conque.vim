@@ -58,6 +58,14 @@ endif
 if !exists('g:Conque_Folding')
     let g:Conque_Folding = 0 
 endif
+" TERM environment setting
+if !exists('g:Conque_TERM')
+    let g:Conque_TERM =  'dumb'
+endif
+" read more data on <Tab> if not in tab-complete situation
+if !exists('g:Conque_Tab_More')
+    let g:Conque_Tab_More =  1
+endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}
 
@@ -66,5 +74,6 @@ command! -nargs=+ -complete=shellcmd ConqueSplit call conque#open(<q-args>, ['sp
 command! -nargs=+ -complete=shellcmd ConqueVSplit call conque#open(<q-args>, ['vsplit'])
 
 let g:Loaded_Conque = 1
+let g:Conque_Idx = 1
 
 " vim: foldmethod=marker

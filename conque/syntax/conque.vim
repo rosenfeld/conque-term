@@ -66,6 +66,7 @@ hi def link ConqueString String
 hi def link ConquePrompt Identifier
 hi def link ConqueWait Ignore
 hi def link ConqueFold Ignore
+hi def link FoldColumn Normal
 
 hi def link MySQLPrompt Identifier
 hi def link MySQLTableHead Title

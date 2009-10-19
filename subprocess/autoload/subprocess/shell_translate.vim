@@ -122,10 +122,27 @@ function! subprocess#shell_translate#process_current_line() "{{{
     let l:line_nr = line('.')
     let l:current_line = getline(l:line_nr)
 
+    " control characters
+    while l:current_line =~ '\b'
+        let l:current_line = substitute(l:current_line, '[^\b]\b', '', 'g')
+        let l:current_line = substitute(l:current_line, '^\b', '', 'g')
+    endwhile
+
+    let l:current_line = substitute(l:current_line, '\r\+$', '', '')
+    let l:current_line = substitute(l:current_line, '^.*\r', '', '')
+
     " short circuit
     if l:current_line !~ "\e"
+        " check for Bells
+        if l:current_line =~ nr2char(7)
+            let l:current_line = substitute(l:current_line, nr2char(7), '', 'g')
+            echohl WarningMsg | echomsg "For shame!" | echohl None
+        endif
+        call setline(line('$'), l:current_line)
         return
     endif
+
+    call setline(line('$'), l:current_line)
 
     let l:line_len = strlen(l:current_line)
     let l:final_line = ''
@@ -153,11 +170,13 @@ function! subprocess#shell_translate#process_current_line() "{{{
                     if l:seq =~ esc.code
                         " do something
                         "call s:log.debug(l:seq)
-                        let l:finished = 1
-                        let idx = idx + strlen(l:seq)
                         if esc.name == 'font'
                             call add(l:color_changes, {'col':strlen(l:final_line),'esc':esc,'val':l:seq})
+                        elseif esc.name == 'clear_line' && idx == 0
+                            normal! kdd
                         endif
+                        let l:finished = 1
+                        let idx = idx + strlen(l:seq)
                         break
                     endif
                 endfor
