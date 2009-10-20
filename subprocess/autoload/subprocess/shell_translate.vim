@@ -47,6 +47,7 @@ let s:escape_sequences = [
 \ {'code':'[\d*B', 'name':'cursor_down', 'description':'Cursor down n spaces'},
 \ {'code':'[\d*C', 'name':'cursor_right', 'description':'Cursor right n spaces'},
 \ {'code':'[\d*D', 'name':'cursor_left', 'description':'Cursor back n spaces'},
+\ {'code':'[\d*G', 'name':'cursor_to_column', 'description':'Move cursor to column'},
 \ {'code':'[\d*H', 'name':'cursor', 'description':'Move cursor to x;y'},
 \ {'code':'[\d*;\d*H', 'name':'cursor', 'description':'Move cursor to x;y'},
 \ {'code':'[\d*L', 'name':'insert_lines', 'description':'Insert n lines'},
@@ -118,6 +119,7 @@ let s:font_codes = {
 " }}}
 
 function! subprocess#shell_translate#process_current_line() "{{{
+    call s:log.profile_start('process_current_line')
 	  let start = reltime()
     let l:line_nr = line('.')
     let l:current_line = getline(l:line_nr)
@@ -176,6 +178,17 @@ function! subprocess#shell_translate#process_current_line() "{{{
                             call add(l:color_changes, {'col':line_pos,'esc':esc,'val':l:seq})
                         elseif esc.name == 'clear_line' && idx == 0
                             normal! kdd
+                        elseif esc.name == 'clear_line'
+                            let final_chars = final_chars[:line_pos - 1]
+                        elseif esc.name == 'cursor_right'
+                            let line_pos = line_pos + 1
+                        elseif esc.name == 'cursor_left'
+                            let line_pos = line_pos - 1
+                        elseif esc.name == 'cursor_to_column'
+                            call s:log.debug('cursor to column: ' . l:seq)
+                            let l:col = substitute(l:seq, '^\[', '', '')
+                            let l:col = substitute(l:col, 'G$', '', '')
+                            let line_pos = l:col - 1
                         endif
                         let l:finished = 1
                         let idx = idx + strlen(l:seq)
@@ -220,6 +233,9 @@ function! subprocess#shell_translate#process_current_line() "{{{
 
     " strip trailing spaces
     let l:final_line = substitute(l:final_line, '\s\+$', '', '')
+    if line_pos > len(l:final_line)
+        let l:final_line = l:final_line . ' '
+    endif
 
     call setline(line('.'), l:final_line)
 
@@ -265,12 +281,22 @@ function! subprocess#shell_translate#process_current_line() "{{{
     "call s:log.debug("start line: " . l:current_line)
     "call s:log.debug("final line: " . l:final_line)
     "call s:log.debug('FUNCTION TIME: '.reltimestr(reltime(start)))
+
+    call s:log.profile_end('process_current_line')
 endfunction
 "}}}
 
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1
     let s:log = log#getLogger(expand('<sfile>:t'))
+    let s:profiles = {}
+    function! s:log.profile_start(name)
+        let s:profiles[a:name] = reltime()
+    endfunction
+    function! s:log.profile_end(name)
+        let time = reltimestr(reltime(s:profiles[a:name]))
+        call s:log.debug('PROFILE "' . a:name . '": ' . time)
+    endfunction
 else
     let s:log = {}
     function! s:log.debug(msg)

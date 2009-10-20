@@ -159,6 +159,7 @@ endfunction "}}}
 " controller to execute current line
 function! conque#run() "{{{
     call s:log.debug('<keyboard triggered run>')
+    call s:log.profile_start('run')
     if !exists('b:subprocess')
         return
     endif
@@ -170,12 +171,14 @@ function! conque#run() "{{{
         call conque#read(g:Conque_Read_Timeout)
     endif
 
+    call s:log.profile_end('run')
     call s:log.debug('</keyboard triggered run>')
 endfunction "}}}
 
 " execute current line, but return output as string instead of printing to buffer
 function! conque#run_return(timeout) "{{{
     call s:log.debug('<keyboard triggered run return>')
+    call s:log.profile_start('run_return')
     if !exists('b:subprocess')
         return
     endif
@@ -197,12 +200,14 @@ function! conque#run_return(timeout) "{{{
         let l:output_string = substitute(l:output_string, '^\b', '', 'g')
     endwhile
 
+    call s:log.profile_end('run_return')
     return l:output_string
 endfunction "}}}
 
 " write current line to pty
 function! conque#write(add_newline) "{{{
     call s:log.debug('<write>')
+    call s:log.profile_start('write')
 
     " pull command from the buffer
     let l:in = s:get_command()
@@ -252,25 +257,29 @@ function! conque#write(add_newline) "{{{
     let b:command_position = 0
 
     " we're doing something
-    if a:add_newline == 1
-        if g:Conque_Use_Filler == 1
-            call append(line('$'), '...')
-        else
-            call append(line('$'), '')
-        endif
-    endif
+    "if a:add_newline == 1
+    "    if g:Conque_Use_Filler == 1
+    "        call append(line('$'), '...')
+    "    else
+    "        call append(line('$'), '')
+    "    endif
+    "endif
 
     normal! G$
+    call s:log.profile_end('write')
     call s:log.debug('</write>')
     return 1
 endfunction "}}}
 
 function! s:subwrite(command) "{{{
+    call s:log.profile_start('subwrite')
     if exists('b:write_clear') && b:write_clear == 1 && b:subprocess.get_library_name() == 'pty'
+        call s:log.debug('must cleeeeeeeeeeeeeeeeeeeeeear')
         call b:subprocess.write("\<C-u>")
         let b:write_clear = 0
     endif
     call b:subprocess.write(a:command)
+    call s:log.profile_end('subwrite')
 endfunction "}}}
 
 " parse current line to remove prompt and return command.
@@ -334,7 +343,9 @@ endfunction "}}}
 " read from pty and write to buffer
 function! conque#read(timeout) "{{{
     call s:log.debug('<read>')
+    call s:log.profile_start('read')
 
+    call s:log.profile_start('subread')
     try
         let l:output = b:subprocess.read(a:timeout)
     catch
@@ -343,12 +354,15 @@ function! conque#read(timeout) "{{{
         call conque#exit()
         return
     endtry
+    call s:log.profile_end('subread')
 
+    call s:log.profile_start('printread')
     call s:log.debug('raw output: ' . string(l:output))
     if len(l:output) > 1 || l:output[0] != ''
         call s:print_buffer(l:output)
-        redraw
     endif
+    call s:log.profile_end('printread')
+    call s:log.profile_start('finishread')
 
     " ready to insert now
     normal! G$
@@ -357,6 +371,8 @@ function! conque#read(timeout) "{{{
     let b:prompt_history[line('.')] = getline('.')
 
     startinsert!
+    call s:log.profile_end('finishread')
+    call s:log.profile_end('read')
     call s:log.debug('</read>')
 endfunction "}}}
 
@@ -381,6 +397,13 @@ endfunction "}}}
 
 " parse output from pty and update buffer
 function! s:print_buffer(read_lines) "{{{
+    call s:log.profile_start('print_buffer')
+    " clear out our command
+    if exists("b:prompt_history['".line('$')."']")
+        call s:log.debug('found hist ' . b:prompt_history[line('$')])
+        call setline(line('$'), b:prompt_history[line('$')])
+    endif
+
     " maybe put this in config later
     let l:lines_before_redraw = 100
     let l:pos = 1
@@ -388,7 +411,8 @@ function! s:print_buffer(read_lines) "{{{
         " write to buffer
         call s:log.debug('about to write: ' . eline)
         if l:pos == 1
-            call setline(line('$'), eline)
+            let eline = substitute(eline, '^\b\+', '', 'g')
+            call setline(line('$'), getline(line('$')) . eline)
         else
             call append(line('$'), eline)
         endif
@@ -398,27 +422,26 @@ function! s:print_buffer(read_lines) "{{{
         call subprocess#shell_translate#process_current_line()
 
         " strip off command repeated by the ECHO terminal flag
-        if l:pos == 1
-            let l:pp_line = getline(line('$'))
-            call s:log.debug(l:pp_line)
-            call s:log.debug(b:current_command)
-            if l:pp_line == b:current_command
-                call s:log.debug('****************************************')
-                normal dd
-            elseif len(keys(b:prompt_history)) > 0 && l:pp_line == b:prompt_history[max(keys(b:prompt_history))] . b:current_command
-                call s:log.debug('========================================')
-                normal dd
-            " will usually get rid of ugly trash produced by ECHO + commands longer than screen width
-            elseif len(b:current_command) > winwidth(0) - 20 && l:pp_line[0:20] == b:current_command[0:20] && l:pp_line[-5:] == b:current_command[-5:]
-                call s:log.debug('----------------------------------------')
-                normal dd
-            endif
-        endif
+        "if l:pos == 1
+        "    let l:pp_line = getline(line('$'))
+        "    call s:log.debug(l:pp_line)
+        "    call s:log.debug(b:current_command)
+        "    if l:pp_line == b:current_command
+        "        call s:log.debug('****************************************')
+        "        normal dd
+        "    elseif len(keys(b:prompt_history)) > 0 && l:pp_line == b:prompt_history[max(keys(b:prompt_history))] . b:current_command
+        "        call s:log.debug('========================================')
+        "        normal dd
+        "    " will usually get rid of ugly trash produced by ECHO + commands longer than screen width
+        "    elseif len(b:current_command) > winwidth(0) - 20 && l:pp_line[0:20] == b:current_command[0:20] && l:pp_line[-5:] == b:current_command[-5:]
+        "        call s:log.debug('----------------------------------------')
+        "        normal dd
+        "    endif
+        "endif
 
         let l:pos = l:pos + 1
         if l:pos % l:lines_before_redraw == 0
             call s:log.debug('redrawing at ' . eline)
-            redraw
         endif
     endfor
 
@@ -431,6 +454,7 @@ function! s:print_buffer(read_lines) "{{{
             normal! kzoG$
         endif
     endif
+    call s:log.profile_end('print_buffer')
 endfunction "}}}
 
 function! conque#on_exit() "{{{
@@ -629,7 +653,7 @@ function! s:tab_complete() "{{{
     let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
 
     for i in range(1, b:tab_count)
-        call setline(line('.'), getline('.') . "\<TAB>")
+        call setline(line('.'), getline('.') . "\<C-i>")
     endfor
 
     let l:candidate = conque#run_return(g:Conque_Tab_Timeout)
@@ -833,6 +857,7 @@ function! conque#special(command) "{{{
         normal gg0
     elseif a:command =~ '^vim\? '
         let filename = substitute(a:command, '^vim\? ', '', '')
+        let filename = b:subprocess.get_env_var('PWD') . '/' . filename
         let split_cmd = "split " . filename
         call s:log.debug(split_cmd)
         execute split_cmd
@@ -865,8 +890,16 @@ function! conque#inject(type, execute) "{{{
 endfunction "}}}
 
 " Logging {{{
-if 1 ==2 && exists('g:Conque_Logging') && g:Conque_Logging == 1
+if exists('g:Conque_Logging') && g:Conque_Logging == 1
     let s:log = log#getLogger(expand('<sfile>:t'))
+    let s:profiles = {}
+    function! s:log.profile_start(name)
+        let s:profiles[a:name] = reltime()
+    endfunction
+    function! s:log.profile_end(name)
+        let time = reltimestr(reltime(s:profiles[a:name]))
+        call s:log.debug('PROFILE "' . a:name . '": ' . time)
+    endfunction
 else
     let s:log = {}
     function! s:log.debug(msg)

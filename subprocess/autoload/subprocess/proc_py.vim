@@ -96,6 +96,12 @@ function! s:lib.get_library_name() "{{{
     return b:proc_py_lib
 endfunction "}}}
 
+function! s:lib.get_env_var(var_name) "{{{
+    let b:proc_py_env = ''
+    execute ":python proc".b:subprocess_id.".get_env_var('" . s:python_escape(a:var_name) . "')"
+    return b:proc_py_env
+endfunction "}}}
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Util
 
@@ -333,6 +339,21 @@ class proc_py:
         vim.command(command)
         # }}}
 
+
+    # XXX - ew
+    def get_env_var(self, var_name): #{{{
+        env_val = ''
+        try:
+            from ctypes import CDLL, c_char_p
+            getenv = CDLL("libc.so.6").getenv
+            getenv.restype = c_char_p
+            env_val = getenv(var_name)
+        except:
+            env_val = os.environ[var_name]
+
+        command = 'let b:proc_py_env = "' + env_val + '"'
+        vim.command(command)
+        # }}}
 
 
 
