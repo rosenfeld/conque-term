@@ -122,17 +122,17 @@ function! subprocess#shell_translate#process_current_line() "{{{
     let l:line_nr = line('.')
     let l:current_line = getline(l:line_nr)
 
-    " control characters
-    while l:current_line =~ '\b'
-        let l:current_line = substitute(l:current_line, '[^\b]\b', '', 'g')
-        let l:current_line = substitute(l:current_line, '^\b', '', 'g')
-    endwhile
-
     let l:current_line = substitute(l:current_line, '\r\+$', '', '')
-    let l:current_line = substitute(l:current_line, '^.*\r', '', '')
+    "let l:current_line = substitute(l:current_line, '^.*\r', '', '')
 
     " short circuit
-    if l:current_line !~ "\e"
+    if l:current_line !~ "\e" && l:current_line !~ "\r"
+        " control characters
+        while l:current_line =~ '\b'
+            let l:current_line = substitute(l:current_line, '[^\b]\b', '', 'g')
+            let l:current_line = substitute(l:current_line, '^\b', '', 'g')
+        endwhile
+
         " check for Bells
         if l:current_line =~ nr2char(7)
             let l:current_line = substitute(l:current_line, nr2char(7), '', 'g')
@@ -146,9 +146,11 @@ function! subprocess#shell_translate#process_current_line() "{{{
 
     let l:line_len = strlen(l:current_line)
     let l:final_line = ''
+    let final_chars = []
     let l:color_changes = []
 
     let idx = 0
+    let line_pos = 0
     while idx < l:line_len
         "call s:log.debug("checking char " . idx)
         let c = l:current_line[idx]
@@ -171,7 +173,7 @@ function! subprocess#shell_translate#process_current_line() "{{{
                         " do something
                         "call s:log.debug(l:seq)
                         if esc.name == 'font'
-                            call add(l:color_changes, {'col':strlen(l:final_line),'esc':esc,'val':l:seq})
+                            call add(l:color_changes, {'col':line_pos,'esc':esc,'val':l:seq})
                         elseif esc.name == 'clear_line' && idx == 0
                             normal! kdd
                         endif
@@ -183,19 +185,41 @@ function! subprocess#shell_translate#process_current_line() "{{{
                 let l:seq_pos = l:seq_pos + 1
             endwhile
             if l:finished == 0
-                let l:final_line = l:final_line . c
+                if line_pos >= len(final_chars)
+                    call add(final_chars, c)
+                else
+                    let final_chars[line_pos] = c
+                endif
+                let line_pos = line_pos + 1
             endif
+        elseif c == "\<CR>"
+            let line_pos = 0
+        elseif c == "\b"
+            let line_pos = line_pos - 1
+            let final_chars[line_pos] = ''
         else
-            let l:final_line = l:final_line . c
+            "call s:log.debug('adding ' . c . ' to final chars at line position ' . line_pos . ' comparing to ' . len(final_chars))
+            if line_pos >= len(final_chars)
+                call add(final_chars, c)
+            else
+                let final_chars[line_pos] = c
+            endif
+            let line_pos = line_pos + 1
         endif
         let idx = idx + 1
     endwhile
+
+    let l:final_line = join(final_chars, '')
+    "call s:log.debug(string(final_chars))
 
     " check for Bells
     if l:final_line =~ nr2char(7)
         let l:final_line = substitute(l:final_line, nr2char(7), '', 'g')
         echohl WarningMsg | echomsg "For shame!" | echohl None
     endif
+
+    " strip trailing spaces
+    let l:final_line = substitute(l:final_line, '\s\+$', '', '')
 
     call setline(line('.'), l:final_line)
 

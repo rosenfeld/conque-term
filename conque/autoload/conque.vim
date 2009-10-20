@@ -381,7 +381,8 @@ endfunction "}}}
 
 " parse output from pty and update buffer
 function! s:print_buffer(read_lines) "{{{
-    " write to buffer
+    " maybe put this in config later
+    let l:lines_before_redraw = 100
     let l:pos = 1
     for eline in a:read_lines
         " write to buffer
@@ -397,22 +398,28 @@ function! s:print_buffer(read_lines) "{{{
         call subprocess#shell_translate#process_current_line()
 
         " strip off command repeated by the ECHO terminal flag
-        let l:pp_line = getline(line('$'))
-        call s:log.debug(l:pp_line)
-        call s:log.debug(b:current_command)
-        if l:pos == 1 && l:pp_line == b:current_command
-            call s:log.debug('****************************************')
-            normal dd
-        elseif l:pos == 1 && len(keys(b:prompt_history)) > 0 && l:pp_line == b:prompt_history[max(keys(b:prompt_history))] . b:current_command
-            call s:log.debug('========================================')
-            normal dd
-        " will usually get rid of ugly trash produced by ECHO + commands longer than screen width
-        elseif l:pos == 1 && len(b:current_command) > winwidth(0) - 20 && l:pp_line[0:20] == b:current_command[0:20] && l:pp_line[-5:] == b:current_command[-5:]
-            call s:log.debug('----------------------------------------')
-            normal dd
+        if l:pos == 1
+            let l:pp_line = getline(line('$'))
+            call s:log.debug(l:pp_line)
+            call s:log.debug(b:current_command)
+            if l:pp_line == b:current_command
+                call s:log.debug('****************************************')
+                normal dd
+            elseif len(keys(b:prompt_history)) > 0 && l:pp_line == b:prompt_history[max(keys(b:prompt_history))] . b:current_command
+                call s:log.debug('========================================')
+                normal dd
+            " will usually get rid of ugly trash produced by ECHO + commands longer than screen width
+            elseif len(b:current_command) > winwidth(0) - 20 && l:pp_line[0:20] == b:current_command[0:20] && l:pp_line[-5:] == b:current_command[-5:]
+                call s:log.debug('----------------------------------------')
+                normal dd
+            endif
         endif
 
         let l:pos = l:pos + 1
+        if l:pos % l:lines_before_redraw == 0
+            call s:log.debug('redrawing at ' . eline)
+            redraw
+        endif
     endfor
 
     " fold output
@@ -502,7 +509,7 @@ endfunction "}}}
 " XXX - we should probably use native history instead, although it's slower
 function! s:previous_command() "{{{
     let l:prompt = b:prompt_history[line('$')]
-    call b:subprocess.write("\<C-p>")
+    call b:subprocess.write("\e[A")
     let l:resp = conque#read_return_raw(3)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
@@ -519,9 +526,13 @@ function! s:previous_command() "{{{
     normal! G$
     call subprocess#shell_translate#process_current_line()
     call s:log.debug('after: ' . getline(line('$'))) 
-    "call b:subprocess.write("\<C-u>")
-    "let l:throwaway = conque#read_return_raw(0.001)
-    "let b:prompt_history[line('$')] = l:prompt
+    call b:subprocess.write("\<C-e>")
+    let l:throwaway = conque#read_return_raw(0.001)
+    let b:prompt_history[line('$')] = l:prompt
+
+    if len(getline(line('$'))) == len(l:prompt) - 1
+        call setline(line('$'), getline(line('$')) . ' ')
+    endif
 
     let b:write_clear = 1
     normal G$
@@ -533,7 +544,7 @@ endfunction "}}}
 " XXX - we should probably use native history instead, although it's slower
 function! s:next_command() "{{{
     let l:prompt = b:prompt_history[line('$')]
-    call b:subprocess.write("\<C-n>")
+    call b:subprocess.write("\e[B")
     let l:resp = conque#read_return_raw(3)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
@@ -550,9 +561,13 @@ function! s:next_command() "{{{
     normal! G$
     call subprocess#shell_translate#process_current_line()
     call s:log.debug('after: ' . getline(line('$'))) 
-    "call b:subprocess.write("\<C-u>")
-    "let l:throwaway = conque#read_return_raw(0.001)
-    "let b:prompt_history[line('$')] = l:prompt
+    call b:subprocess.write("\<C-e>")
+    let l:throwaway = conque#read_return_raw(0.001)
+    let b:prompt_history[line('$')] = l:prompt
+
+    if len(getline(line('$'))) == len(l:prompt) - 1
+        call setline(line('$'), getline(line('$')) . ' ')
+    endif
 
     let b:write_clear = 1
     normal G$
@@ -837,29 +852,20 @@ function! conque#inject(type, execute) "{{{
     let @@ = substitute(@@, '^[\r\n]*', '', '')
     let @@ = substitute(@@, '[\r\n]*$', '', '')
 
-    let l:buf_name = bufname("%")
-    for i in range(1, 25)
-        execute "normal \<C-w>\<C-w>"
-        let l:ibn = bufname("%")
-        if l:ibn == g:Conque_BufName
-            normal! G$p
-            normal! G$
-            startinsert!
+    execute ":sb " . g:Conque_BufName
+    normal! G$p
+    normal! G$
+    startinsert!
 
-            if a:execute == 1
-                call conque#run()
-            endif
-
-            let @@ = reg_save
-            return
-        endif
-    endfor
+    if a:execute == 1
+        call conque#run()
+    endif
 
     let @@ = reg_save
 endfunction "}}}
 
 " Logging {{{
-if exists('g:Conque_Logging') && g:Conque_Logging == 1
+if 1 ==2 && exists('g:Conque_Logging') && g:Conque_Logging == 1
     let s:log = log#getLogger(expand('<sfile>:t'))
 else
     let s:log = {}
