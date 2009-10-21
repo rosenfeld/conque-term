@@ -440,9 +440,10 @@ function! s:print_buffer(read_lines) "{{{
         "endif
 
         let l:pos = l:pos + 1
-        if l:pos % l:lines_before_redraw == 0
-            call s:log.debug('redrawing at ' . eline)
-        endif
+
+        "if l:pos % l:lines_before_redraw == 0
+        "    call s:log.debug('redrawing at ' . eline)
+        "endif
     endfor
 
     " fold output
@@ -454,6 +455,10 @@ function! s:print_buffer(read_lines) "{{{
             normal! kzoG$
         endif
     endif
+
+    call s:log.profile_start('print_buffer_redraw')
+    "redraw
+    call s:log.profile_end('print_buffer_redraw')
     call s:log.profile_end('print_buffer')
 endfunction "}}}
 
@@ -550,8 +555,8 @@ function! s:previous_command() "{{{
     normal! G$
     call subprocess#shell_translate#process_current_line()
     call s:log.debug('after: ' . getline(line('$'))) 
-    call b:subprocess.write("\<C-e>")
-    let l:throwaway = conque#read_return_raw(0.001)
+    "call b:subprocess.write("\<C-e>")
+    "let l:throwaway = conque#read_return_raw(0.001)
     let b:prompt_history[line('$')] = l:prompt
 
     if len(getline(line('$'))) == len(l:prompt) - 1
@@ -585,8 +590,8 @@ function! s:next_command() "{{{
     normal! G$
     call subprocess#shell_translate#process_current_line()
     call s:log.debug('after: ' . getline(line('$'))) 
-    call b:subprocess.write("\<C-e>")
-    let l:throwaway = conque#read_return_raw(0.001)
+    "call b:subprocess.write("\<C-e>")
+    "let l:throwaway = conque#read_return_raw(0.001)
     let b:prompt_history[line('$')] = l:prompt
 
     if len(getline(line('$'))) == len(l:prompt) - 1

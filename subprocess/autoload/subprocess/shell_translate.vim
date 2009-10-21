@@ -150,6 +150,7 @@ function! subprocess#shell_translate#process_current_line() "{{{
     let l:final_line = ''
     let final_chars = []
     let l:color_changes = []
+    let l:next_line = 0
 
     let idx = 0
     let line_pos = 0
@@ -189,6 +190,12 @@ function! subprocess#shell_translate#process_current_line() "{{{
                             let l:col = substitute(l:seq, '^\[', '', '')
                             let l:col = substitute(l:col, 'G$', '', '')
                             let line_pos = l:col - 1
+                        elseif esc.name == 'cursor_up' " holy crap we're screwed
+                            " first, ship off the rest of the string  to the line above and pray to God they used the [C escape
+                            call setline(line('.') - 1, getline(line('.') - 1) . l:current_line[idx + strlen(l:seq) :])
+                            let l:next_line = line('.') - 1
+                            " then abort processing of this line
+                            let l:line_len = idx + strlen(l:seq)
                         endif
                         let l:finished = 1
                         let idx = idx + strlen(l:seq)
@@ -281,6 +288,12 @@ function! subprocess#shell_translate#process_current_line() "{{{
     "call s:log.debug("start line: " . l:current_line)
     "call s:log.debug("final line: " . l:final_line)
     "call s:log.debug('FUNCTION TIME: '.reltimestr(reltime(start)))
+
+    " if we have another line to process, go there
+    if l:next_line != 0
+        execute l:next_line
+        call subprocess#shell_translate#process_current_line()
+    endif
 
     call s:log.profile_end('process_current_line')
 endfunction
