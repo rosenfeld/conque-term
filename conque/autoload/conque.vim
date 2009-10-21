@@ -43,6 +43,13 @@ function! conque#open(...) "{{{
         echohl WarningMsg | echomsg "No command found" | echohl None
         call s:log.warn('command not found: ' . command)
         return 0
+    else
+        let l:cargs = split(command, '\s')
+        if !executable(l:cargs[0])
+            echohl WarningMsg | echomsg "Not an executable" | echohl None
+            call s:log.warn('command not found: ' . l:cargs[0])
+            return 0
+        endif
     endif
 
     " configure shell buffer display and key mappings
@@ -123,6 +130,7 @@ function! s:set_buffer_settings(command, pre_hooks) "{{{
     inoremap <buffer><silent><C-u>       <ESC>:<C-u>call conque#kill_line()<CR>
     " tab complete
     inoremap <buffer><silent><Tab>       <ESC>:<C-u>call <SID>tab_complete()<CR>
+    nnoremap <buffer><silent><Tab>       <ESC>:<C-u>call <SID>tab_complete()<CR>
     " previous/next command
     inoremap <buffer><silent><Up>        <ESC>:<C-u>call <SID>previous_command()<CR>
     inoremap <buffer><silent><Down>      <ESC>:<C-u>call <SID>next_command()<CR>
