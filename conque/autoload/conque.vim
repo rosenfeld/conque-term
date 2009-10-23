@@ -64,8 +64,7 @@ function! conque#open(...) "{{{
         call b:subprocess.open(command, {'TERM': g:Conque_TERM, 'CONQUE': 1})
         call s:log.info('opening command: ' . command . ' with ptyopen')
     catch 
-        let l:error = printf('Unable to open command: ', command)
-        echohl WarningMsg | echomsg l:error | echohl None
+        echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
         return 0
     endtry
 
@@ -452,6 +451,7 @@ function! s:print_buffer(read_lines) "{{{
         "if l:pos % l:lines_before_redraw == 0
         "    call s:log.debug('redrawing at ' . eline)
         "endif
+        normal G
     endfor
 
     " fold output
@@ -465,7 +465,6 @@ function! s:print_buffer(read_lines) "{{{
     endif
 
     call s:log.profile_start('print_buffer_redraw')
-    "redraw
     call s:log.profile_end('print_buffer_redraw')
     call s:log.profile_end('print_buffer')
 endfunction "}}}
@@ -924,6 +923,10 @@ else
     function! s:log.error(msg)
     endfunction
     function! s:log.fatal(msg)
+    endfunction
+    function! s:log.profile_start(name)
+    endfunction
+    function! s:log.profile_end(name)
     endfunction
 endif
 " }}}
