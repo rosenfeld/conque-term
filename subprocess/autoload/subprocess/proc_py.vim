@@ -156,6 +156,7 @@ class proc_py:
 
             try:
                 self.pid, self.fd = pty.fork()
+                #print self.pid
             except:
                 print "pty.fork() failed. Did you mean pty.spork() ???"
 
@@ -233,9 +234,13 @@ class proc_py:
 
                 lines = ''
                 for s_fd in s_read:
-                    lines = os.read( self.fd, 32 )
+                    try:
+                        lines = os.read( self.fd, 32 )
+                    except:
+                        pass
                     output = output + lines
 
+                #self.buffer.append(str(output))
                 if lines == '':
                     break
 
