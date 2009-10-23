@@ -118,71 +118,79 @@ let s:font_codes = {
 \ } 
 " }}}
 
-function! subprocess#shell_translate#process_input(line, col, input) "{{{
-    let [l:line, l:col, l:input] = [a:line, a:col, a:input]
-    while l:line != -1
-        let [l:line, l:col, l:input] = s:process(l:line, l:col, l:input)
-    endwhile
-endfunction "}}}
+function! subprocess#shell_translate#process_current_line() "{{{
+    call s:log.profile_start('process_current_line')
+	  let start = reltime()
+    let l:line_nr = line('.')
+    let l:current_line = getline(l:line_nr)
 
-function! s:process(line, col, input) "{{{
-    "call s:log.profile_start('process_input')
-    "call s:log.debug('beginning processing input: ' . string(a:input))
-    let cpos = a:col
-    let lpos = a:line
-    let chars = split(a:input, '\zs')
+    let l:current_line = substitute(l:current_line, '\r\+$', '', '')
+    "let l:current_line = substitute(l:current_line, '^.*\r', '', '')
 
-    let s:final_chars = split(getline(lpos), '\zs')
-    let next_line = -1
-    let s:color_changes = []
-    "call s:log.debug('input chars start: ' . string(chars))
-    "call s:log.debug('final chars start: ' . string(s:final_chars))
+    " short circuit
+    if l:current_line !~ "\e" && l:current_line !~ "\r"
+        call s:log.debug('short circ')
+        " control characters
+        while l:current_line =~ '\b'
+            let l:current_line = substitute(l:current_line, '[^\b]\b', '', 'g')
+            let l:current_line = substitute(l:current_line, '^\b', '', 'g')
+        endwhile
 
-    let i = 0
-    while i < len(chars)
-        let c = chars[i]
-        if c == "\b"
-            let cpos = cpos - 1
-        elseif c == "\<CR>"
-            let cpos = 0
-        elseif c == "\n"
-            call s:write_buffer(lpos, cpos)
-            call append(lpos, '')
-            return [lpos + 1, 0, join(chars[i+1:], '')]
-        elseif c == "\<Esc>"
-            let seq = ''
-            let found = 0
-            "call s:log.debug('escape sequence triggered')
-            for sc in chars[i + 1 :]
-                " if we hit another esc, we're done
-                if sc == "\<Esc>"
+        " check for Bells
+        if l:current_line =~ nr2char(7)
+            let l:current_line = substitute(l:current_line, nr2char(7), '', 'g')
+            echohl WarningMsg | echomsg "For shame!" | echohl None
+        endif
+        call setline(line('$'), l:current_line)
+        return
+    endif
+
+    call setline(line('$'), l:current_line)
+
+    let l:line_len = strlen(l:current_line)
+    let l:final_line = ''
+    let final_chars = []
+    let l:color_changes = []
+    let l:next_line = 0
+
+    let idx = 0
+    let line_pos = 0
+    while idx < l:line_len
+        "call s:log.debug("checking char " . idx)
+        let c = l:current_line[idx]
+        " first, escape sequences
+        if c == "\<Esc>"
+            "call s:log.debug('looking for a match')
+            " start looking for a match
+            let l:seq = ''
+            let l:seq_pos = 1
+            let l:finished = 0
+            while idx + l:seq_pos < l:line_len && l:finished == 0
+                if l:current_line[idx + l:seq_pos] == "\<Esc>"
                     break
                 endif
-
-                let seq .= substitute(sc, nr2char(7), '__BELL__', '')
-                "call s:log.debug('testing ' . seq)
-
+                let l:seq = l:seq . l:current_line[idx + l:seq_pos]
+                let l:seq = substitute(l:seq, nr2char(7), '__BELL__', 'g')
+                "call s:log.debug('evaluating sequence ' . l:seq)
                 for esc in s:escape_sequences
-                    if seq =~ esc.code
-                        "call s:log.debug('found sequence ' . seq)
+                    if l:seq =~ esc.code
                         " do something
                         "call s:log.debug(l:seq)
-                        let found = 1
                         if esc.name == 'font'
-                            call add(s:color_changes, {'col':cpos,'esc':esc,'val':seq})
-                        "elseif esc.name == 'clear_line' && cpos == 0
-                        "    normal! kdd
+                            call add(l:color_changes, {'col':line_pos,'esc':esc,'val':l:seq})
+                        elseif esc.name == 'clear_line' && idx == 0
+                            normal! kdd
                         elseif esc.name == 'clear_line'
-                            let s:final_chars = s:final_chars[:cpos - 1]
+                            let final_chars = final_chars[:line_pos - 1]
                         elseif esc.name == 'cursor_right'
-                            let cpos = cpos + 1
+                            let line_pos = line_pos + 1
                         elseif esc.name == 'cursor_left'
-                            let cpos = cpos - 1
+                            let line_pos = line_pos - 1
                         elseif esc.name == 'cursor_to_column'
-                            "call s:log.debug('cursor to column: ' . seq)
-                            let col = substitute(seq, '^\[', '', '')
-                            let col = substitute(col, 'G$', '', '')
-                            let cpos = col - 1
+                            call s:log.debug('cursor to column: ' . l:seq)
+                            let l:col = substitute(l:seq, '^\[', '', '')
+                            let l:col = substitute(l:col, 'G$', '', '')
+                            let line_pos = l:col - 1
                         elseif esc.name == 'cursor_up' " holy crap we're screwed
                             " first, ship off the rest of the string  to the line above and pray to God they used the [C escape
                             call setline(line('.') - 1, getline(line('.') - 1) . l:current_line[idx + strlen(l:seq) :])
@@ -190,64 +198,57 @@ function! s:process(line, col, input) "{{{
                             " then abort processing of this line
                             let l:line_len = idx + strlen(l:seq)
                         endif
+                        let l:finished = 1
+                        let idx = idx + strlen(l:seq)
                         break
                     endif
                 endfor
-                if found == 1
-                    break
+                let l:seq_pos = l:seq_pos + 1
+            endwhile
+            if l:finished == 0
+                if line_pos >= len(final_chars)
+                    call add(final_chars, c)
+                else
+                    let final_chars[line_pos] = c
                 endif
-            endfor
-
-            if found == 0
-                call s:add_char(c, cpos)
-            else
-                let i += len(seq)
+                let line_pos = line_pos + 1
             endif
+        elseif c == "\<CR>"
+            let line_pos = 0
+        elseif c == "\b"
+            let line_pos = line_pos - 1
+            let final_chars[line_pos] = ''
         else
-            "call s:log.debug('nothing special, adding ' . c)
-            call s:add_char(c, cpos)
-            let cpos += 1
+            "call s:log.debug('adding ' . c . ' to final chars at line position ' . line_pos . ' comparing to ' . len(final_chars))
+            if line_pos >= len(final_chars)
+                call add(final_chars, c)
+            else
+                let final_chars[line_pos] = c
+            endif
+            let line_pos = line_pos + 1
         endif
-        let i += 1
+        let idx = idx + 1
     endwhile
 
-    "call s:log.debug('final chars end: ' . string(s:final_chars))
-    call s:write_buffer(lpos, cpos)
+    let l:final_line = join(final_chars, '')
+    "call s:log.debug(string(final_chars))
 
-    "call s:log.profile_end('process_input')
-
-    return [-1, -1, -1]
-endfunction "}}}
-
-function! s:add_char(c, pos) " {{{
-    " I really hate vim for making me do this
-    if a:pos >= len(s:final_chars)
-        call add(s:final_chars, a:c)
-    else
-        let s:final_chars[a:pos] = a:c
+    " check for Bells
+    if l:final_line =~ nr2char(7)
+        let l:final_line = substitute(l:final_line, nr2char(7), '', 'g')
+        echohl WarningMsg | echomsg "For shame!" | echohl None
     endif
-endfunction " }}}
 
-function! s:write_buffer(line, cpos) " {{{
-    "call s:log.profile_start('write_buffer')
-    "call s:log.debug('about to write to buffer at line ' . a:line . ' value ' . join(s:final_chars, ''))
-    "call s:log.debug(a:cpos . string(s:final_chars))
-    if a:cpos == 0
-        let l:line = substitute(join(s:final_chars, ''), '\s\+$', '', '')
-    else
-        let l:line = join(s:final_chars[: a:cpos - 1], '') . substitute(join(s:final_chars[a:cpos :], ''), '\s\+$', '', '')
+    " strip trailing spaces
+    let l:final_line = substitute(l:final_line, '\s\+$', '', '')
+    if line_pos > len(l:final_line)
+        let l:final_line = l:final_line . ' '
     endif
-    call setline(a:line, l:line)
-    call s:add_color(a:line)
-    "redraw
-    execute a:line
-    "call s:log.profile_end('write_buffer')
-endfunction " }}}
 
-function! s:add_color(line) "{{{
-    "call s:log.profile_start('add_color')
+    call setline(line('.'), l:final_line)
+
     let l:hi_ct = 1
-    for cc in s:color_changes
+    for cc in l:color_changes
         "call s:log.debug(cc.val)
         let l:color_code = cc.val
         let l:color_code = substitute(l:color_code, '^\[', '', 1)
@@ -265,8 +266,8 @@ function! s:add_color(line) "{{{
             endif
         endfor
 
-        let syntax_name = ' EscapeSequenceAt_' . bufnr('%') . '_' . a:line . '_' . l:hi_ct
-        let syntax_region = 'syntax match ' . syntax_name . ' /\%' . a:line . 'l\%' . (cc.col + 1) . 'c.*$/ contains=ALL oneline'
+        let syntax_name = ' EscapeSequenceAt_' . bufnr('%') . '_' . l:line_nr . '_' . l:hi_ct
+        let syntax_region = 'syntax match ' . syntax_name . ' /\%' . l:line_nr . 'l\%' . (cc.col + 1) . 'c.*$/ contains=ALL oneline'
         "let syntax_link = 'highlight link ' . syntax_name . ' Normal'
         let syntax_highlight = 'highlight ' . syntax_name . l:highlight
 
@@ -281,12 +282,26 @@ function! s:add_color(line) "{{{
 
         let l:hi_ct = l:hi_ct + 1
     endfor
-    "call s:log.profile_end('add_color')
-endfunction "}}}
 
+    " \%15l\%>2c.*\%<6c
+
+    "call s:log.debug(string(l:color_changes))
+    "call s:log.debug("start line: " . l:current_line)
+    "call s:log.debug("final line: " . l:final_line)
+    "call s:log.debug('FUNCTION TIME: '.reltimestr(reltime(start)))
+
+    " if we have another line to process, go there
+    if l:next_line != 0
+        execute l:next_line
+        call subprocess#shell_translate#process_current_line()
+    endif
+
+    call s:log.profile_end('process_current_line')
+endfunction
+"}}}
 
 " Logging {{{
-if exists('g:Conque_Logging') && g:Conque_Logging == 1
+if 1==2 && exists('g:Conque_Logging') && g:Conque_Logging == 1
     let s:log = log#getLogger(expand('<sfile>:t'))
     let s:profiles = {}
     function! s:log.profile_start(name)
@@ -294,7 +309,7 @@ if exists('g:Conque_Logging') && g:Conque_Logging == 1
     endfunction
     function! s:log.profile_end(name)
         let time = reltimestr(reltime(s:profiles[a:name]))
-        "call s:log.debug('PROFILE "' . a:name . '": ' . time)
+        call s:log.debug('PROFILE "' . a:name . '": ' . time)
     endfunction
 else
     let s:log = {}
@@ -307,6 +322,10 @@ else
     function! s:log.error(msg)
     endfunction
     function! s:log.fatal(msg)
+    endfunction
+    function! s:log.profile_start(name)
+    endfunction
+    function! s:log.profile_end(name)
     endfunction
 endif
 " }}}
