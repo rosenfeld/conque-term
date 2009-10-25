@@ -136,6 +136,9 @@ function! subprocess#shell_translate#process_current_line() "{{{
             let l:current_line = substitute(l:current_line, '^\b', '', 'g')
         endwhile
 
+        " strip trailing spaces
+        let l:current_line = substitute(l:current_line, '\s\s\+$', ' ', '')
+
         " check for Bells
         if l:current_line =~ nr2char(7)
             let l:current_line = substitute(l:current_line, nr2char(7), '', 'g')
