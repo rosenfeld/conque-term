@@ -93,7 +93,7 @@ endfunction "}}}
 " set shell environment vars
 " XXX - should this happen in python?    
 function! s:set_environment() "{{{
-    let $COLUMNS = 500 "winwidth(0) - 8
+    let $COLUMNS = winwidth(0) - 8
     let $LINES = winheight(0)
     
     call s:log.debug('<env>')
@@ -152,8 +152,8 @@ function! s:set_buffer_settings(command, pre_hooks) "{{{
     nnoremap <buffer><silent><C-\>       :<C-u>call conque#quit()<CR>
     inoremap <buffer><silent><C-\>       <ESC>:<C-u>call conque#quit()<CR>
     " clear
-    nnoremap <buffer><silent><C-l>       :<C-u>call conque#special('clear')<CR>
-    inoremap <buffer><silent><C-l>       <ESC>:<C-u>call conque#special('clear')<CR>
+    nnoremap <buffer><silent><C-l>       :<C-u>call conque#send('clear')<CR>
+    inoremap <buffer><silent><C-l>       <ESC>:<C-u>call conque#send('clear')<CR>
     " inject selected text into conque
 	  vnoremap <silent> <F9> :<C-u>call conque#inject(visualmode(), 0)<CR>
 
@@ -177,6 +177,11 @@ function! conque#run() "{{{
     let l:write_status = conque#write(1)
     if l:write_status == 1
         call conque#read(g:Conque_Read_Timeout)
+        " special case
+        if b:current_command == 'clear'
+            normal Gzt
+            startinsert!
+        endif
     endif
 
     call s:log.profile_end('run')
@@ -225,7 +230,7 @@ function! conque#write(add_newline) "{{{
     let l:in = s:get_command()
 
     " check for hijacked commands
-    if a:add_newline && (l:in == 'clear' || l:in =~ '^man ' || l:in =~ '^vim\? ')
+    if a:add_newline && (l:in =~ '^man ' || l:in =~ '^vim\? ')
         call conque#special(l:in)
         return 0
     endif
@@ -469,6 +474,7 @@ function! s:print_buffer(read_lines) "{{{
         endif
     endif
 
+    redraw
     call s:log.profile_start('print_buffer_redraw')
     call s:log.profile_end('print_buffer_redraw')
     call s:log.profile_end('print_buffer')
@@ -774,9 +780,6 @@ function! conque#special(command) "{{{
         let split_cmd = "split " . filename
         call s:log.debug(split_cmd)
         execute split_cmd
-    elseif a:command =~ 'clear'
-        normal Gzt
-        startinsert!
     endif
 endfunction "}}}
 
@@ -800,6 +803,12 @@ function! conque#inject(type, execute) "{{{
     endif
 
     let @@ = reg_save
+endfunction "}}}
+
+" write command to conque
+function! conque#send(command) "{{{
+    call setline(line('$'), getline(line('$')) . a:command)
+    call conque#run()
 endfunction "}}}
 
 " Logging {{{
