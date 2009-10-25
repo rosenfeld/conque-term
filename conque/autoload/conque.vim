@@ -61,7 +61,7 @@ function! conque#open(...) "{{{
     " open command
     try
         let b:subprocess = subprocess#new()
-        call b:subprocess.open(command, {'TERM': g:Conque_TERM, 'CONQUE': 1})
+        call b:subprocess.open(command, {'TERM': g:Conque_TERM, 'CONQUE': 1, 'EDITOR': 'unsupported'})
         call s:log.info('opening command: ' . command . ' with ptyopen')
     catch 
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
@@ -74,6 +74,7 @@ function! conque#open(...) "{{{
     let b:fold_history = {}
     let b:current_command = ''
     let b:command_position = 0
+    let b:write_clear = 0
 
     " save this buffer info
     let g:Conque_BufNr = bufnr("%")
@@ -92,7 +93,7 @@ endfunction "}}}
 " set shell environment vars
 " XXX - should this happen in python?    
 function! s:set_environment() "{{{
-    let $COLUMNS = winwidth(0) - 8
+    let $COLUMNS = 500 "winwidth(0) - 8
     let $LINES = winheight(0)
     
     call s:log.debug('<env>')
@@ -206,6 +207,10 @@ function! conque#run_return(timeout) "{{{
         let l:output_string = substitute(l:output_string, '[^\b]\b', '', 'g')
         let l:output_string = substitute(l:output_string, '^\b', '', 'g')
     endwhile
+
+    " hacky but fast <CR> handling
+    let l:output_string = substitute(l:output_string, '\r\+$', '', '')
+    let l:output_string = substitute(l:output_string, '^.*\r', '', '')
 
     call s:log.profile_end('run_return')
     return l:output_string
@@ -475,7 +480,6 @@ function! conque#on_exit() "{{{
         autocmd! * <buffer>
     augroup END
 
-    setfiletype sh
     unlet b:subprocess
 
     call s:log.debug('</on_exit>')
@@ -527,6 +531,10 @@ endfunction "}}}
 function! conque#hang_up() "{{{
     call s:log.debug('<hang up>')
 
+    if !exists('b:subprocess')
+        return
+    endif
+
     if b:subprocess.get_status() == 1
         " Kill processes.
         try
@@ -541,11 +549,27 @@ function! conque#hang_up() "{{{
     call conque#on_exit()
 endfunction "}}}
 
-" load previous command
-" XXX - we should probably use native history instead, although it's slower
-function! s:previous_command() "{{{
+" process command editing key strokes. History and tab completion being the most common.
+function! s:process_command_edit(char) "{{{
     let l:prompt = b:prompt_history[line('$')]
-    call b:subprocess.write("\e[A")
+    let l:working_line = getline('.')
+    let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
+
+    if b:write_clear == 1 && l:working_command == b:edit_command
+        call b:subprocess.write(a:char)
+    elseif b:write_clear == 0
+        call s:log.debug('first command edit ' . l:working_command . a:char)
+        call b:subprocess.write(l:working_command . a:char)
+        call setline(line('$'), l:prompt)
+    elseif l:working_command[0 : len(b:edit_command) - 1] == b:edit_command
+        call s:log.debug('additional command edit ' . l:working_command . a:char)
+        call b:subprocess.write(l:working_command[len(b:edit_command) : ] . a:char)
+        call setline(line('$'), l:prompt . b:edit_command)
+    else
+        call s:log.debug('fresh command edit ' . l:working_command . a:char)
+        call b:subprocess.write("\<C-u>" . l:working_command . a:char)
+        call setline(line('$'), l:prompt . b:edit_command)
+    endif
     let l:resp = conque#read_return_raw(3)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
@@ -555,60 +579,32 @@ function! s:previous_command() "{{{
         else
             call append(line('$'), l:resp[i])
         endif
+        normal! G$
+        call subprocess#shell_translate#process_current_line()
     endfor
 
     call s:log.debug('before: ' . getline(line('$')))
 
-    normal! G$
-    call subprocess#shell_translate#process_current_line()
     call s:log.debug('after: ' . getline(line('$'))) 
-    "call b:subprocess.write("\<C-e>")
-    "let l:throwaway = conque#read_return_raw(0.001)
     let b:prompt_history[line('$')] = l:prompt
 
-    if len(getline(line('$'))) == len(l:prompt) - 1
-        call setline(line('$'), getline(line('$')) . ' ')
-    endif
+    let l:working_line = getline('.')
+    let b:edit_command = l:working_line[len(l:prompt) : len(l:working_line)]
 
     let b:write_clear = 1
     normal G$
     startinsert!
     return
+endfunction " }}}
+
+" load previous command
+function! s:previous_command() "{{{
+    call s:process_command_edit("\e[A")
 endfunction "}}}
 
 " load next command
-" XXX - we should probably use native history instead, although it's slower
 function! s:next_command() "{{{
-    let l:prompt = b:prompt_history[line('$')]
-    call b:subprocess.write("\e[B")
-    let l:resp = conque#read_return_raw(3)
-    call s:log.debug(string(l:resp))
-    call s:log.debug('well before: ' . getline(line('$')))
-    for i in range(len(l:resp))
-        if i == 0
-            call setline(line('$'), getline(line('$')) . l:resp[i])
-        else
-            call append(line('$'), l:resp[i])
-        endif
-    endfor
-
-    call s:log.debug('before: ' . getline(line('$')))
-
-    normal! G$
-    call subprocess#shell_translate#process_current_line()
-    call s:log.debug('after: ' . getline(line('$'))) 
-    "call b:subprocess.write("\<C-e>")
-    "let l:throwaway = conque#read_return_raw(0.001)
-    let b:prompt_history[line('$')] = l:prompt
-
-    if len(getline(line('$'))) == len(l:prompt) - 1
-        call setline(line('$'), getline(line('$')) . ' ')
-    endif
-
-    let b:write_clear = 1
-    normal G$
-    startinsert!
-    return
+    call s:process_command_edit("\e[B")
 endfunction "}}}
 
 " catch <BS> to prevent deleting prompt
@@ -629,8 +625,6 @@ function! s:delete_backword_char() "{{{
 endfunction "}}}
 
 " tab complete current line
-" TODO: integrate multiple options with Vim auto-complete menu?
-" XXX XXX XXX: The stupidity of this function is spiraling out of control
 function! s:tab_complete() "{{{
     " pull more data first
     if g:Conque_Tab_More == 1 && exists("b:prompt_history[".line('.')."]") && b:prompt_history[line('.')] == getline(line('.'))
@@ -638,100 +632,7 @@ function! s:tab_complete() "{{{
         return
     endif
 
-    " this stuff only really works with pty
-    if b:subprocess.get_library_name() != 'pty'
-        echohl WarningMsg | echomsg "Tab complete disabled when using 'popen' library" | echohl None
-        return
-    endif
-
-    " clear previous messy stuff from <Up>/<Down>
-    call b:subprocess.write("\<C-u>")
-
-    " Insert <TAB>.
-    if exists('b:tab_complete_history[line(".")]')
-        let l:prompt = b:tab_complete_history[line('.')]
-    elseif exists('b:prompt_history[line(".")]')
-        let l:prompt = b:prompt_history[line('.')]
-    else
-        let l:prompt = ''
-    endif
-    call s:log.debug('prompt is ' . l:prompt)
-
-    if !exists('b:tab_count')
-        let b:tab_count = 1
-    endif
-
-    let l:working_line = getline('.')
-    let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
-
-    for i in range(1, b:tab_count)
-        call setline(line('.'), getline('.') . "\<C-i>")
-    endfor
-
-    let l:candidate = conque#run_return(g:Conque_Tab_Timeout)
-    call setline(line('.'), l:working_line)
-    let l:extra = l:candidate
-    let l:wlen = len(l:working_command)
-    if l:candidate[0 : l:wlen - 1] == l:working_command
-        let l:extra = l:candidate[l:wlen :]
-    endif
-
-    call s:log.debug('tab complete candidate: "' . l:extra . '" == "' . nr2char(7) . '"')
-    if l:extra == nr2char(7) || l:extra == ''
-        call s:log.debug('tab complete miss')
-        call setline(line('.'), l:working_line)
-        "let b:tab_complete_history[line('.')] = getline(line('.'))
-        startinsert!
-        call b:subprocess.write("\<C-u>")
-        let l:throwaway = conque#read_return_raw(0.001)
-        let b:prompt_history[line('$')] = l:prompt
-        let b:tab_count = 2
-        return
-    endif
-
-    let b:tab_count = 1
-
-    let l:extra_lines = split(l:extra, '\n', 1)
-
-    " automatically squash extended listing
-    if l:extra =~ '(y or n)$'
-        call append(line('$'), l:extra_lines)
-        call append(line('$'), '... Conque has kill extended listing until a later version ...')
-        call b:subprocess.write("n")
-        call b:subprocess.write("\<C-u>")
-        let l:throwaway = conque#read_return_raw(0.001)
-        call append(line('$'), l:working_line)
-        let b:prompt_history[line('$')] = l:prompt
-        normal G$
-        startinsert!
-        return
-    endif
-
-    let l:pos = 1
-    for l:line in l:extra_lines
-        if l:pos == 1
-            call setline(line('$'), getline(line('$')) . l:line)
-        else
-            call append(line('$'), l:line)
-        endif
-        normal G$
-        call subprocess#shell_translate#process_current_line()
-        let l:pos = l:pos + 1
-    endfor
-
-    "let b:tab_complete_history[line('$')] = getline(line('$'))
-
-    let l:last_line = getline(line('$'))
-    call s:log.debug("-->".l:last_line."=".l:working_line."<--")
-    "if l:last_line =~ '^' . l:working_line
-        call s:log.debug('ayay')
-        call b:subprocess.write("\<C-u>")
-        let l:throwaway = conque#read_return_raw(0.001)
-        let b:prompt_history[line('$')] = l:prompt
-    "endif
-
-    normal G$
-    startinsert!
+    call s:process_command_edit("\<C-i>")
 endfunction "}}}
 
 " implement <C-u>
