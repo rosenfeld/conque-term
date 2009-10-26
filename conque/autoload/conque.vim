@@ -56,7 +56,8 @@ function! conque#open(...) "{{{
     call s:set_buffer_settings(command, hooks)
 
     " set global environment variables
-    call s:set_environment()
+    let $COLUMNS = winwidth(0) - 8
+    let $LINES = winheight(0)
 
     " open command
     try
@@ -69,17 +70,14 @@ function! conque#open(...) "{{{
     endtry
 
     " init variables.
-    let b:command_history = []
     let b:prompt_history = {}
-    let b:fold_history = {}
     let b:current_command = ''
-    let b:command_position = 0
     let b:write_clear = 0
 
     " save this buffer info
     let g:Conque_BufNr = bufnr("%")
     let g:Conque_BufName = bufname("%")
-    let g:Conque_Idx = g:Conque_Idx + 1
+    let g:Conque_Idx += 1
 
     " read welcome message from command, give it a full second to start up
     call conque#read(500)
@@ -90,17 +88,6 @@ function! conque#open(...) "{{{
     return 1
 endfunction "}}}
 
-" set shell environment vars
-" XXX - should this happen in python?    
-function! s:set_environment() "{{{
-    let $COLUMNS = winwidth(0) - 8
-    let $LINES = winheight(0)
-    
-    call s:log.debug('<env>')
-    call s:log.debug('winwidth: ' .winwidth(0) . ' winheight: ' . winheight(0))
-    call s:log.debug('</env>')
-endfunction "}}}
-
 " buffer settings, layout, key mappings, and auto commands
 function! s:set_buffer_settings(command, pre_hooks) "{{{
     " optional hooks to execute, e.g. 'split'
@@ -108,7 +95,7 @@ function! s:set_buffer_settings(command, pre_hooks) "{{{
         execute h
     endfor
 
-    execute "edit " . substitute(a:command, ' ', '_', 'g') . "\\ -\\ " . g:Conque_Idx
+    execute "edit " . substitute(a:command, ' ', '\\ ', 'g') . "\\ -\\ " . g:Conque_Idx
     setlocal buftype=nofile  " this buffer is not a file, you can't save it
     setlocal nonumber        " hide line numbers
     setlocal foldcolumn=0    " reasonable left margin
@@ -168,13 +155,18 @@ endfunction "}}}
 function! conque#run() "{{{
     call s:log.debug('<keyboard triggered run>')
     call s:log.profile_start('run')
+
+    " check if subprocess still exists
     if !exists('b:subprocess')
         return
     endif
 
     call s:log.debug('status: ' . string(b:subprocess.get_status()))
 
+    " write current line to subprocess
     let l:write_status = conque#write(1)
+
+    " if write was successful, read output
     if l:write_status == 1
         call conque#read(g:Conque_Read_Timeout)
         " special case
@@ -186,39 +178,6 @@ function! conque#run() "{{{
 
     call s:log.profile_end('run')
     call s:log.debug('</keyboard triggered run>')
-endfunction "}}}
-
-" execute current line, but return output as string instead of printing to buffer
-function! conque#run_return(timeout) "{{{
-    call s:log.debug('<keyboard triggered run return>')
-    call s:log.profile_start('run_return')
-    if !exists('b:subprocess')
-        return
-    endif
-
-    call conque#write(0)
-    let l:output = conque#read_return_raw(a:timeout)
-    call s:log.debug('</keyboard triggered run return>')
-    let l:output_string = join(l:output, "\n")
-
-    " strip bells, leave whistles
-    if l:output_string =~ nr2char(7)
-        let l:output_string = substitute(l:output_string, nr2char(7), '', 'g')
-        echohl WarningMsg | echomsg "!!!BELL!!!" | echohl None
-    endif
-
-    " strip backspaces out of output
-    while l:output_string =~ '\b'
-        let l:output_string = substitute(l:output_string, '[^\b]\b', '', 'g')
-        let l:output_string = substitute(l:output_string, '^\b', '', 'g')
-    endwhile
-
-    " hacky but fast <CR> handling
-    let l:output_string = substitute(l:output_string, '\r\+$', '', '')
-    let l:output_string = substitute(l:output_string, '^.*\r', '', '')
-
-    call s:log.profile_end('run_return')
-    return l:output_string
 endfunction "}}}
 
 " write current line to pty
@@ -235,12 +194,6 @@ function! conque#write(add_newline) "{{{
         return 0
     endif
     
-    " waiting
-    if l:in == '...'
-        call append(line('$'), '...')
-        return 1
-    endif
-
     " run the command!
     try
         call s:log.debug('about to write command: "' . l:in . '" to pid')
@@ -257,30 +210,7 @@ function! conque#write(add_newline) "{{{
     endtry
     
     " record command history
-    let l:hc = ''
-    if exists("b:prompt_history['".line('.')."']")
-        call s:log.debug('command history from getline')
-        let l:hc = getline('.')
-        let l:hc = l:hc[len(b:prompt_history[line('.')]) : ]
-    else
-        call s:log.debug('command history from l:in')
-        let l:hc = l:in
-    endif
-    if l:hc != '' && l:hc != '...' && l:hc !~ '\t$'
-        let b:fold_history[line('.')] = 1
-        call add(b:command_history, l:hc)
-    endif
     let b:current_command = l:in
-    let b:command_position = 0
-
-    " we're doing something
-    "if a:add_newline == 1
-    "    if g:Conque_Use_Filler == 1
-    "        call append(line('$'), '...')
-    "    else
-    "        call append(line('$'), '')
-    "    endif
-    "endif
 
     normal! G$
     call s:log.profile_end('write')
@@ -288,11 +218,14 @@ function! conque#write(add_newline) "{{{
     return 1
 endfunction "}}}
 
+" when we actually write a full command to the subprocess, occasionally we need to clear the input line first
+" typically after command editing keystrokes such as for tab completion and history navigation
+" XXX - hacky
 function! s:subwrite(command) "{{{
     call s:log.profile_start('subwrite')
-    if exists('b:write_clear') && b:write_clear == 1 && b:subprocess.get_library_name() == 'pty'
+    if b:write_clear == 1 && b:subprocess.get_library_name() == 'pty'
         call s:log.debug('must cleeeeeeeeeeeeeeeeeeeeeear')
-        call b:subprocess.write("\<C-u>")
+        call conque#kill_line()
         let b:write_clear = 0
     endif
     call b:subprocess.write(a:command)
@@ -307,9 +240,6 @@ function! s:get_command() "{{{
 
   if l:in == ''
     " Do nothing.
-
-  elseif l:in == '...'
-    " Working
 
   elseif exists("b:prompt_history['".line('.')."']")
     let l:in = l:in[len(b:prompt_history[line('.')]) : ]
@@ -422,13 +352,12 @@ function! s:print_buffer(read_lines) "{{{
     endif
 
     " maybe put this in config later
-    let l:lines_before_redraw = 100
     let l:pos = 1
     for eline in a:read_lines
         " write to buffer
         call s:log.debug('about to write: ' . eline)
         if l:pos == 1
-            let eline = substitute(eline, '^\b\+', '', 'g')
+            "let eline = substitute(eline, '^\b\+', '', 'g')
             call setline(line('$'), getline(line('$')) . eline)
         else
             call append(line('$'), eline)
@@ -438,41 +367,9 @@ function! s:print_buffer(read_lines) "{{{
         normal! G$
         call subprocess#shell_translate#process_current_line()
 
-        " strip off command repeated by the ECHO terminal flag
-        "if l:pos == 1
-        "    let l:pp_line = getline(line('$'))
-        "    call s:log.debug(l:pp_line)
-        "    call s:log.debug(b:current_command)
-        "    if l:pp_line == b:current_command
-        "        call s:log.debug('****************************************')
-        "        normal dd
-        "    elseif len(keys(b:prompt_history)) > 0 && l:pp_line == b:prompt_history[max(keys(b:prompt_history))] . b:current_command
-        "        call s:log.debug('========================================')
-        "        normal dd
-        "    " will usually get rid of ugly trash produced by ECHO + commands longer than screen width
-        "    elseif len(b:current_command) > winwidth(0) - 20 && l:pp_line[0:20] == b:current_command[0:20] && l:pp_line[-5:] == b:current_command[-5:]
-        "        call s:log.debug('----------------------------------------')
-        "        normal dd
-        "    endif
-        "endif
-
-        let l:pos = l:pos + 1
-
-        "if l:pos % l:lines_before_redraw == 0
-        "    call s:log.debug('redrawing at ' . eline)
-        "endif
+        let l:pos += 1
         normal G
     endfor
-
-    " fold output
-    if g:Conque_Folding == 1
-        if !exists('b:fold_history[line("$")-1]') && max(keys(b:fold_history)) < line("$")-1 && len(keys(b:fold_history)) > 0 && getline(line('$')) != getline(line('$')-1)
-            let l:fold_command = max(keys(b:fold_history)) . "," . (line("$")-1) . "fo"
-            call s:log.debug('fold command: ' . l:fold_command)
-            execute l:fold_command
-            normal! kzoG$
-        endif
-    endif
 
     redraw
     call s:log.profile_start('print_buffer_redraw')
@@ -573,6 +470,7 @@ function! s:process_command_edit(char) "{{{
         call setline(line('$'), l:prompt . b:edit_command)
     else
         call s:log.debug('fresh command edit ' . l:working_command . a:char)
+        call s:log.debug('edit command ' . b:edit_command)
         call b:subprocess.write("\<C-u>" . l:working_command . a:char)
         call setline(line('$'), l:prompt . b:edit_command)
     endif
@@ -595,7 +493,7 @@ function! s:process_command_edit(char) "{{{
     let b:prompt_history[line('$')] = l:prompt
 
     let l:working_line = getline('.')
-    let b:edit_command = l:working_line[len(l:prompt) : len(l:working_line)]
+    let b:edit_command = l:working_line[len(l:prompt) : ]
 
     let b:write_clear = 1
     normal G$

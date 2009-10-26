@@ -54,19 +54,11 @@ syn keyword Keyword select count max show table status like as from left right o
 syn case match
 
 " Typical Prompt
-syn match ConquePrompt '^.*\$' oneline
-syn match ConqueFold '{{{' oneline
-syn match ConqueFold '}}}' oneline
-syn match ConqueWait "^\.\.\.$" oneline
-syn region ConqueString start=+'+ end=+'+ skip=+\\'+  oneline
-syn region ConqueString start=+"+ end=+"+ skip=+\\"+  oneline
-syn region ConqueString start=+`+ end=+`+ skip=+\\`+ oneline
-
+"syn match ConquePrompt '^.*\$' oneline
+syn region ConqueString start=+'+ end=+'+ skip=+\\'+ contains=all oneline
+syn region ConqueString start=+"+ end=+"+ skip=+\\"+ contains=all oneline
+syn region ConqueString start=+`+ end=+`+ skip=+\\`+ contains=all oneline
 hi def link ConqueString String
-hi def link ConquePrompt Identifier
-hi def link ConqueWait Ignore
-hi def link ConqueFold Ignore
-hi def link FoldColumn Normal
 
 hi def link MySQLPrompt Identifier
 hi def link MySQLTableHead Title
