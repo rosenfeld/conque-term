@@ -198,8 +198,10 @@ function! conque#write(add_newline) "{{{
     try
         call s:log.debug('about to write command: "' . l:in . '" to pid')
         if a:add_newline == 1
+            call s:log.debug('with newline')
             call s:subwrite(l:in . "\<NL>")
         else
+            call s:log.debug('without newline')
             call s:subwrite(l:in)
         endif
     catch
@@ -531,7 +533,7 @@ endfunction "}}}
 " tab complete current line
 function! s:tab_complete() "{{{
     " pull more data first
-    if g:Conque_Tab_More == 1 && exists("b:prompt_history[".line('.')."]") && b:prompt_history[line('.')] == getline(line('.'))
+    if exists("b:prompt_history[".line('.')."]") && b:prompt_history[line('.')] == getline(line('.'))
         call conque#read(5)
         return
     endif
@@ -556,7 +558,7 @@ function! conque#kill_line() "{{{
     let l:hopefully_just_backspaces = conque#read_return_raw(0.5)
 
     " restore empty prompt
-    call setline(line('.'), b:prompt_history[line('.')])
+    call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))])
     normal! G$
     startinsert!
 endfunction "}}}

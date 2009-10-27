@@ -35,11 +35,6 @@ endif
 
 " Configuration globals {{{
 """"""""""""""""""""""""""""""""""""""""""
-" Use '...' filler characters while waiting for output
-" Using the filler functionality will prevent commands from piling up while you wait, but it diverges from typical shell behavior
-if !exists('g:Conque_Use_Filler')
-    let g:Conque_Use_Filler  = 1
-endif
 " Default read timeout for running a command, in seconds.
 " Decreasing this value will make Conque seem more responsive, but you will get more '...' read timeouts
 if !exists('g:Conque_Read_Timeout')
@@ -48,23 +43,15 @@ endif
 " Default read timeout for tab completion
 " Since tab completion is typically nearly instant, this value can be very, very small before timeouts occur
 if !exists('g:Conque_Tab_Timeout')
-    let g:Conque_Tab_Timeout = 3
+    let g:Conque_Tab_Timeout = 10
 endif
 " Syntax for your buffer
 if !exists('g:Conque_Syntax')
     let g:Conque_Syntax = 'conque'
 endif
-" Enable command folding
-if !exists('g:Conque_Folding')
-    let g:Conque_Folding = 0 
-endif
 " TERM environment setting
 if !exists('g:Conque_TERM')
     let g:Conque_TERM =  'dumb'
-endif
-" read more data on <Tab> if not in tab-complete situation
-if !exists('g:Conque_Tab_More')
-    let g:Conque_Tab_More =  1
 endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}
