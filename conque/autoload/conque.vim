@@ -476,7 +476,7 @@ function! s:process_command_edit(char) "{{{
         call b:subprocess.write("\<C-u>" . l:working_command . a:char)
         call setline(line('$'), l:prompt . b:edit_command)
     endif
-    let l:resp = conque#read_return_raw(3)
+    let l:resp = conque#read_return_raw(g:Conque_Tab_Timeout)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
     for i in range(len(l:resp))
