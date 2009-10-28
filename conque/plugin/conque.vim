@@ -43,7 +43,7 @@ endif
 " Default read timeout for tab completion
 " Since tab completion is typically nearly instant, this value can be very, very small before timeouts occur
 if !exists('g:Conque_Tab_Timeout')
-    let g:Conque_Tab_Timeout = 10
+    let g:Conque_Tab_Timeout = 6
 endif
 " Syntax for your buffer
 if !exists('g:Conque_Syntax')

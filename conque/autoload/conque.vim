@@ -555,7 +555,7 @@ function! conque#kill_line() "{{{
     endtry
 
     " we are throwing away the output here, assuming <C-u> never fails to do as expected
-    let l:hopefully_just_backspaces = conque#read_return_raw(0.5)
+    let l:hopefully_just_backspaces = conque#read_return_raw(g:Conque_Tab_Timeout)
 
     " restore empty prompt
     call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))])
