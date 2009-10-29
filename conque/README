@@ -57,7 +57,7 @@ let g:Conque_TERM = 'dumb'
  * Most complex, full-screen applications will not work in Conque. You will not be able to launch programs such as alpine using Conque.
  * Conque does not continuously poll your program for new output. If you are expecting more output but nothing is happening, press <Tab> to get more.
  * Tab completion and history navigation may start to break down when your command is longer than the width of the screen. This will get fixed in a future version. Tab completion is generally squirrely in zsh for some reason, and it may require you to use TERM=xterm in (t)csh.
- * Some Ubuntu users have been able to load Conque on the terminal Vim, but not using graphical GVim. Two Ubuntu and one Kubuntu install later I haven't been able to reproducte this. If it happens to you, please send me an email with your :version output and operating system version.
+ * Some Ubuntu users have been able to load Conque on the terminal Vim, but not using graphical GVim. Two Ubuntu and one Kubuntu install later I haven't been able to reproduce this. If it happens to you, please send me an email with your :version output and operating system version.
 
 == TROUBLESHOOTING ==
 

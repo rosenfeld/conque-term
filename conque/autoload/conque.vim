@@ -58,6 +58,8 @@ function! conque#open(...) "{{{
     " set global environment variables
     let $COLUMNS = winwidth(0) - 8
     let $LINES = winheight(0)
+    let b:COLUMNS = $COLUMNS
+    let b:LINES = $LINES
 
     " open command
     try
@@ -479,13 +481,14 @@ function! s:process_command_edit(char) "{{{
     let l:resp = conque#read_return_raw(g:Conque_Tab_Timeout)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
-    for i in range(len(l:resp))
-        if i == 0
-            call setline(line('$'), getline(line('$')) . l:resp[i])
+    for i in range(0, len(l:resp) - 1)
+        call s:log.debug('looping line ' . i . ' / ' . l:resp[i])
+        if i > 0
+            call setline(line('.') + 1, getline(line('.') + 1) . l:resp[i])
+            normal! j
         else
-            call append(line('$'), l:resp[i])
+            call setline(line('.'), getline(line('.')) . l:resp[i])
         endif
-        normal! G$
         call subprocess#shell_translate#process_current_line()
     endfor
 
@@ -498,8 +501,6 @@ function! s:process_command_edit(char) "{{{
     let b:edit_command = l:working_line[len(l:prompt) : ]
 
     let b:write_clear = 1
-    normal G$
-    startinsert!
     return
 endfunction " }}}
 

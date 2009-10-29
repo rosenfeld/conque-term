@@ -118,7 +118,7 @@ let s:font_codes = {
 \ } 
 " }}}
 
-function! subprocess#shell_translate#process_current_line() "{{{
+function! subprocess#shell_translate#process_current_line(...) "{{{
     call s:log.profile_start('process_current_line')
 	  let start = reltime()
     let l:line_nr = line('.')
@@ -144,20 +144,29 @@ function! subprocess#shell_translate#process_current_line() "{{{
             let l:current_line = substitute(l:current_line, nr2char(7), '', 'g')
             echohl WarningMsg | echomsg "For shame!" | echohl None
         endif
-        call setline(line('$'), l:current_line)
+        call setline(line('.'), l:current_line)
+        normal $
+        startinsert!
         return
     endif
 
-    call setline(line('$'), l:current_line)
+    call setline(line('.'), l:current_line)
 
     let l:line_len = strlen(l:current_line)
     let l:final_line = ''
     let final_chars = []
     let l:color_changes = []
     let l:next_line = 0
+    let l:next_line_start = 0
 
-    let idx = 0
+    let idx = get(a:000, 0, 0)
+    call s:log.debug('starting to process line ' . l:current_line . ' at char ' . idx)
     let line_pos = 0
+    if idx > 0
+        for i in range(idx)
+            call add(l:final_chars, l:current_line[i])
+        endfor
+    endif
     while idx < l:line_len
         "call s:log.debug("checking char " . idx)
         let c = l:current_line[idx]
@@ -181,14 +190,26 @@ function! subprocess#shell_translate#process_current_line() "{{{
                         "call s:log.debug(l:seq)
                         if esc.name == 'font'
                             call add(l:color_changes, {'col':line_pos,'esc':esc,'val':l:seq})
-                        elseif esc.name == 'clear_line' && idx == 0
-                            normal! kdd
                         elseif esc.name == 'clear_line'
                             let final_chars = final_chars[:line_pos - 1]
                         elseif esc.name == 'cursor_right'
-                            let line_pos = line_pos + 1
+                            if l:seq =~ '\d'
+                                let l:delta = substitute(l:seq, 'C', '', '')
+                                let l:delta = substitute(l:delta, '[', '', '')
+                                call s:log.debug('moving right chars ' . l:delta)
+                            else
+                                let l:delta = 1
+                            endif 
+                            let line_pos = line_pos + l:delta
                         elseif esc.name == 'cursor_left'
-                            let line_pos = line_pos - 1
+                            if l:seq =~ '\d'
+                                let l:delta = substitute(l:seq, 'D', '', '')
+                                let l:delta = substitute(l:delta, '[', '', '')
+                                call s:log.debug('moving left chars ' . l:delta)
+                            else
+                                let l:delta = 1
+                            endif 
+                            let line_pos = line_pos - l:delta
                         elseif esc.name == 'cursor_to_column'
                             call s:log.debug('cursor to column: ' . l:seq)
                             let l:col = substitute(l:seq, '^\[', '', '')
@@ -196,10 +217,15 @@ function! subprocess#shell_translate#process_current_line() "{{{
                             let line_pos = l:col - 1
                         elseif esc.name == 'cursor_up' " holy crap we're screwed
                             " first, ship off the rest of the string  to the line above and pray to God they used the [C escape
-                            call setline(line('.') - 1, getline(line('.') - 1) . l:current_line[idx + strlen(l:seq) :])
                             let l:next_line = line('.') - 1
+                            let l:next_line_start = len(getline(l:next_line))
+                            call setline(l:next_line, getline(l:next_line) . l:current_line[idx + strlen(l:seq) + 1 :])
+                            call s:log.debug('setting previous line ' . l:next_line . ' with value ' . getline(l:next_line) . l:current_line[idx + strlen(l:seq) + 1 :])
                             " then abort processing of this line
-                            let l:line_len = idx + strlen(l:seq)
+                            let l:line_len = idx
+                        elseif esc.name == 'clear_screen'
+                            let line_pos = 0
+                            let l:final_chars = []
                         endif
                         let l:finished = 1
                         let idx = idx + strlen(l:seq)
@@ -217,10 +243,18 @@ function! subprocess#shell_translate#process_current_line() "{{{
                 let line_pos = line_pos + 1
             endif
         elseif c == "\<CR>"
-            let line_pos = 0
+            call s:log.debug('<CR> found at column ' . line_pos . ' with $COLUMNS ' . b:COLUMNS)
+            " weird condition where terminal is trying to deal with line wrapping
+            if line_pos > b:COLUMNS && line_pos % b:COLUMNS == floor(line_pos / b:COLUMNS)
+                " do nothing
+            else
+                let line_pos = 0
+            endif
         elseif c == "\b"
             let line_pos = line_pos - 1
-            let final_chars[line_pos] = ''
+            "let final_chars[line_pos] = ''
+        elseif c == nr2char(7)
+            echohl WarningMsg | echomsg "For shame!" | echohl None
         else
             "call s:log.debug('adding ' . c . ' to final chars at line position ' . line_pos . ' comparing to ' . len(final_chars))
             if line_pos >= len(final_chars)
@@ -236,14 +270,9 @@ function! subprocess#shell_translate#process_current_line() "{{{
     let l:final_line = join(final_chars, '')
     "call s:log.debug(string(final_chars))
 
-    " check for Bells
-    if l:final_line =~ nr2char(7)
-        let l:final_line = substitute(l:final_line, nr2char(7), '', 'g')
-        echohl WarningMsg | echomsg "For shame!" | echohl None
-    endif
-
     " strip trailing spaces
     let l:final_line = substitute(l:final_line, '\s\+$', '', '')
+    call s:log.debug('final line pos ' . line_pos . ' with line len ' . len(l:final_line))
     if line_pos > len(l:final_line)
         let l:final_line = l:final_line . ' '
     endif
@@ -296,15 +325,19 @@ function! subprocess#shell_translate#process_current_line() "{{{
     " if we have another line to process, go there
     if l:next_line != 0
         execute l:next_line
-        call subprocess#shell_translate#process_current_line()
+        call s:log.debug('now processing line ' . line('.'))
+        call subprocess#shell_translate#process_current_line(l:next_line_start)
     endif
+
+    normal $
+    startinsert!
 
     call s:log.profile_end('process_current_line')
 endfunction
 "}}}
 
 " Logging {{{
-if 1==2 && exists('g:Conque_Logging') && g:Conque_Logging == 1
+if exists('g:Conque_Logging') && g:Conque_Logging == 1
     let s:log = log#getLogger(expand('<sfile>:t'))
     let s:profiles = {}
     function! s:log.profile_start(name)
