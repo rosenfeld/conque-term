@@ -39,7 +39,7 @@ let s:control_sequences = {
 " Escape sequences {{{
 let s:escape_sequences = [ 
 \ {'code':'[\(\d*;\)*\d*m', 'name':'font', 'description':'Font manipulation'},
-\ {'code':']0;.*__BELL__', 'name':'title', 'description':'Change Title'},
+\ {'code':']0;.*'.nr2char(7), 'name':'title', 'description':'Change Title'},
 \ {'code':'[\d*J', 'name':'clear_screen', 'description':'Clear in screen'},
 \ {'code':'[\d*K', 'name':'clear_line', 'description':'Clear in line'},
 \ {'code':'[\d*@', 'name':'add_spaces', 'description':'Add n spaces'},
@@ -164,7 +164,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
     let line_pos = 0
     if idx > 0
         for i in range(idx)
-            call add(l:final_chars, l:current_line[i])
+            call add(final_chars, l:current_line[i])
         endfor
     endif
     while idx < l:line_len
@@ -182,7 +182,6 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                     break
                 endif
                 let l:seq = l:seq . l:current_line[idx + l:seq_pos]
-                let l:seq = substitute(l:seq, nr2char(7), '__BELL__', 'g')
                 "call s:log.debug('evaluating sequence ' . l:seq)
                 for esc in s:escape_sequences
                     if l:seq =~ esc.code
@@ -225,7 +224,16 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                             let l:line_len = idx
                         elseif esc.name == 'clear_screen'
                             let line_pos = 0
-                            let l:final_chars = []
+                            let final_chars = []
+                        elseif esc.name == 'delete_chars'
+                            if l:seq =~ '\d'
+                                let l:delta = substitute(l:seq, 'P', '', '')
+                                let l:delta = substitute(l:delta, '[', '', '')
+                                call s:log.debug('moving left chars ' . l:delta)
+                            else
+                                let l:delta = 1
+                            endif 
+                            let final_chars = extend(final_chars[ : line_pos], final_chars[line_pos + l:delta + 1 : ])
                         endif
                         let l:finished = 1
                         let idx = idx + strlen(l:seq)
