@@ -190,7 +190,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                         if esc.name == 'font'
                             call add(l:color_changes, {'col':line_pos,'esc':esc,'val':l:seq})
                         elseif esc.name == 'clear_line'
-                            let final_chars = final_chars[:line_pos - 1]
+                            let final_chars = final_chars[:line_pos]
                         elseif esc.name == 'cursor_right'
                             if l:seq =~ '\d'
                                 let l:delta = substitute(l:seq, 'C', '', '')

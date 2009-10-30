@@ -51,7 +51,7 @@ if !exists('g:Conque_Syntax')
 endif
 " TERM environment setting
 if !exists('g:Conque_TERM')
-    let g:Conque_TERM =  'xterm'
+    let g:Conque_TERM =  'dumb'
 endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}
