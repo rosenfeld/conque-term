@@ -64,59 +64,69 @@ let s:escape_sequences = [
 
 " Font codes {{{
 let s:font_codes = {
-\ '0': {'description':'Normal (default)', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}},
-\ '00': {'description':'Normal (default) alternate', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}},
-\ '1': {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}},
-\ '01': {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}},
-\ '4': {'description':'Underlined', 'attributes': {'cterm':'UNDERLINE','gui':'UNDERLINE'}},
-\ '04': {'description':'Underlined', 'attributes': {'cterm':'UNDERLINE','gui':'UNDERLINE'}},
-\ '5': {'description':'Blink (appears as Bold)', 'attributes': {'cterm':'BOLD','gui':'BOLD'}},
-\ '05': {'description':'Blink (appears as Bold)', 'attributes': {'cterm':'BOLD','gui':'BOLD'}},
-\ '7': {'description':'Inverse', 'attributes': {'cterm':'REVERSE','gui':'REVERSE'}},
-\ '07': {'description':'Inverse', 'attributes': {'cterm':'REVERSE','gui':'REVERSE'}},
-\ '8': {'description':'Invisible (hidden)', 'attributes': {'ctermfg':'0','ctermbg':'0','guifg':'#000000','guibg':'#000000'}},
-\ '08': {'description':'Invisible (hidden)', 'attributes': {'ctermfg':'0','ctermbg':'0','guifg':'#000000','guibg':'#000000'}},
-\ '22': {'description':'Normal (neither bold nor faint)', 'attributes': {'cterm':'NONE','gui':'NONE'}},
-\ '24': {'description':'Not underlined', 'attributes': {'cterm':'NONE','gui':'NONE'}},
-\ '25': {'description':'Steady (not blinking)', 'attributes': {'cterm':'NONE','gui':'NONE'}},
-\ '27': {'description':'Positive (not inverse)', 'attributes': {'cterm':'NONE','gui':'NONE'}},
-\ '28': {'description':'Visible (not hidden)', 'attributes': {'ctermfg':'NONE','ctermbg':'NONE','guifg':'NONE','guibg':'NONE'}},
-\ '30': {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'16','guifg':'#000000'}},
-\ '31': {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'1','guifg':'#ff0000'}},
-\ '32': {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'2','guifg':'#00ff00'}},
-\ '33': {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'3','guifg':'#ffff00'}},
-\ '34': {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'4','guifg':'#0000ff'}},
-\ '35': {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'5','guifg':'#990099'}},
-\ '36': {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'6','guifg':'#009999'}},
-\ '37': {'description':'Set foreground color to White', 'attributes': {'ctermfg':'7','guifg':'#ffffff'}},
-\ '39': {'description':'Set foreground color to default (original)', 'attributes': {'ctermfg':'NONE','guifg':'NONE'}},
-\ '40': {'description':'Set background color to Black', 'attributes': {'ctermbg':'16','guibg':'#000000'}},
-\ '41': {'description':'Set background color to Red', 'attributes': {'ctermbg':'1','guibg':'#ff0000'}},
-\ '42': {'description':'Set background color to Green', 'attributes': {'ctermbg':'2','guibg':'#00ff00'}},
-\ '43': {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'3','guibg':'#ffff00'}},
-\ '44': {'description':'Set background color to Blue', 'attributes': {'ctermbg':'4','guibg':'#0000ff'}},
-\ '45': {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'5','guibg':'#990099'}},
-\ '46': {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'6','guibg':'#009999'}},
-\ '47': {'description':'Set background color to White', 'attributes': {'ctermbg':'7','guibg':'#ffffff'}},
-\ '49': {'description':'Set background color to default (original).', 'attributes': {'ctermbg':'NONE','guibg':'NONE'}},
-\ '90': {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'16','guifg':'#000000'}},
-\ '91': {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'1','guifg':'#ff0000'}},
-\ '92': {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'2','guifg':'#00ff00'}},
-\ '93': {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'3','guifg':'#ffff00'}},
-\ '94': {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'4','guifg':'#0000ff'}},
-\ '95': {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'5','guifg':'#990099'}},
-\ '96': {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'6','guifg':'#009999'}},
-\ '97': {'description':'Set foreground color to White', 'attributes': {'ctermfg':'7','guifg':'#ffffff'}},
-\ '100': {'description':'Set background color to Black', 'attributes': {'ctermbg':'16','guibg':'#000000'}},
-\ '101': {'description':'Set background color to Red', 'attributes': {'ctermbg':'1','guibg':'#ff0000'}},
-\ '102': {'description':'Set background color to Green', 'attributes': {'ctermbg':'2','guibg':'#00ff00'}},
-\ '103': {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'3','guibg':'#ffff00'}},
-\ '104': {'description':'Set background color to Blue', 'attributes': {'ctermbg':'4','guibg':'#0000ff'}},
-\ '105': {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'5','guibg':'#990099'}},
-\ '106': {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'6','guibg':'#009999'}},
-\ '107': {'description':'Set background color to White', 'attributes': {'ctermbg':'7','guibg':'#ffffff'}}
+\ '0': {'description':'Normal (default)', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':1},
+\ '00': {'description':'Normal (default) alternate', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':1},
+\ '1': {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':0},
+\ '01': {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':0},
+\ '4': {'description':'Underlined', 'attributes': {'cterm':'UNDERLINE','gui':'UNDERLINE'}, 'normal':0},
+\ '04': {'description':'Underlined', 'attributes': {'cterm':'UNDERLINE','gui':'UNDERLINE'}, 'normal':0},
+\ '5': {'description':'Blink (appears as Bold)', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':0},
+\ '05': {'description':'Blink (appears as Bold)', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':0},
+\ '7': {'description':'Inverse', 'attributes': {'cterm':'REVERSE','gui':'REVERSE'}, 'normal':0},
+\ '07': {'description':'Inverse', 'attributes': {'cterm':'REVERSE','gui':'REVERSE'}, 'normal':0},
+\ '8': {'description':'Invisible (hidden)', 'attributes': {'ctermfg':'0','ctermbg':'0','guifg':'#000000','guibg':'#000000'}, 'normal':0},
+\ '08': {'description':'Invisible (hidden)', 'attributes': {'ctermfg':'0','ctermbg':'0','guifg':'#000000','guibg':'#000000'}, 'normal':0},
+\ '22': {'description':'Normal (neither bold nor faint)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':1},
+\ '24': {'description':'Not underlined', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':1},
+\ '25': {'description':'Steady (not blinking)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':1},
+\ '27': {'description':'Positive (not inverse)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':1},
+\ '28': {'description':'Visible (not hidden)', 'attributes': {'ctermfg':'NONE','ctermbg':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':1},
+\ '30': {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'16','guifg':'#000000'}, 'normal':0},
+\ '31': {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'1','guifg':'#ff0000'}, 'normal':0},
+\ '32': {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'2','guifg':'#00ff00'}, 'normal':0},
+\ '33': {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'3','guifg':'#ffff00'}, 'normal':0},
+\ '34': {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'4','guifg':'#0000ff'}, 'normal':0},
+\ '35': {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'5','guifg':'#990099'}, 'normal':0},
+\ '36': {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'6','guifg':'#009999'}, 'normal':0},
+\ '37': {'description':'Set foreground color to White', 'attributes': {'ctermfg':'7','guifg':'#ffffff'}, 'normal':0},
+\ '39': {'description':'Set foreground color to default (original)', 'attributes': {'ctermfg':'NONE','guifg':'NONE'}, 'normal':1},
+\ '40': {'description':'Set background color to Black', 'attributes': {'ctermbg':'16','guibg':'#000000'}, 'normal':0},
+\ '41': {'description':'Set background color to Red', 'attributes': {'ctermbg':'1','guibg':'#ff0000'}, 'normal':0},
+\ '42': {'description':'Set background color to Green', 'attributes': {'ctermbg':'2','guibg':'#00ff00'}, 'normal':0},
+\ '43': {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'3','guibg':'#ffff00'}, 'normal':0},
+\ '44': {'description':'Set background color to Blue', 'attributes': {'ctermbg':'4','guibg':'#0000ff'}, 'normal':0},
+\ '45': {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'5','guibg':'#990099'}, 'normal':0},
+\ '46': {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'6','guibg':'#009999'}, 'normal':0},
+\ '47': {'description':'Set background color to White', 'attributes': {'ctermbg':'7','guibg':'#ffffff'}, 'normal':0},
+\ '49': {'description':'Set background color to default (original).', 'attributes': {'ctermbg':'NONE','guibg':'NONE'}, 'normal':1},
+\ '90': {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'16','guifg':'#000000'}, 'normal':0},
+\ '91': {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'1','guifg':'#ff0000'}, 'normal':0},
+\ '92': {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'2','guifg':'#00ff00'}, 'normal':0},
+\ '93': {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'3','guifg':'#ffff00'}, 'normal':0},
+\ '94': {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'4','guifg':'#0000ff'}, 'normal':0},
+\ '95': {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'5','guifg':'#990099'}, 'normal':0},
+\ '96': {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'6','guifg':'#009999'}, 'normal':0},
+\ '97': {'description':'Set foreground color to White', 'attributes': {'ctermfg':'7','guifg':'#ffffff'}, 'normal':0},
+\ '100': {'description':'Set background color to Black', 'attributes': {'ctermbg':'16','guibg':'#000000'}, 'normal':0},
+\ '101': {'description':'Set background color to Red', 'attributes': {'ctermbg':'1','guibg':'#ff0000'}, 'normal':0},
+\ '102': {'description':'Set background color to Green', 'attributes': {'ctermbg':'2','guibg':'#00ff00'}, 'normal':0},
+\ '103': {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'3','guibg':'#ffff00'}, 'normal':0},
+\ '104': {'description':'Set background color to Blue', 'attributes': {'ctermbg':'4','guibg':'#0000ff'}, 'normal':0},
+\ '105': {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'5','guibg':'#990099'}, 'normal':0},
+\ '106': {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'6','guibg':'#009999'}, 'normal':0},
+\ '107': {'description':'Set background color to White', 'attributes': {'ctermbg':'7','guibg':'#ffffff'}, 'normal':0}
 \ } 
 " }}}
+
+function! subprocess#shell_translate#process_lines(line, col, input) " {{{
+    " don't want to pass these around in every function arg
+    let s:line = a:line
+    let s:col = a:col
+    
+    for line in a:input
+        call subprocess#shell_translate#process_line(line)
+    endfor
+endfunction " }}}
 
 function! subprocess#shell_translate#process_current_line(...) "{{{
     call s:log.profile_start('process_current_line')
@@ -124,8 +134,27 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
     let l:line_nr = line('.')
     let l:current_line = getline(l:line_nr)
 
+    call s:log.debug('XBEFORE: ' . l:current_line)
+
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " REMOVE REDUNDANT/IGNORED ESCAPE SEQUENCES. 
+    " This often removes the requirement to parse the line char by char, which is a huge performance hit.
+
+    " remove trailing <CR>s. conque assumes cursor will be at col 0 for new lines
     let l:current_line = substitute(l:current_line, '\r\+$', '', '')
-    "let l:current_line = substitute(l:current_line, '^.*\r', '', '')
+    " remove character set escapes. they would be ignored
+    let l:current_line = substitute(l:current_line, '\e(.', '', 'g')
+    " remove initial color escape if it is setting color to normal. conque always starts lines in normal syntax
+    let l:current_line = substitute(l:current_line, '^\(\e[0\?m\)*', '', '')
+    " remove trailing color escapes. syntax changes are limited to one line
+    let l:current_line = substitute(l:current_line, '\(\e[\(\d*;\)*\d*m\)*$', '', '')
+    " remove all normal color escapes leading up to the first non-normal color escape
+    while l:current_line =~ '^[^\e]\+\e[\(39;49\)\?m'
+        call s:log.debug('found initial normal')
+        let l:current_line = substitute(l:current_line, '\e[\(39;49\)\?m', '', '')
+    endwhile
+
+    call s:log.debug('XAFTER: ' . l:current_line)
 
     " short circuit
     if l:current_line !~ "\e" && l:current_line !~ "\r"
@@ -147,6 +176,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
         call setline(line('.'), l:current_line)
         normal $
         startinsert!
+        call s:log.profile_end('process_current_line')
         return
     endif
 
@@ -190,7 +220,11 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                         if esc.name == 'font'
                             call add(l:color_changes, {'col':line_pos,'esc':esc,'val':l:seq})
                         elseif esc.name == 'clear_line'
-                            let final_chars = final_chars[:line_pos]
+                            if line_pos == 0
+                                let final_chars = []
+                            else
+                                let final_chars = final_chars[:line_pos - 1]
+                            endif
                         elseif esc.name == 'cursor_right'
                             if l:seq =~ '\d'
                                 let l:delta = substitute(l:seq, 'C', '', '')
@@ -240,7 +274,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                         break
                     endif
                 endfor
-                let l:seq_pos = l:seq_pos + 1
+                let l:seq_pos += 1
             endwhile
             if l:finished == 0
                 if line_pos >= len(final_chars)
@@ -248,7 +282,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                 else
                     let final_chars[line_pos] = c
                 endif
-                let line_pos = line_pos + 1
+                let line_pos += 1
             endif
         elseif c == "\<CR>"
             call s:log.debug('<CR> found at column ' . line_pos . ' with $COLUMNS ' . b:COLUMNS)
@@ -270,9 +304,9 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
             else
                 let final_chars[line_pos] = c
             endif
-            let line_pos = line_pos + 1
+            let line_pos += 1
         endif
-        let idx = idx + 1
+        let idx += 1
     endwhile
 
     let l:final_line = join(final_chars, '')
@@ -288,8 +322,9 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
     call setline(line('.'), l:final_line)
 
     let l:hi_ct = 1
+    let l:found_color = 0
     for cc in l:color_changes
-        "call s:log.debug(cc.val)
+        call s:log.debug(cc.val)
         let l:color_code = cc.val
         let l:color_code = substitute(l:color_code, '^\[', '', 1)
         let l:color_code = substitute(l:color_code, 'm$', '', 1)
@@ -303,8 +338,15 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                 for attr in keys(s:font_codes[param].attributes)
                     let l:highlight = l:highlight . ' ' . attr . '=' . s:font_codes[param].attributes[attr]
                 endfor
+                if s:font_codes[param].normal == 0
+                    let l:found_color = 1
+                endif
             endif
         endfor
+
+        if l:found_color == 0
+            continue
+        endif
 
         let syntax_name = ' EscapeSequenceAt_' . bufnr('%') . '_' . l:line_nr . '_' . l:hi_ct
         let syntax_region = 'syntax match ' . syntax_name . ' /\%' . l:line_nr . 'l\%' . (cc.col + 1) . 'c.*$/ contains=ALL oneline'
@@ -320,7 +362,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
         "call s:log.debug(syntax_link)
         "call s:log.debug(syntax_highlight)
 
-        let l:hi_ct = l:hi_ct + 1
+        let l:hi_ct += 1
     endfor
 
     " \%15l\%>2c.*\%<6c
