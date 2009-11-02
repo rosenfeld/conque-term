@@ -467,16 +467,16 @@ function! s:process_command_edit(char) "{{{
     elseif b:write_clear == 0
         call s:log.debug('first command edit ' . l:working_command . a:char)
         call b:subprocess.write(l:working_command . a:char)
-        call setline(line('$'), l:prompt)
+        call setline(line('.'), l:prompt)
     elseif l:working_command[0 : len(b:edit_command) - 1] == b:edit_command
         call s:log.debug('additional command edit ' . l:working_command . a:char)
         call b:subprocess.write(l:working_command[len(b:edit_command) : ] . a:char)
-        call setline(line('$'), l:prompt . b:edit_command)
+        call setline(line('.'), l:prompt . b:edit_command)
     else
         call s:log.debug('fresh command edit ' . l:working_command . a:char)
         call s:log.debug('edit command ' . b:edit_command)
         call b:subprocess.write("\<C-u>" . l:working_command . a:char)
-        call setline(line('$'), l:prompt . b:edit_command)
+        call setline(line('.'), l:prompt . b:edit_command)
     endif
     let l:resp = conque#read_return_raw(g:Conque_Tab_Timeout)
     call s:log.debug(string(l:resp))

@@ -131,6 +131,8 @@ endfunction " }}}
 function! subprocess#shell_translate#process_current_line(...) "{{{
     call s:log.profile_start('process_current_line')
 	  let start = reltime()
+
+    " init vars
     let l:line_nr = line('.')
     let l:current_line = getline(l:line_nr)
 
@@ -156,23 +158,27 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
 
     call s:log.debug('XAFTER: ' . l:current_line)
 
-    " short circuit
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " SHORT CIRCUIT
+    " If there are no escape sequences or mid-line <CR>s, skip char-by-char processing
     if l:current_line !~ "\e" && l:current_line !~ "\r"
         call s:log.debug('short circ')
+
         " control characters
         while l:current_line =~ '\b'
             let l:current_line = substitute(l:current_line, '[^\b]\b', '', 'g')
-            let l:current_line = substitute(l:current_line, '^\b', '', 'g')
+            "let l:current_line = substitute(l:current_line, '^\b', '', 'g')
         endwhile
 
         " strip trailing spaces
         let l:current_line = substitute(l:current_line, '\s\s\+$', ' ', '')
 
-        " check for Bells
+        " check for Bells, leave whistles
         if l:current_line =~ nr2char(7)
             let l:current_line = substitute(l:current_line, nr2char(7), '', 'g')
             echohl WarningMsg | echomsg "For shame!" | echohl None
         endif
+
         call setline(line('.'), l:current_line)
         normal $
         startinsert!
@@ -180,24 +186,38 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
         return
     endif
 
-    call setline(line('.'), l:current_line)
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " PROCESS LINE CHARACTER BY CHARACTER
 
+    " the number of chars to be processed, mutable
     let l:line_len = strlen(l:current_line)
-    let l:final_line = ''
+
+    " string of characters representing post-processed output of this line
     let final_chars = []
+
+    " highlighting for this line
     let l:color_changes = []
+
+    " if cursor moves to a different row, these will contain the line and column of the new cursor position
     let l:next_line = 0
     let l:next_line_start = 0
 
+    " column to start iterating at
     let idx = get(a:000, 0, 0)
-    call s:log.debug('starting to process line ' . l:current_line . ' at char ' . idx)
+
+    " output column
     let line_pos = 0
+
+    call s:log.debug('starting to process line ' . l:current_line . ' at char ' . idx)
+
+    " if we begin character processing beyond column 0, push characters up to that point onto final output array
     if idx > 0
         for i in range(idx)
             call add(final_chars, l:current_line[i])
         endfor
     endif
-    while idx < l:line_len
+
+    while idx < l:line_len " {{{2
         "call s:log.debug("checking char " . idx)
         let c = l:current_line[idx]
         " first, escape sequences
@@ -213,7 +233,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                 endif
                 let l:seq = l:seq . l:current_line[idx + l:seq_pos]
                 "call s:log.debug('evaluating sequence ' . l:seq)
-                for esc in s:escape_sequences
+                for esc in s:escape_sequences " {{{3
                     if l:seq =~ esc.code
                         " do something
                         "call s:log.debug(l:seq)
@@ -268,12 +288,26 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
                                 let l:delta = 1
                             endif 
                             let final_chars = extend(final_chars[ : line_pos], final_chars[line_pos + l:delta + 1 : ])
+                        elseif esc.name == 'add_spaces'
+                            if l:seq =~ '\d'
+                                let l:delta = substitute(l:seq, '@', '', '')
+                                let l:delta = substitute(l:delta, '[', '', '')
+                            else
+                                let l:delta = 1
+                            endif 
+                            call s:log.debug('adding ' . l:delta . ' spaces')
+                            let l:spaces = []
+                            for sp in range(l:delta)
+                                call add(l:spaces, ' ')
+                            endfor
+                            call s:log.debug('spaces: ' . string(l:spaces))
+                            let final_chars = extend(extend(final_chars[ : line_pos], l:spaces), final_chars[line_pos + 1 : ])
                         endif
                         let l:finished = 1
                         let idx = idx + strlen(l:seq)
                         break
                     endif
-                endfor
+                endfor " }}}
                 let l:seq_pos += 1
             endwhile
             if l:finished == 0
@@ -307,7 +341,7 @@ function! subprocess#shell_translate#process_current_line(...) "{{{
             let line_pos += 1
         endif
         let idx += 1
-    endwhile
+    endwhile " }}}
 
     let l:final_line = join(final_chars, '')
     "call s:log.debug(string(final_chars))
