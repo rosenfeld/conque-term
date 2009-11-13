@@ -160,6 +160,8 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     let l:input = substitute(l:input, '\e(.', '', 'g')
     " remove initial color escape if it is setting color to normal. conque always starts lines in normal syntax
     let l:input = substitute(l:input, '^\(\e[0\?m\)*', '', '')
+    " remove title changes
+    let l:input = substitute(l:input, '^\e]\d;.\{-\}'.nr2char(7), '', '')
     " remove trailing color escapes. syntax changes are limited to one line
     let l:input = substitute(l:input, '\(\e[\(\d*;\)*\d*m\)*$', '', '')
     " remove all normal color escapes leading up to the first non-normal color escape
