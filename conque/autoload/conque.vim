@@ -355,25 +355,27 @@ function! s:print_buffer(read_lines) "{{{
         call setline(line('$'), b:prompt_history[line('$')])
     endif
 
+    call subprocess#shell_translate#process_input(line('$'), len(getline('$')) + 1, a:read_lines)
+
     " maybe put this in config later
-    let l:pos = 1
-    for eline in a:read_lines
-        " write to buffer
-        call s:log.debug('about to write: ' . eline)
-        if l:pos == 1
-            "let eline = substitute(eline, '^\b\+', '', 'g')
-            call setline(line('$'), getline(line('$')) . eline)
-        else
-            call append(line('$'), eline)
-        endif
+    "let l:pos = 1
+    "for eline in a:read_lines
+    "    " write to buffer
+    "    call s:log.debug('about to write: ' . eline)
+    "    if l:pos == 1
+    "        "let eline = substitute(eline, '^\b\+', '', 'g')
+    "        call setline(line('$'), getline(line('$')) . eline)
+    "    else
+    "        call append(line('$'), eline)
+    "    endif
 
-        " translate terminal escape sequences
-        normal! G$
-        call subprocess#shell_translate#process_current_line()
+    "    " translate terminal escape sequences
+    "    normal! G$
+    "    call subprocess#shell_translate#process_current_line()
 
-        let l:pos += 1
-        normal G
-    endfor
+    "    let l:pos += 1
+    "    normal G
+    "endfor
 
     redraw
     call s:log.profile_start('print_buffer_redraw')
@@ -481,21 +483,12 @@ function! s:process_command_edit(char) "{{{
     let l:resp = conque#read_return_raw(g:Conque_Tab_Timeout)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
-    for i in range(0, len(l:resp) - 1)
-        call s:log.debug('looping line ' . i . ' / ' . l:resp[i])
-        if i > 0
-            call setline(line('.') + 1, getline(line('.') + 1) . l:resp[i])
-            normal! j
-        else
-            call setline(line('.'), getline(line('.')) . l:resp[i])
-        endif
-        call subprocess#shell_translate#process_current_line()
-    endfor
+    call subprocess#shell_translate#process_input(line('.'), len(getline('.')) + 1, l:resp)
 
     call s:log.debug('before: ' . getline(line('$')))
 
     call s:log.debug('after: ' . getline(line('$'))) 
-    let b:prompt_history[line('$')] = l:prompt
+    let b:prompt_history[line('.')] = l:prompt
 
     let l:working_line = getline('.')
     let b:edit_command = l:working_line[len(l:prompt) : ]
