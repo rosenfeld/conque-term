@@ -127,7 +127,7 @@ let s:font_codes = {
 " }}}
 
 " nr2char() is oddly more reliable than \r etc
-let s:action_match = '\(\e[?\?\(\d\+;\)*\d*\w\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
+let s:action_match = '\(\e[?\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
 
 
 function! subprocess#shell_translate#process_input(line, col, input) " {{{
@@ -192,6 +192,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
         let l:input = l:input[l:match_num + len(l:match_str) :]
         call s:log.debug('NEW INPUT LINE ' . l:input)
         let l:line_pos += l:match_num
+        call s:log.debug('line pos now ' . l:line_pos)
 
         if l:match_str == nr2char(8)
             call s:log.debug('backspace')
@@ -252,12 +253,12 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
                 elseif l:action == 'delete_chars'
                     let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
-                    let l:line_pos = l:delta - 1
+                    "let l:line_pos = l:delta - 1
                     let l:output = l:output[ : l:line_pos] . l:output[l:line_pos + l:delta + 1 : ]
 
                 elseif l:action == 'add_spaces'
                     let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
-                    let l:line_pos = l:delta - 1
+                    "let l:line_pos += l:delta - 1
 
                     call s:log.debug('adding ' . l:delta . ' spaces')
                     let l:spaces = []
@@ -266,7 +267,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                     endfor
                     call s:log.debug('spaces: ' . string(l:spaces))
 
-                    let l:output = l:output[ : l:line_pos] . l:spaces . l:output[l:line_pos + 1 : ]
+                    let l:output = l:output[ : l:line_pos] . join(l:spaces, '') . l:output[l:line_pos + 1 : ]
                 endif
                 " }}}
 
