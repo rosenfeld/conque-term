@@ -216,7 +216,7 @@ function! conque#write(add_newline) "{{{
     " record command history
     let b:current_command = l:in
 
-    normal! G$
+    normal! $
     call s:log.profile_end('write')
     call s:log.debug('</write>')
     return 1
@@ -281,7 +281,6 @@ function! s:get_command() "{{{
     if l:prompt_search == 0
       call s:log.warn('invalid input')
       echohl WarningMsg | echo "Invalid input." | echohl None
-      normal! G$
       startinsert!
       return
     endif
@@ -315,9 +314,6 @@ function! conque#read(timeout) "{{{
     call s:log.profile_end('printread')
     call s:log.profile_start('finishread')
 
-    " ready to insert now
-    normal! G$
-
     " record prompt used on this line
     let b:prompt_history[line('.')] = getline('.')
 
@@ -350,32 +346,12 @@ endfunction "}}}
 function! s:print_buffer(read_lines) "{{{
     call s:log.profile_start('print_buffer')
     " clear out our command
-    if exists("b:prompt_history['".line('$')."']")
-        call s:log.debug('found hist ' . b:prompt_history[line('$')])
-        call setline(line('$'), b:prompt_history[line('$')])
+    if exists("b:prompt_history['".line('.')."']")
+        call s:log.debug('found hist ' . b:prompt_history[line('.')])
+        call setline(line('.'), b:prompt_history[line('.')])
     endif
 
-    call subprocess#shell_translate#process_input(line('$'), len(getline('$')) + 1, a:read_lines)
-
-    " maybe put this in config later
-    "let l:pos = 1
-    "for eline in a:read_lines
-    "    " write to buffer
-    "    call s:log.debug('about to write: ' . eline)
-    "    if l:pos == 1
-    "        "let eline = substitute(eline, '^\b\+', '', 'g')
-    "        call setline(line('$'), getline(line('$')) . eline)
-    "    else
-    "        call append(line('$'), eline)
-    "    endif
-
-    "    " translate terminal escape sequences
-    "    normal! G$
-    "    call subprocess#shell_translate#process_current_line()
-
-    "    let l:pos += 1
-    "    normal G
-    "endfor
+    call subprocess#shell_translate#process_input(line('.'), len(getline('.')) + 1, a:read_lines)
 
     redraw
     call s:log.profile_start('print_buffer_redraw')
@@ -460,7 +436,7 @@ endfunction "}}}
 
 " process command editing key strokes. History and tab completion being the most common.
 function! s:process_command_edit(char) "{{{
-    let l:prompt = b:prompt_history[line('$')]
+    let l:prompt = b:prompt_history[line('.')]
     let l:working_line = getline('.')
     let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
 
@@ -553,8 +529,8 @@ function! conque#kill_line() "{{{
 
     " restore empty prompt
     call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))])
-    normal! G$
-    startinsert!
+    "normal! G$
+    "startinsert!
 endfunction "}}}
 
 " implement <C-c>

@@ -136,9 +136,10 @@ function! subprocess#shell_translate#process_input(line, col, input) " {{{
     let s:col = a:col
     
     for i in range(len(a:input))
-        call subprocess#shell_translate#process_line(a:input[i], i == len(a:input) ? 0 : 1)
+        call subprocess#shell_translate#process_line(a:input[i], i == len(a:input) - 1 ? 0 : 1)
     endfor
 
+    call s:log.debug('moving cursor to line ' . s:line . ' and col ' . s:col)
     call cursor(s:line, s:col)
     startinsert!
 endfunction " }}}
@@ -149,6 +150,8 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     let l:input = a:input_line
     let l:output = getline(s:line)
     let l:color_changes = []
+
+    call s:log.debug('starting process line at line ' . s:line . ' and col ' . s:col . ' add newline ? ' . a:add_newline)
 
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     " REMOVE REDUNDANT/IGNORED ESCAPE SEQUENCES. 
@@ -214,6 +217,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                 let l:action = s:escape_sequences[l:key]
                 " numeric modifiers
                 let l:vals = split(l:match_str[2 : -2], ';')
+                let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
                 call s:log.debug('escape type ' . l:action . ' with nums ' . string(l:vals))
 
                 " ********************************************************************************** "
@@ -225,26 +229,33 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                     if line_pos == 0
                         let l:output = ''
                     else
-                        let l:output = l:output[: l:line_pos - 1]
+                        let l:output = l:output[ : l:line_pos - 1]
                     endif
 
                 elseif l:action == 'cursor_right'
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
                     let l:line_pos = l:line_pos + l:delta
 
                 elseif l:action == 'cursor_left'
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
                     let l:line_pos = l:line_pos - l:delta
 
                 elseif l:action == 'cursor_to_column'
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
                     let l:line_pos = l:delta - 1
 
                 elseif l:action == 'cursor_up' " holy crap we're screwed
-                    " first, ship off the rest of the string  to the line above and pray to God they used the [C escape
-                    let s:line += -1
-                    let s:col = l:line_pos + 1
+                    " finish off this line
+                    call setline(s:line, l:output)
                     call s:process_colors(l:color_changes)
+                    call cursor(s:line, s:col)
+                    call winline()
+
+                    " initialize cursor in the correct position
+                    let s:line = s:line - 1
+                    let s:col = l:line_pos + 1
+
+                    call s:log.debug('set line to ' . s:line . ' col to ' . s:col)
+
+                    " ship off the rest of input to next line
+                    call subprocess#shell_translate#process_line(l:input, a:add_newline)
                     return
 
                 elseif l:action == 'clear_screen'
@@ -252,13 +263,9 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                     let l:output = ''
 
                 elseif l:action == 'delete_chars'
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
-                    "let l:line_pos = l:delta - 1
                     let l:output = l:output[ : l:line_pos] . l:output[l:line_pos + l:delta + 1 : ]
 
                 elseif l:action == 'add_spaces'
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
-                    "let l:line_pos += l:delta - 1
 
                     call s:log.debug('adding ' . l:delta . ' spaces')
                     let l:spaces = []
@@ -301,6 +308,8 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
     " color it
     call s:process_colors(l:color_changes)
+
+    call s:log.debug('newline? ' . a:add_newline)
 
     " create a new line if requested
     if a:add_newline == 1
