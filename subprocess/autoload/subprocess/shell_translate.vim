@@ -322,10 +322,14 @@ endfunction " }}}
 
 
 function! s:process_colors(color_changes) " {{{
+    if len(a:color_changes) == 0
+        return
+    endif
+
     " color it
     let l:hi_ct = 1
-    let l:last_col = len(getline(s:line))
-    for cc in a:color_changes
+    let l:last_col = len(substitute(getline(s:line), '\s\+$', '', ''))
+    for cc in reverse(a:color_changes)
         let l:highlight = ''
         for color_number in cc.codes
             if exists('s:font_codes['.color_number.']')
@@ -336,7 +340,7 @@ function! s:process_colors(color_changes) " {{{
         endfor
 
         let syntax_name = ' EscapeSequenceAt_' . bufnr('%') . '_' . s:line . '_' . l:hi_ct
-        let syntax_region = 'syntax match ' . syntax_name . ' /\%' . s:line . 'l\%>' . cc.col . 'c.*\%<' . (l:last_col + 2) . 'c/ contains=ALL oneline'
+        let syntax_region = 'syntax match ' . syntax_name . ' /\%' . s:line . 'l\%>' . cc.col . 'c.*\%<' . (l:last_col + 2) . 'c/ contains=ALL '
         "let syntax_link = 'highlight link ' . syntax_name . ' Normal'
         let syntax_highlight = 'highlight ' . syntax_name . l:highlight
 
@@ -347,7 +351,7 @@ function! s:process_colors(color_changes) " {{{
         "call s:log.debug(syntax_name)
         call s:log.debug(syntax_region)
         "call s:log.debug(syntax_link)
-        "call s:log.debug(syntax_highlight)
+        call s:log.debug(syntax_highlight)
 
         let l:hi_ct += 1
     endfor
