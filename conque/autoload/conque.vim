@@ -94,10 +94,10 @@ endfunction "}}}
 function! s:set_buffer_settings(command, pre_hooks) "{{{
     " optional hooks to execute, e.g. 'split'
     for h in a:pre_hooks
-        execute h
+        silent execute h
     endfor
 
-    execute "edit " . substitute(a:command, ' ', '\\ ', 'g') . "\\ -\\ " . g:Conque_Idx
+    silent execute "edit " . substitute(a:command, ' ', '\\ ', 'g') . "\\ -\\ " . g:Conque_Idx
     setlocal buftype=nofile  " this buffer is not a file, you can't save it
     setlocal nonumber        " hide line numbers
     setlocal foldcolumn=0    " reasonable left margin
@@ -105,7 +105,7 @@ function! s:set_buffer_settings(command, pre_hooks) "{{{
     setlocal noswapfile      " don't bother creating a .swp file
     set scrolloff=0          " don't use buffer lines. it makes the 'clear' command not work as expected
     setfiletype conque       " useful
-    execute "setlocal syntax=".g:Conque_Syntax
+    silent execute "setlocal syntax=".g:Conque_Syntax
     setlocal foldmethod=manual
 
     " run the current command
@@ -651,13 +651,13 @@ function! conque#special(command) "{{{
     if a:command =~ '^man '
         let split_cmd = "split " . substitute(a:command, '\W', '_', 'g')
         call s:log.debug(split_cmd)
-        execute split_cmd
+        silent execute split_cmd
         setlocal buftype=nofile
         setlocal nonumber
         setlocal noswapfile
         let cmd = 'read !' . substitute(a:command, '^man ', 'man -P cat ', '')
         call s:log.debug(cmd)
-        execute cmd
+        silent execute cmd
 
         " strip backspaces out of output
         try
@@ -673,7 +673,7 @@ function! conque#special(command) "{{{
         let filename = b:subprocess.get_env_var('PWD') . '/' . filename
         let split_cmd = "split " . filename
         call s:log.debug(split_cmd)
-        execute split_cmd
+        silent execute split_cmd
     endif
 endfunction "}}}
 
@@ -687,7 +687,7 @@ function! conque#inject(type, execute) "{{{
     let @@ = substitute(@@, '^[\r\n]*', '', '')
     let @@ = substitute(@@, '[\r\n]*$', '', '')
 
-    execute ":sb " . g:Conque_BufName
+    silent execute ":sb " . g:Conque_BufName
     normal! G$p
     normal! G$
     startinsert!

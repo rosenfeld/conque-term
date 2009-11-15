@@ -331,9 +331,9 @@ function! s:process_colors(color_changes) " {{{
         "let syntax_link = 'highlight link ' . syntax_name . ' Normal'
         let syntax_highlight = 'highlight ' . syntax_name . l:highlight
 
-        execute syntax_region
+        silent execute syntax_region
         "execute syntax_link
-        execute syntax_highlight
+        silent execute syntax_highlight
 
         "call s:log.debug(syntax_name)
         call s:log.debug(syntax_region)
