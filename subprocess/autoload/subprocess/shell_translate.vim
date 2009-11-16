@@ -187,6 +187,33 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
         elseif l:match_num > 0
             let l:output = l:output[ 0 : l:line_pos - 1 ] . l:input[ 0 : l:match_num - 1 ] . l:output[ l:line_pos + l:match_num : ]
         endif
+
+        " handle expected line wrapping
+        if len(l:output) > b:COLUMNS
+            call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+
+            " break output at screen width
+            let l:input = l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
+            let l:output = l:output[ : b:COLUMNS - 1 ]
+            
+            call s:log.debug('new input: ' . l:input)
+            call s:log.debug('new output: ' . l:output)
+
+            " finish off this line
+            call setline(s:line, l:output)
+            call s:process_colors(l:color_changes)
+            call cursor(s:line, s:col)
+            call winline()
+
+            " initialize cursor in the correct position
+            let s:line += 1
+            let s:col = 0
+
+            " ship off the rest of input to next line
+            call subprocess#shell_translate#process_line(l:input, a:add_newline)
+            return
+        endif
+
         call s:log.debug('PREADDING OUTPUT resulting in ' . l:output)
 
         let l:match_str = matchstr(l:input, s:action_match, l:match_num)
@@ -223,7 +250,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                 " ********************************************************************************** "
                 " Escape actions " {{{
                 if l:action == 'font'
-                    call add(l:color_changes, {'col': len(l:output), 'codes': l:vals})
+                    call add(l:color_changes, {'col': l:line_pos, 'codes': l:vals})
 
                 elseif l:action == 'clear_line'
                     if line_pos == 0
@@ -330,6 +357,10 @@ function! s:process_colors(color_changes) " {{{
     let l:hi_ct = 1
     let l:last_col = len(substitute(getline(s:line), '\s\+$', '', ''))
     for cc in reverse(a:color_changes)
+        if cc.col > l:last_col + 2
+            continue
+        endif
+
         let l:highlight = ''
         for color_number in cc.codes
             if exists('s:font_codes['.color_number.']')

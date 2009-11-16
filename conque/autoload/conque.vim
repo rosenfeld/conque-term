@@ -246,6 +246,7 @@ function! s:get_command() "{{{
     " Do nothing.
 
   elseif exists("b:prompt_history['".line('.')."']")
+    call s:log.debug('history exists ' . line('.') . ' which is ' . b:prompt_history[line('.')])
     let l:in = l:in[len(b:prompt_history[line('.')]) : ]
 
   else
@@ -266,14 +267,21 @@ function! s:get_command() "{{{
     " Still nothing? Maybe a multi-line command was pasted in.
     let l:max_prompt = max(keys(b:prompt_history)) " Only count once.
     if l:prompt_search == 0 && l:max_prompt < line('$')
-    for i in range(l:max_prompt, line('$'))
-      if i == l:max_prompt
-        let l:in = getline(i)
-        let l:in = l:in[len(b:prompt_history[i]) : ]
-      else
-        let l:in = l:in . "\n" . getline(i)
-      endif
-    endfor
+      call s:log.debug(l:max_prompt . ' is max ' . line('$') . ' is last')
+      for i in range(l:max_prompt, line('$'))
+        if i == l:max_prompt
+          let l:in = getline(i)
+          let l:in = l:in[len(b:prompt_history[i]) : ]
+        else
+          call s:log.debug('last line was ' . len(getline(i - 1)) . ' chars ' . b:COLUMNS . ' cols')
+          if (len(getline(i - 1)) == b:COLUMNS)
+              let l:in = l:in . getline(i)
+          else
+              let l:in = l:in . "\n" . getline(i)
+          endif
+        endif
+      endfor
+      call cursor(l:max_prompt, len(b:prompt_history[l:max_prompt]))
       let l:prompt_search = l:max_prompt
     endif
 
@@ -436,7 +444,8 @@ endfunction "}}}
 
 " process command editing key strokes. History and tab completion being the most common.
 function! s:process_command_edit(char) "{{{
-    let l:prompt = b:prompt_history[line('.')]
+    let l:prompt_line = max(keys(b:prompt_history))
+    let l:prompt = b:prompt_history[l:prompt_line]
     let l:working_line = getline('.')
     let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
 
@@ -464,7 +473,7 @@ function! s:process_command_edit(char) "{{{
     call s:log.debug('before: ' . getline(line('$')))
 
     call s:log.debug('after: ' . getline(line('$'))) 
-    let b:prompt_history[line('.')] = l:prompt
+    let b:prompt_history[l:prompt_line] = l:prompt
 
     let l:working_line = getline('.')
     let b:edit_command = l:working_line[len(l:prompt) : ]
