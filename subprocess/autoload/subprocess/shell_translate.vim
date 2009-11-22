@@ -129,11 +129,14 @@ let s:font_codes = {
 " nr2char() is oddly more reliable than \r etc
 let s:action_match = '\(\e[?\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
 
+" line break mode
+let s:line_breaks = 0
 
-function! subprocess#shell_translate#process_input(line, col, input) " {{{
+function! subprocess#shell_translate#process_input(line, col, input, line_breaks) " {{{
     " don't want to pass these around in every function arg
     let s:line = a:line
     let s:col = a:col
+    let s:line_breaks = a:line_breaks
     
     for i in range(len(a:input))
         call subprocess#shell_translate#process_line(a:input[i], i == len(a:input) - 1 ? 0 : 1)
@@ -157,21 +160,23 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     " REMOVE REDUNDANT/IGNORED ESCAPE SEQUENCES. 
     " This often removes the requirement to parse the line char by char, which is a huge performance hit.
 
-    " remove trailing <CR>s. conque assumes cursor will be at col 0 for new lines
-    "let l:input = substitute(l:input, '\r\+$', '', '')
-    " remove character set escapes. they would be ignored
-    let l:input = substitute(l:input, '\e(.', '', 'g')
-    " remove initial color escape if it is setting color to normal. conque always starts lines in normal syntax
-    let l:input = substitute(l:input, '^\(\e[0\?m\)*', '', '')
-    " remove title changes
-    let l:input = substitute(l:input, '^\e]\d;.\{-\}'.nr2char(7), '', '')
-    " remove trailing color escapes. syntax changes are limited to one line
-    let l:input = substitute(l:input, '\(\e[\(\d*;\)*\d*m\)*$', '', '')
-    " remove all normal color escapes leading up to the first non-normal color escape
-    while l:input =~ '^[^\e]\+\e[\(39;49\|0\)\?m'
-        call s:log.debug('found initial normal')
-        let l:input = substitute(l:input, '\e[\(39;49\|0\)\?m', '', '')
-    endwhile
+    if l:input =~ '\e'
+        " remove trailing <CR>s. conque assumes cursor will be at col 0 for new lines
+        "let l:input = substitute(l:input, '\r\+$', '', '')
+        " remove character set escapes. they would be ignored
+        let l:input = substitute(l:input, '\e(.', '', 'g')
+        " remove initial color escape if it is setting color to normal. conque always starts lines in normal syntax
+        let l:input = substitute(l:input, '^\(\e[0\?m\)*', '', '')
+        " remove title changes
+        let l:input = substitute(l:input, '^\e]\d;.\{-\}'.nr2char(7), '', '')
+        " remove trailing color escapes. syntax changes are limited to one line
+        let l:input = substitute(l:input, '\(\e[\(\d*;\)*\d*m\)*$', '', '')
+        " remove all normal color escapes leading up to the first non-normal color escape
+        while l:input =~ '^[^\e]\+\e[\(39;49\|0\)\?m'
+            call s:log.debug('found initial normal')
+            let l:input = substitute(l:input, '\e[\(39;49\|0\)\?m', '', '')
+        endwhile
+    endif
 
     call s:log.debug('PROCESSING LINE ' . l:input)
     call s:log.debug('AT COL ' . l:line_pos)
@@ -188,12 +193,12 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
             let l:output = l:output[ 0 : l:line_pos - 1 ] . l:input[ 0 : l:match_num - 1 ] . l:output[ l:line_pos + l:match_num : ]
         endif
 
-        " handle expected line wrapping
-        if len(l:output) > b:COLUMNS
+        " handle line wrapping
+        if len(l:output) > b:COLUMNS && exists('b:prompt_history[' . s:line . ']')
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
 
             " break output at screen width
-            let l:input = l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
+            let l:input = l:output[ b:COLUMNS : -1 ] . nr2char(13) . l:input[ l:match_num - 1 : ]
             let l:output = l:output[ : b:COLUMNS - 1 ]
             
             call s:log.debug('new input: ' . l:input)
@@ -208,6 +213,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
             " initialize cursor in the correct position
             let s:line += 1
             let s:col = 0
+            call setline(s:line, '')
 
             " ship off the rest of input to next line
             call subprocess#shell_translate#process_line(l:input, a:add_newline)
@@ -318,9 +324,36 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     if l:line_pos > 0
         let l:output = l:output[ 0 : l:line_pos - 1 ] . l:input . l:output[ l:line_pos + len(l:input) : ]
     else
-        let l:output = l:input . l:output[ l:line_pos + len(l:input) : ]
+        let l:output =                                  l:input . l:output[ l:line_pos + len(l:input) : ]
     endif
     call s:log.debug('FINAL OUTPUT ' . l:output)
+
+    " handle line wrapping
+    if len(l:output) > b:COLUMNS && exists('b:prompt_history[' . s:line . ']')
+        call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+
+        " break output at screen width
+        let l:input = nr2char(13) . l:output[ b:COLUMNS : ]
+        let l:output = l:output[ : b:COLUMNS - 1 ]
+        
+        call s:log.debug('new input: ' . l:input)
+        call s:log.debug('new output: ' . l:output)
+
+        " finish off this line
+        call setline(s:line, l:output)
+        call s:process_colors(l:color_changes)
+        call cursor(s:line, s:col)
+        call winline()
+
+        " initialize cursor in the correct position
+        let s:line += 1
+        let s:col = 0
+        call setline(s:line, '')
+
+        " ship off the rest of input to next line
+        call subprocess#shell_translate#process_line(l:input, a:add_newline)
+        return
+    endif
 
     " strip trailing spaces
     let l:output = substitute(l:output, '\s\+$', '', '')

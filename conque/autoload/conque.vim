@@ -216,6 +216,12 @@ function! conque#write(add_newline) "{{{
     " record command history
     let b:current_command = l:in
 
+    " clear out our command
+    if exists("b:prompt_history['".line('.')."']")
+        call s:log.debug('found hist ' . b:prompt_history[line('.')])
+        call setline(line('.'), b:prompt_history[line('.')])
+    endif
+
     normal! $
     call s:log.profile_end('write')
     call s:log.debug('</write>')
@@ -239,63 +245,67 @@ endfunction "}}}
 " parse current line to remove prompt and return command.
 " also manages multi-line commands.
 function! s:get_command() "{{{
-  call s:log.debug('<get_command>')
-  let l:in = getline('.')
+    call s:log.debug('<get_command>')
+    let l:in = getline('.')
 
-  if l:in == ''
-    " Do nothing.
+    if l:in == ''
+        " Do nothing.
 
-  elseif exists("b:prompt_history['".line('.')."']")
-    call s:log.debug('history exists ' . line('.') . ' which is ' . b:prompt_history[line('.')])
-    let l:in = l:in[len(b:prompt_history[line('.')]) : ]
+    elseif exists("b:prompt_history['".line('.')."']")
+        call s:log.debug('history exists ' . line('.') . ' which is ' . b:prompt_history[line('.')])
+        let l:in = l:in[len(b:prompt_history[line('.')]) : ]
 
-  else
-    " Maybe line numbering got disrupted, search for a matching prompt.
-    let l:prompt_search = 0
-    for pnr in reverse(sort(keys(b:prompt_history)))
-      let l:prompt_length = len(b:prompt_history[pnr])
-      " In theory 0 length or ' ' prompt shouldn't exist, but still...
-      if l:prompt_length > 0 && b:prompt_history[pnr] != ' '
-        " Does the current line have this prompt?
-        if l:in[0 : l:prompt_length - 1] == b:prompt_history[pnr]
-          let l:in = l:in[l:prompt_length : ]
-          let l:prompt_search = pnr
+    else
+        " Maybe line numbering got disrupted, search for a matching prompt.
+        let l:prompt_search = 0
+        for pnr in reverse(sort(keys(b:prompt_history)))
+            let l:prompt_length = len(b:prompt_history[pnr])
+            " In theory 0 length or ' ' prompt shouldn't exist, but still...
+            if l:prompt_length > 0 && b:prompt_history[pnr] != ' '
+                " Does the current line have this prompt?
+                if l:in[0 : l:prompt_length - 1] == b:prompt_history[pnr]
+                    let b:prompt_history[line('.')] = b:prompt_history[pnr]
+                    let l:in = l:in[l:prompt_length : ]
+                    let l:prompt_search = pnr
+                endif
+            endif
+        endfor
+
+        " Still nothing? Maybe a multi-line command was pasted in.
+        let l:max_prompt = max(keys(b:prompt_history)) " Only count once.
+        if l:prompt_search == 0 && l:max_prompt < line('$')
+            call s:log.debug(l:max_prompt . ' is max ' . line('$') . ' is last')
+            for i in range(l:max_prompt, line('$'))
+                if i == l:max_prompt
+                    let l:in = getline(i)
+                    let l:in = l:in[len(b:prompt_history[i]) : ]
+                else
+                    call s:log.debug('last line was ' . len(getline(i - 1)) . ' chars ' . b:COLUMNS . ' cols')
+                    if (len(getline(i - 1)) == b:COLUMNS)
+                        let l:in = l:in . getline(i)
+                    else
+                        let l:in = l:in . "\n" . getline(i)
+                    endif
+                endif
+            endfor
+            call cursor(l:max_prompt, len(b:prompt_history[l:max_prompt]))
+            let l:prompt_search = l:max_prompt
         endif
-      endif
-    endfor
 
-    " Still nothing? Maybe a multi-line command was pasted in.
-    let l:max_prompt = max(keys(b:prompt_history)) " Only count once.
-    if l:prompt_search == 0 && l:max_prompt < line('$')
-      call s:log.debug(l:max_prompt . ' is max ' . line('$') . ' is last')
-      for i in range(l:max_prompt, line('$'))
-        if i == l:max_prompt
-          let l:in = getline(i)
-          let l:in = l:in[len(b:prompt_history[i]) : ]
-        else
-          call s:log.debug('last line was ' . len(getline(i - 1)) . ' chars ' . b:COLUMNS . ' cols')
-          if (len(getline(i - 1)) == b:COLUMNS)
-              let l:in = l:in . getline(i)
-          else
-              let l:in = l:in . "\n" . getline(i)
-          endif
+        " Still nothing? We give up.
+        if l:prompt_search == 0
+            call s:log.warn('invalid input')
+            echohl WarningMsg | echo "Invalid input." | echohl None
+            startinsert!
+            return
         endif
-      endfor
-      call cursor(l:max_prompt, len(b:prompt_history[l:max_prompt]))
-      let l:prompt_search = l:max_prompt
+
+        " delete extra lines
+        execute (l:prompt_search + 1) . ',' . line('$') . 'd'
     endif
 
-    " Still nothing? We give up.
-    if l:prompt_search == 0
-      call s:log.warn('invalid input')
-      echohl WarningMsg | echo "Invalid input." | echohl None
-      startinsert!
-      return
-    endif
-  endif
-
-  call s:log.debug('</get_command>')
-  return l:in
+    call s:log.debug('</get_command>')
+    return l:in
 endfunction "}}}
 
 " read from pty and write to buffer
@@ -353,13 +363,8 @@ endfunction "}}}
 " parse output from pty and update buffer
 function! s:print_buffer(read_lines) "{{{
     call s:log.profile_start('print_buffer')
-    " clear out our command
-    if exists("b:prompt_history['".line('.')."']")
-        call s:log.debug('found hist ' . b:prompt_history[line('.')])
-        call setline(line('.'), b:prompt_history[line('.')])
-    endif
 
-    call subprocess#shell_translate#process_input(line('.'), len(getline('.')) + 1, a:read_lines)
+    call subprocess#shell_translate#process_input(line('.'), len(getline('.')) + 1, a:read_lines, 0)
 
     redraw
     call s:log.profile_start('print_buffer_redraw')
@@ -468,12 +473,12 @@ function! s:process_command_edit(char) "{{{
     let l:resp = conque#read_return_raw(g:Conque_Tab_Timeout)
     call s:log.debug(string(l:resp))
     call s:log.debug('well before: ' . getline(line('$')))
-    call subprocess#shell_translate#process_input(line('.'), len(getline('.')) + 1, l:resp)
+    call subprocess#shell_translate#process_input(line('.'), len(getline('.')) + 1, l:resp, 1)
 
     call s:log.debug('before: ' . getline(line('$')))
 
     call s:log.debug('after: ' . getline(line('$'))) 
-    let b:prompt_history[l:prompt_line] = l:prompt
+    "let b:prompt_history[l:prompt_line] = l:prompt
 
     let l:working_line = getline('.')
     let b:edit_command = l:working_line[len(l:prompt) : ]
