@@ -264,6 +264,8 @@ function! s:get_command() "{{{
             if l:prompt_length > 0 && b:prompt_history[pnr] != ' '
                 " Does the current line have this prompt?
                 if l:in[0 : l:prompt_length - 1] == b:prompt_history[pnr]
+                    " found a matching prompt in history 
+                    call s:log.debug("found a matching prompt in history " . b:prompt_history[pnr] . " at line " . pnr)
                     let b:prompt_history[line('.')] = b:prompt_history[pnr]
                     let l:in = l:in[l:prompt_length : ]
                     let l:prompt_search = pnr
@@ -290,6 +292,9 @@ function! s:get_command() "{{{
             endfor
             call cursor(l:max_prompt, len(b:prompt_history[l:max_prompt]))
             let l:prompt_search = l:max_prompt
+
+            " delete extra lines
+            execute (l:prompt_search + 1) . ',' . line('$') . 'd'
         endif
 
         " Still nothing? We give up.
@@ -299,9 +304,6 @@ function! s:get_command() "{{{
             startinsert!
             return
         endif
-
-        " delete extra lines
-        execute (l:prompt_search + 1) . ',' . line('$') . 'd'
     endif
 
     call s:log.debug('</get_command>')
