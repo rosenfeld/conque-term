@@ -194,12 +194,12 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
         endif
 
         " handle line wrapping
-        if l:line_pos + l:match_num > b:COLUMNS && exists('b:prompt_history[' . s:line . ']')
+        if l:line_pos + l:match_num > b:COLUMNS && substitute(l:output[ b:COLUMNS : ] . l:input[ l:match_num - 1 : ], '\r$', '', '') =~ s:action_match
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
 
             " break output at screen width
-            "let l:input = l:output[ b:COLUMNS : -1 ] . nr2char(13) . l:input[ l:match_num - 1 : ]
-            let l:input = nr2char(13) . l:input[ l:match_num - 1 : ]
+            "let l:input = nr2char(13) . l:input[ l:match_num - 1 : ]
+            let l:input = nr2char(13) . l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
             let l:output = l:output[ : b:COLUMNS - 1 ]
             
             call s:log.debug('new input: ' . l:input)
@@ -286,7 +286,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                     call winline()
 
                     " initialize cursor in the correct position
-                    let s:line = s:line - 1
+                    let s:line = s:line - l:delta
                     let s:col = l:line_pos + 1
 
                     call s:log.debug('set line to ' . s:line . ' col to ' . s:col)
