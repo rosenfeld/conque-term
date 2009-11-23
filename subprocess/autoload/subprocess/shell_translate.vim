@@ -160,7 +160,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     " REMOVE REDUNDANT/IGNORED ESCAPE SEQUENCES. 
     " This often removes the requirement to parse the line char by char, which is a huge performance hit.
 
-    if l:input =~ '\e'
+    if l:input =~ '\e' " {{{
         " remove trailing <CR>s. conque assumes cursor will be at col 0 for new lines
         "let l:input = substitute(l:input, '\r\+$', '', '')
         " remove character set escapes. they would be ignored
@@ -176,7 +176,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
             call s:log.debug('found initial normal')
             let l:input = substitute(l:input, '\e[\(39;49\|0\)\?m', '', '')
         endwhile
-    endif
+    endif " }}}
 
     call s:log.debug('PROCESSING LINE ' . l:input)
     call s:log.debug('AT COL ' . l:line_pos)
@@ -194,11 +194,12 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
         endif
 
         " handle line wrapping
-        if len(l:output) > b:COLUMNS && exists('b:prompt_history[' . s:line . ']')
+        if l:line_pos + l:match_num > b:COLUMNS && exists('b:prompt_history[' . s:line . ']')
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
 
             " break output at screen width
-            let l:input = l:output[ b:COLUMNS : -1 ] . nr2char(13) . l:input[ l:match_num - 1 : ]
+            "let l:input = l:output[ b:COLUMNS : -1 ] . nr2char(13) . l:input[ l:match_num - 1 : ]
+            let l:input = nr2char(13) . l:input[ l:match_num - 1 : ]
             let l:output = l:output[ : b:COLUMNS - 1 ]
             
             call s:log.debug('new input: ' . l:input)
@@ -212,8 +213,8 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
             " initialize cursor in the correct position
             let s:line += 1
-            let s:col = 0
-            call setline(s:line, '')
+            let s:col = 1
+            "call setline(s:line, '')
 
             " ship off the rest of input to next line
             call subprocess#shell_translate#process_line(l:input, a:add_newline)
@@ -273,6 +274,9 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
                 elseif l:action == 'cursor_to_column'
                     let l:line_pos = l:delta - 1
+                    while len(l:output) < l:line_pos
+                        let l:output = l:output . ' '
+                    endwhile
 
                 elseif l:action == 'cursor_up' " holy crap we're screwed
                     " finish off this line
@@ -296,7 +300,11 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                     let l:output = ''
 
                 elseif l:action == 'delete_chars'
-                    let l:output = l:output[ : l:line_pos] . l:output[l:line_pos + l:delta + 1 : ]
+                    if l:line_pos == 0
+                        let l:output =                               l:output[l:line_pos + l:delta : ]
+                    else
+                        let l:output = l:output[ : l:line_pos - 1] . l:output[l:line_pos + l:delta : ]
+                    endif
 
                 elseif l:action == 'add_spaces'
 
@@ -307,7 +315,11 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
                     endfor
                     call s:log.debug('spaces: ' . string(l:spaces))
 
-                    let l:output = l:output[ : l:line_pos] . join(l:spaces, '') . l:output[l:line_pos + 1 : ]
+                    if l:line_pos == 0
+                        let l:output =                               join(l:spaces, '') . l:output[l:line_pos : ]
+                    else
+                        let l:output = l:output[ : l:line_pos - 1] . join(l:spaces, '') . l:output[l:line_pos : ]
+                    endif
                 endif
                 " }}}
 
@@ -347,8 +359,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
         " initialize cursor in the correct position
         let s:line += 1
-        let s:col = 0
-        call setline(s:line, '')
+        let s:col = 1
 
         " ship off the rest of input to next line
         call subprocess#shell_translate#process_line(l:input, a:add_newline)

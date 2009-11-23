@@ -73,6 +73,7 @@ function! conque#open(...) "{{{
 
     " init variables.
     let b:prompt_history = {}
+    let b:command_edit = {}
     let b:current_command = ''
     let b:write_clear = 0
 
@@ -251,27 +252,29 @@ function! s:get_command() "{{{
     if l:in == ''
         " Do nothing.
 
-    elseif exists("b:prompt_history['".line('.')."']")
+    elseif line('.') == line('$')  && exists("b:prompt_history['".line('.')."']")
         call s:log.debug('history exists ' . line('.') . ' which is ' . b:prompt_history[line('.')])
         let l:in = l:in[len(b:prompt_history[line('.')]) : ]
 
     else
         " Maybe line numbering got disrupted, search for a matching prompt.
         let l:prompt_search = 0
-        for pnr in reverse(sort(keys(b:prompt_history)))
-            let l:prompt_length = len(b:prompt_history[pnr])
-            " In theory 0 length or ' ' prompt shouldn't exist, but still...
-            if l:prompt_length > 0 && b:prompt_history[pnr] != ' '
-                " Does the current line have this prompt?
-                if l:in[0 : l:prompt_length - 1] == b:prompt_history[pnr]
-                    " found a matching prompt in history 
-                    call s:log.debug("found a matching prompt in history " . b:prompt_history[pnr] . " at line " . pnr)
-                    let b:prompt_history[line('.')] = b:prompt_history[pnr]
-                    let l:in = l:in[l:prompt_length : ]
-                    let l:prompt_search = pnr
+        if line('.') == line('$')
+            for pnr in reverse(sort(keys(b:prompt_history)))
+                let l:prompt_length = len(b:prompt_history[pnr])
+                " In theory 0 length or ' ' prompt shouldn't exist, but still...
+                if l:prompt_length > 0 && b:prompt_history[pnr] != ' '
+                    " Does the current line have this prompt?
+                    if l:in[0 : l:prompt_length - 1] == b:prompt_history[pnr]
+                        " found a matching prompt in history 
+                        call s:log.debug("found a matching prompt in history " . b:prompt_history[pnr] . " at line " . pnr)
+                        let b:prompt_history[line('.')] = b:prompt_history[pnr]
+                        let l:in = l:in[l:prompt_length : ]
+                        let l:prompt_search = pnr
+                    endif
                 endif
-            endif
-        endfor
+            endfor
+        endif
 
         " Still nothing? Maybe a multi-line command was pasted in.
         let l:max_prompt = max(keys(b:prompt_history)) " Only count once.
@@ -283,7 +286,8 @@ function! s:get_command() "{{{
                     let l:in = l:in[len(b:prompt_history[i]) : ]
                 else
                     call s:log.debug('last line was ' . len(getline(i - 1)) . ' chars ' . b:COLUMNS . ' cols')
-                    if (len(getline(i - 1)) == b:COLUMNS)
+                    " detect if multi-line command was a product of command editing functions
+                    if exists('b:command_edit[l:max_prompt]')
                         let l:in = l:in . getline(i)
                     else
                         let l:in = l:in . "\n" . getline(i)
@@ -451,7 +455,9 @@ endfunction "}}}
 
 " process command editing key strokes. History and tab completion being the most common.
 function! s:process_command_edit(char) "{{{
+    call s:log.debug(a:char . '****************************************************')
     let l:prompt_line = max(keys(b:prompt_history))
+    let b:command_edit[l:prompt_line] = 1
     let l:prompt = b:prompt_history[l:prompt_line]
     let l:working_line = getline('.')
     let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
@@ -544,7 +550,13 @@ function! conque#kill_line() "{{{
     let l:hopefully_just_backspaces = conque#read_return_raw(g:Conque_Tab_Timeout)
 
     " restore empty prompt
-    call setline(line('.'), b:prompt_history[max(keys(b:prompt_history))])
+    let l:max_prompt = max(keys(b:prompt_history))
+    call setline(l:max_prompt, b:prompt_history[l:max_prompt])
+    if line('$') > l:max_prompt
+        for i in range(l:max_prompt + 1, line('$'))
+            call setline(i, '')
+        endfor
+    endif
     "normal! G$
     "startinsert!
 endfunction "}}}
