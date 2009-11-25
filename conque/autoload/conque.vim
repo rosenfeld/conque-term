@@ -159,6 +159,12 @@ function! conque#run() "{{{
     call s:log.debug('<keyboard triggered run>')
     call s:log.profile_start('run')
 
+    " if we are not at the current active command line, don't execute
+    if line('.') < max(keys(b:prompt_history)) && line('.') != line('$')
+        execute "normal j^"
+        return
+    endif
+
     " check if subprocess still exists
     if !exists('b:subprocess')
         return
