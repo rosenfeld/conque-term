@@ -137,6 +137,7 @@ function! subprocess#shell_translate#process_input(line, col, input, auto_wrap) 
     let s:line = a:line
     let s:col = a:col
     let s:auto_wrap = a:auto_wrap
+    let b:auto_wrapped = 0
     
     for i in range(len(a:input))
         call subprocess#shell_translate#process_line(a:input[i], i == len(a:input) - 1 ? 0 : 1)
@@ -196,6 +197,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
         " handle line wrapping
         if l:line_pos + l:match_num > b:COLUMNS && (s:auto_wrap == 1 || l:input[ l:match_num - 1 : ] =~ '\r.')
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+            let b:auto_wrapped = 1
 
             " break output at screen width
             "let l:input = nr2char(13) . l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
@@ -360,6 +362,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     " handle line wrapping
     if len(l:output) > b:COLUMNS && (s:auto_wrap == 1 || l:input[ l:match_num - 1 : ] =~ '\r.')
         call s:log.debug('II wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+        let b:auto_wrapped = 1
 
         " break output at screen width
         let l:input = nr2char(13) . l:output[ b:COLUMNS : ]

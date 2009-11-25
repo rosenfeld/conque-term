@@ -73,7 +73,7 @@ function! conque#open(...) "{{{
 
     " init variables.
     let b:prompt_history = {}
-    let b:command_edit = {}
+    let b:auto_wrapped = 0
     let b:current_command = ''
     let b:write_clear = 0
 
@@ -252,7 +252,7 @@ function! s:get_command() "{{{
     if l:in == ''
         " Do nothing.
 
-    elseif line('.') == line('$')  && exists("b:prompt_history['".line('.')."']")
+    elseif exists("b:prompt_history['".line('.')."']")
         call s:log.debug('history exists ' . line('.') . ' which is ' . b:prompt_history[line('.')])
         let l:in = l:in[len(b:prompt_history[line('.')]) : ]
 
@@ -287,7 +287,7 @@ function! s:get_command() "{{{
                 else
                     call s:log.debug('last line was ' . len(getline(i - 1)) . ' chars ' . b:COLUMNS . ' cols')
                     " detect if multi-line command was a product of command editing functions
-                    if exists('b:command_edit[l:max_prompt]')
+                    if b:auto_wrapped == 1
                         let l:in = l:in . getline(i)
                     else
                         let l:in = l:in . "\n" . getline(i)
@@ -457,7 +457,6 @@ endfunction "}}}
 function! s:process_command_edit(char) "{{{
     call s:log.debug(a:char . '****************************************************')
     let l:prompt_line = max(keys(b:prompt_history))
-    let b:command_edit[l:prompt_line] = 1
     let l:prompt = b:prompt_history[l:prompt_line]
     let l:working_line = getline('.')
     let l:working_command = l:working_line[len(l:prompt) : len(l:working_line)]
