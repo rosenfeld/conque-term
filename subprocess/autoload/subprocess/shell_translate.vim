@@ -130,13 +130,13 @@ let s:font_codes = {
 let s:action_match = '\(\e[?\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
 
 " line break mode
-let s:line_breaks = 0
+let s:auto_wrap = 0
 
-function! subprocess#shell_translate#process_input(line, col, input, line_breaks) " {{{
+function! subprocess#shell_translate#process_input(line, col, input, auto_wrap) " {{{
     " don't want to pass these around in every function arg
     let s:line = a:line
     let s:col = a:col
-    let s:line_breaks = a:line_breaks
+    let s:auto_wrap = a:auto_wrap
     
     for i in range(len(a:input))
         call subprocess#shell_translate#process_line(a:input[i], i == len(a:input) - 1 ? 0 : 1)
@@ -194,12 +194,12 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
         endif
 
         " handle line wrapping
-        if l:line_pos + l:match_num > b:COLUMNS && substitute(l:output[ b:COLUMNS : ] . l:input[ l:match_num - 1 : ], '\r$', '', '') =~ s:action_match
+        if l:line_pos + l:match_num > b:COLUMNS && (s:auto_wrap == 1 || l:input[ l:match_num - 1 : ] =~ '\r.')
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
 
             " break output at screen width
-            "let l:input = nr2char(13) . l:input[ l:match_num - 1 : ]
-            let l:input = nr2char(13) . l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
+            "let l:input = nr2char(13) . l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
+            let l:input = nr2char(13) . l:input[ l:match_num : ]
             let l:output = l:output[ : b:COLUMNS - 1 ]
             
             call s:log.debug('new input: ' . l:input)
@@ -274,7 +274,7 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
                 elseif l:action == 'cursor_to_column'
                     let l:line_pos = l:delta - 1
-                    while len(l:output) < l:line_pos
+                    while len(l:output) <= l:line_pos
                         let l:output = l:output . ' '
                     endwhile
 
@@ -287,6 +287,23 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
 
                     " initialize cursor in the correct position
                     let s:line = s:line - l:delta
+                    let s:col = l:line_pos + 1
+
+                    call s:log.debug('set line to ' . s:line . ' col to ' . s:col)
+
+                    " ship off the rest of input to next line
+                    call subprocess#shell_translate#process_line(l:input, a:add_newline)
+                    return
+
+                elseif l:action == 'cursor_down' " holy crap we're screwed
+                    " finish off this line
+                    call setline(s:line, l:output)
+                    call s:process_colors(l:color_changes)
+                    call cursor(s:line, s:col)
+                    call winline()
+
+                    " initialize cursor in the correct position
+                    let s:line = s:line + l:delta
                     let s:col = l:line_pos + 1
 
                     call s:log.debug('set line to ' . s:line . ' col to ' . s:col)
@@ -341,8 +358,8 @@ function! subprocess#shell_translate#process_line(input_line, add_newline) " {{{
     call s:log.debug('FINAL OUTPUT ' . l:output)
 
     " handle line wrapping
-    if len(l:output) > b:COLUMNS && exists('b:prompt_history[' . s:line . ']')
-        call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+    if len(l:output) > b:COLUMNS && (s:auto_wrap == 1 || l:input[ l:match_num - 1 : ] =~ '\r.')
+        call s:log.debug('II wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
 
         " break output at screen width
         let l:input = nr2char(13) . l:output[ b:COLUMNS : ]
