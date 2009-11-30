@@ -52,6 +52,21 @@ let s:escape_sequences = {
 \ } 
 " }}}
 
+" Alternate escape sequences, no [ {{{
+let s:escape_sequences_plain = {
+\ 'D':'scroll_up',
+\ 'E':'next_line',
+\ 'H':'set_tab',
+\ 'M':'scroll_down',
+\ 'N':'single_shift_2',
+\ 'O':'single_shift_3',
+\ '=':'alternate_keypad',
+\ '>':'numeric_keypad',
+\ '7':'save_cursor',
+\ '8':'restore_cursor'
+\ }
+" }}}
+
 " Font codes {{{
 let s:font_codes = {
 \ '0': {'description':'Normal (default)', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':1},
@@ -109,7 +124,7 @@ let s:font_codes = {
 " }}}
 
 " nr2char() is oddly more reliable than \r etc
-let s:action_match = '\(\e[?\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(10).'\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
+let s:action_match = '\(\e[\??\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(10).'\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
 
 " Open a command in Conque.
 " This is the root function that is called from Vim to start up Conque.
@@ -336,9 +351,28 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     inoremap <silent> <buffer> <C-x> <Esc>:<C-u>call conque_experimental#press_key("<C-v><C-x>")<CR>a
     inoremap <silent> <buffer> <C-y> <Esc>:<C-u>call conque_experimental#press_key("<C-v><C-y>")<CR>a
     inoremap <silent> <buffer> <C-z> <Esc>:<C-u>call conque_experimental#press_key("<C-v><C-z>")<CR>a
+    inoremap <silent> <buffer> <C-?> <Esc>:<C-u>call conque_experimental#press_key("<C-v><C-?>")<CR>a
+    inoremap <silent> <buffer> <C-\> <Esc>:<C-u>call conque_experimental#press_key("<C-v><C-\>")<CR>a
+    inoremap <silent> <buffer> <C-]> <Esc>:<C-u>call conque_experimental#press_key("<C-v><C-]>")<CR>a
     " }}}
 
+    " other weird stuff {{{
+
+    " use F8 key to get more input
     inoremap <silent> <buffer> <F8> <Esc>:<C-u>call conque_experimental#read(5)<CR>a
+
+    " remap paste keys
+    nnoremap <silent> <buffer> p <Esc>:<C-u>call conque_experimental#paste()<CR>a
+    nnoremap <silent> <buffer> P <Esc>:<C-u>call conque_experimental#paste()<CR>a
+
+    " send selected text into conque
+	  vnoremap <silent> <F9> :<C-u>call conque_experimental#send_selected(visualmode())<CR>a
+
+    " send escape
+    nnoremap <silent> <buffer> <C-e> :<C-u>call conque_experimental#press_key("<C-v><Esc>")<CR>a
+    nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <Ctrl-e> in normal mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
+
+    " }}}
 
     " handle unexpected closing of shell
     " passes HUP to main and all child processes
@@ -422,6 +456,20 @@ function! conque_experimental#auto_read() " {{{
     else
       call cursor(b:_l, b:_c)
     endif
+
+    call conque_experimental#message("For more output, press the <F8> key", 0)
+endfunction " }}}
+
+function! conque_experimental#message(msg, warn) " {{{
+    if g:Conque_Help_Messages == 0
+        return
+    endif
+
+    if a:warn == 1
+        echohl WarningMsg | echomsg a:msg | echohl None
+    else
+        echo a:msg
+    endif
 endfunction " }}}
 
 " kill process pid with SIGHUP
@@ -456,7 +504,7 @@ function! conque_experimental#process_input(input) " {{{
         endfor
     endif
 
-    while strlen(getline(b:_l)) < b:_c
+    while b:_l > 0 && strlen(getline(b:_l)) < b:_c
         call s:log.debug('line ' . b:_l . ' is not ' . b:_c . ' chars')
         call s:log.debug('max line is ' . line('$'))
         call s:log.debug('current is ' . getline(b:_l))
@@ -480,10 +528,11 @@ function! conque_experimental#process_input(input) " {{{
     if l:input =~ '\e' 
         " remove trailing <CR>s. conque assumes cursor will be at col 0 for new lines
         "let l:input = substitute(l:input, '\r\+$', '', '')
-        " remove shift ins
+        " remove shift in
         let l:input = substitute(l:input, nr2char(15), '', 'g')
         " remove character set escapes. they would be ignored
         let l:input = substitute(l:input, '\e(.', '', 'g')
+        let l:input = substitute(l:input, '\e).', '', 'g')
         " remove keypad mode commands. they would be ignored
         let l:input = substitute(l:input, '\e>', '', 'g')
         let l:input = substitute(l:input, '\e=', '', 'g')
@@ -593,7 +642,9 @@ function! conque_experimental#process_input(input) " {{{
             " last character
             let l:key = l:match_str[-1 : -1]
 
-            if exists('s:escape_sequences[l:key]')
+            call s:log.debug('match key ' . l:key)
+
+            if l:match_str =~ '^\e[' && exists('s:escape_sequences[l:key]')
 
                 call s:log.debug('escape type ' . l:key)
                 " action tied to this last character
@@ -744,12 +795,58 @@ function! conque_experimental#process_input(input) " {{{
                     let b:_c = l:new_col
                     let b:_l = b:_top + l:new_line - 1
 
+                    call s:log.debug('moving cursor to  line ' . b:_l . ' column ' . b:_c)
+
                     call conque_experimental#process_input(l:input)
                     return
                     " }}}
 
                 endif
 
+            elseif l:match_str =~ '^\e' && exists('s:escape_sequences_plain[l:key]')
+                let l:action = s:escape_sequences_plain[l:key]
+
+                call s:log.debug('plain key match ' . l:action)
+
+                if l:action == 'scroll_up' " {{{
+                    call s:log.debug('scrolling up')
+
+                    if line('$') > b:LINES && line('$') - b:LINES + 1 > b:_top
+                        let b:_top = line('$') - b:LINES + 1
+                    endif
+                    
+                    let b:_top += 1
+                    " }}}
+
+                elseif l:action == 'scroll_down' " {{{
+                    call s:log.debug('scrolling down')
+
+                    if line('$') > b:LINES && line('$') - b:LINES + 1 > b:_top
+                        let b:_top = line('$') - b:LINES + 1
+                    endif
+                    
+                    let b:_top += -1
+                    let b:_l += -1
+
+                    " overscroll
+                    if b:_l < 1
+                        let b:_top += 1
+                        let b:_l += 1
+                        call append(0, '')
+                    endif
+
+                    " clear new line
+                    call setline(b:_top, '')
+                    let l:output = ''
+
+                    " remove old line
+                    if line('$') > b:_top + b:LINES - 1
+                        silent execute (b:_top + b:LINES) . ',' . line('$') . 'd'
+                        normal G
+                    endif
+                    " }}}
+
+                endif
             endif
 
         endif
@@ -822,6 +919,7 @@ function! conque_experimental#process_input(input) " {{{
 endfunction " }}}
 
 function! conque_experimental#process_colors(color_changes) " {{{
+    return
 
     if len(a:color_changes) == 0
         return
@@ -862,7 +960,27 @@ function! conque_experimental#process_colors(color_changes) " {{{
     endfor
 endfunction " }}}
 
+" send @@ buffer contents to terminal
+function! conque_experimental#paste() " {{{
+    call conque_experimental#press_key(@@)
+endfunction " }}}
 
+" send selected text from another buffer
+function! conque_experimental#send_selected(type) "{{{
+    let reg_save = @@
+
+    " yank current selection
+    silent execute "normal! `<" . a:type . "`>y"
+
+    let @@ = substitute(@@, '^[\r\n]*', '', '')
+    let @@ = substitute(@@, '[\r\n]*$', '', '')
+
+    silent execute ":sb " . g:Conque_BufName
+
+    call conque_experimental#press_key(@@)
+
+    let @@ = reg_save
+endfunction "}}}
 
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1
@@ -901,10 +1019,9 @@ endif
 if !exists('g:Conque_Read_Timeout')
     let g:Conque_Read_Timeout = 2
 endif
-" Default read timeout for tab completion
-" Since tab completion is typically nearly instant, this value can be very, very small before timeouts occur
-if !exists('g:Conque_Tab_Timeout')
-    let g:Conque_Tab_Timeout = 5
+" Show help messages
+if !exists('g:Conque_Help_Messages')
+    let g:Conque_Help_Messages = 1
 endif
 " Syntax for your buffer
 if !exists('g:Conque_Syntax')
@@ -912,7 +1029,7 @@ if !exists('g:Conque_Syntax')
 endif
 " TERM environment setting
 if !exists('g:Conque_TERM')
-    let g:Conque_TERM =  'dumb'
+    let g:Conque_TERM =  'vt100'
 endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}
