@@ -563,7 +563,8 @@ function! conque_experimental#process_input(input) " {{{
         endif
 
         " handle line wrapping {{{
-        if l:line_pos + l:match_num > b:COLUMNS && l:input[ b:COLUMNS : ] =~ '\e'
+        call s:log.debug('testing string ' . l:input[ b:COLUMNS : ])
+        if l:line_pos + l:match_num > b:COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
             let b:auto_wrapped = 1
 
@@ -863,7 +864,7 @@ function! conque_experimental#process_input(input) " {{{
     call s:log.debug('FINAL OUTPUT ' . l:output)
 
     " handle line wrapping {{{
-    if len(l:output) > b:COLUMNS && l:input[ b:COLUMNS : ] =~ '\e'
+    if len(l:output) > b:COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
         call s:log.debug('II wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
         let b:auto_wrapped = 1
 
