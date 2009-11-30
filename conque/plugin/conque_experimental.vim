@@ -165,6 +165,9 @@ function! conque_experimental#open(...) "{{{
     " top of the screen
     let b:_top = 1
 
+    " color highlights
+    let b:_hi = {}
+
     " open command
     try
         let b:subprocess = subprocess#new()
@@ -434,7 +437,7 @@ function! conque_experimental#read(timeout) "{{{
             let l:line = l:output[i] . "\n"
         endif
         call conque_experimental#process_input(l:line)
-        if i > 1 && i % 25 == 0
+        if i > 1 && i % 100 == 0
             redraw
         endif
     endfor
@@ -918,7 +921,12 @@ function! conque_experimental#process_input(input) " {{{
 endfunction " }}}
 
 function! conque_experimental#process_colors(color_changes) " {{{
-    return
+    " strip previous color changes
+    if exists('b:_hi[' . b:_l . ']')
+        for l:hi_name in b:_hi[b:_l]
+            silent execute "highlight clear " . l:hi_name
+        endfor
+    endif
 
     if len(a:color_changes) == 0
         return
@@ -954,6 +962,12 @@ function! conque_experimental#process_colors(color_changes) " {{{
         call s:log.debug(syntax_region)
         "call s:log.debug(syntax_link)
         call s:log.debug(syntax_highlight)
+
+        " add highlight to history
+        if !exists('b:_hi[' . b:_l . ']')
+            let b:_hi[b:_l] = []
+        endif
+        call add(b:_hi[b:_l], syntax_name)
 
         let l:hi_ct += 1
     endfor
