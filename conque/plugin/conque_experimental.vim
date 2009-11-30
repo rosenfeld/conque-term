@@ -376,10 +376,8 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 
     " handle unexpected closing of shell
     " passes HUP to main and all child processes
-    augroup conque
-        autocmd BufUnload <buffer> call conque_experimental#hang_up()
-        autocmd CursorHoldI <buffer> call conque_experimental#auto_read()
-    augroup END
+    autocmd BufUnload <buffer> call conque_experimental#hang_up()
+    autocmd CursorHoldI <buffer> call conque_experimental#auto_read()
 endfunction "}}}
 
 " controller to execute current line
