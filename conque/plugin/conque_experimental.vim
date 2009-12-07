@@ -367,7 +367,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 
     " use F8 key to get more input
     inoremap <silent> <buffer> <F8> <C-o>:call conque_experimental#read(1)<CR><Right>
-    inoremap <silent> <buffer> <F7> <C-o>:call conque_experimental#nop(1)<CR><Right>
+    inoremap <silent> <buffer> <F7> <C-o>i<Right>
 
     " remap paste keys
     nnoremap <silent> <buffer> p :call conque_experimental#paste()<CR>
@@ -379,9 +379,6 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " send escape
     inoremap <silent> <buffer> <Esc><Esc> <C-o>:call conque_experimental#press_key("<C-v><Esc>")<CR><Right>
     nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <Ctrl-e> in normal mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
-
-    "let b:K_IGNORE = "\x80\xFD\x35"
-    "inoremap <silient> <buffer> <Char-0x80><Char-0xfd><Char-0x35> <Nop>
 
     " }}}
 
@@ -413,9 +410,9 @@ function! conque_experimental#press_key(char) "{{{
 
     call b:subprocess.write(a:char)
 
-    "call conque_experimental#read(g:Conque_Read_Timeout)
+    call conque_experimental#read(1)
 
-    "call cursor(b:_l, b:_c - 1)
+    call cursor(b:_l, b:_c - 1)
 
     "if a:char == "\<Esc>"
     "    call s:log.debug('startinsert')
@@ -490,10 +487,6 @@ function! conque_experimental#auto_read() " {{{
     call cursor(b:_l, b:_c - 1)
 
     call s:log.profile_end('autoread')
-endfunction " }}}
-
-function! conque_experimental#nop(nop) " {{{
-    call s:log.debug('NOP!')
 endfunction " }}}
 
 function! conque_experimental#message(msg, warn) " {{{
