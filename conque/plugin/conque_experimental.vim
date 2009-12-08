@@ -217,157 +217,157 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " }}}
 
     " 26 letters, 10 numbers {{{
-    inoremap <silent> <buffer> a <C-o>:call conque_experimental#press_key('a')<CR><Right>
-    inoremap <silent> <buffer> b <C-o>:call conque_experimental#press_key('b')<CR><Right>
-    inoremap <silent> <buffer> c <C-o>:call conque_experimental#press_key('c')<CR><Right>
-    inoremap <silent> <buffer> d <C-o>:call conque_experimental#press_key('d')<CR><Right>
-    inoremap <silent> <buffer> e <C-o>:call conque_experimental#press_key('e')<CR><Right>
-    inoremap <silent> <buffer> f <C-o>:call conque_experimental#press_key('f')<CR><Right>
-    inoremap <silent> <buffer> g <C-o>:call conque_experimental#press_key('g')<CR><Right>
-    inoremap <silent> <buffer> h <C-o>:call conque_experimental#press_key('h')<CR><Right>
-    inoremap <silent> <buffer> i <C-o>:call conque_experimental#press_key('i')<CR><Right>
-    inoremap <silent> <buffer> j <C-o>:call conque_experimental#press_key('j')<CR><Right>
-    inoremap <silent> <buffer> k <C-o>:call conque_experimental#press_key('k')<CR><Right>
-    inoremap <silent> <buffer> l <C-o>:call conque_experimental#press_key('l')<CR><Right>
-    inoremap <silent> <buffer> m <C-o>:call conque_experimental#press_key('m')<CR><Right>
-    inoremap <silent> <buffer> n <C-o>:call conque_experimental#press_key('n')<CR><Right>
-    inoremap <silent> <buffer> o <C-o>:call conque_experimental#press_key('o')<CR><Right>
-    inoremap <silent> <buffer> p <C-o>:call conque_experimental#press_key('p')<CR><Right>
-    inoremap <silent> <buffer> q <C-o>:call conque_experimental#press_key('q')<CR><Right>
-    inoremap <silent> <buffer> r <C-o>:call conque_experimental#press_key('r')<CR><Right>
-    inoremap <silent> <buffer> s <C-o>:call conque_experimental#press_key('s')<CR><Right>
-    inoremap <silent> <buffer> t <C-o>:call conque_experimental#press_key('t')<CR><Right>
-    inoremap <silent> <buffer> u <C-o>:call conque_experimental#press_key('u')<CR><Right>
-    inoremap <silent> <buffer> v <C-o>:call conque_experimental#press_key('v')<CR><Right>
-    inoremap <silent> <buffer> w <C-o>:call conque_experimental#press_key('w')<CR><Right>
-    inoremap <silent> <buffer> x <C-o>:call conque_experimental#press_key('x')<CR><Right>
-    inoremap <silent> <buffer> y <C-o>:call conque_experimental#press_key('y')<CR><Right>
-    inoremap <silent> <buffer> z <C-o>:call conque_experimental#press_key('z')<CR><Right>
+    inoremap <silent> <buffer> a <Esc>:call conque_experimental#press_key('a')<CR>a
+    inoremap <silent> <buffer> b <Esc>:call conque_experimental#press_key('b')<CR>a
+    inoremap <silent> <buffer> c <Esc>:call conque_experimental#press_key('c')<CR>a
+    inoremap <silent> <buffer> d <Esc>:call conque_experimental#press_key('d')<CR>a
+    inoremap <silent> <buffer> e <Esc>:call conque_experimental#press_key('e')<CR>a
+    inoremap <silent> <buffer> f <Esc>:call conque_experimental#press_key('f')<CR>a
+    inoremap <silent> <buffer> g <Esc>:call conque_experimental#press_key('g')<CR>a
+    inoremap <silent> <buffer> h <Esc>:call conque_experimental#press_key('h')<CR>a
+    inoremap <silent> <buffer> i <Esc>:call conque_experimental#press_key('i')<CR>a
+    inoremap <silent> <buffer> j <Esc>:call conque_experimental#press_key('j')<CR>a
+    inoremap <silent> <buffer> k <Esc>:call conque_experimental#press_key('k')<CR>a
+    inoremap <silent> <buffer> l <Esc>:call conque_experimental#press_key('l')<CR>a
+    inoremap <silent> <buffer> m <Esc>:call conque_experimental#press_key('m')<CR>a
+    inoremap <silent> <buffer> n <Esc>:call conque_experimental#press_key('n')<CR>a
+    inoremap <silent> <buffer> o <Esc>:call conque_experimental#press_key('o')<CR>a
+    inoremap <silent> <buffer> p <Esc>:call conque_experimental#press_key('p')<CR>a
+    inoremap <silent> <buffer> q <Esc>:call conque_experimental#press_key('q')<CR>a
+    inoremap <silent> <buffer> r <Esc>:call conque_experimental#press_key('r')<CR>a
+    inoremap <silent> <buffer> s <Esc>:call conque_experimental#press_key('s')<CR>a
+    inoremap <silent> <buffer> t <Esc>:call conque_experimental#press_key('t')<CR>a
+    inoremap <silent> <buffer> u <Esc>:call conque_experimental#press_key('u')<CR>a
+    inoremap <silent> <buffer> v <Esc>:call conque_experimental#press_key('v')<CR>a
+    inoremap <silent> <buffer> w <Esc>:call conque_experimental#press_key('w')<CR>a
+    inoremap <silent> <buffer> x <Esc>:call conque_experimental#press_key('x')<CR>a
+    inoremap <silent> <buffer> y <Esc>:call conque_experimental#press_key('y')<CR>a
+    inoremap <silent> <buffer> z <Esc>:call conque_experimental#press_key('z')<CR>a
     " Upper case<CR>a
-    inoremap <silent> <buffer> A <C-o>:call conque_experimental#press_key('A')<CR><Right>
-    inoremap <silent> <buffer> B <C-o>:call conque_experimental#press_key('B')<CR><Right>
-    inoremap <silent> <buffer> C <C-o>:call conque_experimental#press_key('C')<CR><Right>
-    inoremap <silent> <buffer> D <C-o>:call conque_experimental#press_key('D')<CR><Right>
-    inoremap <silent> <buffer> E <C-o>:call conque_experimental#press_key('E')<CR><Right>
-    inoremap <silent> <buffer> F <C-o>:call conque_experimental#press_key('F')<CR><Right>
-    inoremap <silent> <buffer> G <C-o>:call conque_experimental#press_key('G')<CR><Right>
-    inoremap <silent> <buffer> H <C-o>:call conque_experimental#press_key('H')<CR><Right>
-    inoremap <silent> <buffer> I <C-o>:call conque_experimental#press_key('I')<CR><Right>
-    inoremap <silent> <buffer> J <C-o>:call conque_experimental#press_key('J')<CR><Right>
-    inoremap <silent> <buffer> K <C-o>:call conque_experimental#press_key('K')<CR><Right>
-    inoremap <silent> <buffer> L <C-o>:call conque_experimental#press_key('L')<CR><Right>
-    inoremap <silent> <buffer> M <C-o>:call conque_experimental#press_key('M')<CR><Right>
-    inoremap <silent> <buffer> N <C-o>:call conque_experimental#press_key('N')<CR><Right>
-    inoremap <silent> <buffer> O <C-o>:call conque_experimental#press_key('O')<CR><Right>
-    inoremap <silent> <buffer> P <C-o>:call conque_experimental#press_key('P')<CR><Right>
-    inoremap <silent> <buffer> Q <C-o>:call conque_experimental#press_key('Q')<CR><Right>
-    inoremap <silent> <buffer> R <C-o>:call conque_experimental#press_key('R')<CR><Right>
-    inoremap <silent> <buffer> S <C-o>:call conque_experimental#press_key('S')<CR><Right>
-    inoremap <silent> <buffer> T <C-o>:call conque_experimental#press_key('T')<CR><Right>
-    inoremap <silent> <buffer> U <C-o>:call conque_experimental#press_key('U')<CR><Right>
-    inoremap <silent> <buffer> V <C-o>:call conque_experimental#press_key('V')<CR><Right>
-    inoremap <silent> <buffer> W <C-o>:call conque_experimental#press_key('W')<CR><Right>
-    inoremap <silent> <buffer> X <C-o>:call conque_experimental#press_key('X')<CR><Right>
-    inoremap <silent> <buffer> Y <C-o>:call conque_experimental#press_key('Y')<CR><Right>
-    inoremap <silent> <buffer> Z <C-o>:call conque_experimental#press_key('Z')<CR><Right>
+    inoremap <silent> <buffer> A <Esc>:call conque_experimental#press_key('A')<CR>a
+    inoremap <silent> <buffer> B <Esc>:call conque_experimental#press_key('B')<CR>a
+    inoremap <silent> <buffer> C <Esc>:call conque_experimental#press_key('C')<CR>a
+    inoremap <silent> <buffer> D <Esc>:call conque_experimental#press_key('D')<CR>a
+    inoremap <silent> <buffer> E <Esc>:call conque_experimental#press_key('E')<CR>a
+    inoremap <silent> <buffer> F <Esc>:call conque_experimental#press_key('F')<CR>a
+    inoremap <silent> <buffer> G <Esc>:call conque_experimental#press_key('G')<CR>a
+    inoremap <silent> <buffer> H <Esc>:call conque_experimental#press_key('H')<CR>a
+    inoremap <silent> <buffer> I <Esc>:call conque_experimental#press_key('I')<CR>a
+    inoremap <silent> <buffer> J <Esc>:call conque_experimental#press_key('J')<CR>a
+    inoremap <silent> <buffer> K <Esc>:call conque_experimental#press_key('K')<CR>a
+    inoremap <silent> <buffer> L <Esc>:call conque_experimental#press_key('L')<CR>a
+    inoremap <silent> <buffer> M <Esc>:call conque_experimental#press_key('M')<CR>a
+    inoremap <silent> <buffer> N <Esc>:call conque_experimental#press_key('N')<CR>a
+    inoremap <silent> <buffer> O <Esc>:call conque_experimental#press_key('O')<CR>a
+    inoremap <silent> <buffer> P <Esc>:call conque_experimental#press_key('P')<CR>a
+    inoremap <silent> <buffer> Q <Esc>:call conque_experimental#press_key('Q')<CR>a
+    inoremap <silent> <buffer> R <Esc>:call conque_experimental#press_key('R')<CR>a
+    inoremap <silent> <buffer> S <Esc>:call conque_experimental#press_key('S')<CR>a
+    inoremap <silent> <buffer> T <Esc>:call conque_experimental#press_key('T')<CR>a
+    inoremap <silent> <buffer> U <Esc>:call conque_experimental#press_key('U')<CR>a
+    inoremap <silent> <buffer> V <Esc>:call conque_experimental#press_key('V')<CR>a
+    inoremap <silent> <buffer> W <Esc>:call conque_experimental#press_key('W')<CR>a
+    inoremap <silent> <buffer> X <Esc>:call conque_experimental#press_key('X')<CR>a
+    inoremap <silent> <buffer> Y <Esc>:call conque_experimental#press_key('Y')<CR>a
+    inoremap <silent> <buffer> Z <Esc>:call conque_experimental#press_key('Z')<CR>a
 
-    inoremap <silent> <buffer> 0 <C-o>:call conque_experimental#press_key('0')<CR><Right>
-    inoremap <silent> <buffer> 1 <C-o>:call conque_experimental#press_key('1')<CR><Right>
-    inoremap <silent> <buffer> 2 <C-o>:call conque_experimental#press_key('2')<CR><Right>
-    inoremap <silent> <buffer> 3 <C-o>:call conque_experimental#press_key('3')<CR><Right>
-    inoremap <silent> <buffer> 4 <C-o>:call conque_experimental#press_key('4')<CR><Right>
-    inoremap <silent> <buffer> 5 <C-o>:call conque_experimental#press_key('5')<CR><Right>
-    inoremap <silent> <buffer> 6 <C-o>:call conque_experimental#press_key('6')<CR><Right>
-    inoremap <silent> <buffer> 7 <C-o>:call conque_experimental#press_key('7')<CR><Right>
-    inoremap <silent> <buffer> 8 <C-o>:call conque_experimental#press_key('8')<CR><Right>
-    inoremap <silent> <buffer> 9 <C-o>:call conque_experimental#press_key('9')<CR><Right>
+    inoremap <silent> <buffer> 0 <Esc>:call conque_experimental#press_key('0')<CR>a
+    inoremap <silent> <buffer> 1 <Esc>:call conque_experimental#press_key('1')<CR>a
+    inoremap <silent> <buffer> 2 <Esc>:call conque_experimental#press_key('2')<CR>a
+    inoremap <silent> <buffer> 3 <Esc>:call conque_experimental#press_key('3')<CR>a
+    inoremap <silent> <buffer> 4 <Esc>:call conque_experimental#press_key('4')<CR>a
+    inoremap <silent> <buffer> 5 <Esc>:call conque_experimental#press_key('5')<CR>a
+    inoremap <silent> <buffer> 6 <Esc>:call conque_experimental#press_key('6')<CR>a
+    inoremap <silent> <buffer> 7 <Esc>:call conque_experimental#press_key('7')<CR>a
+    inoremap <silent> <buffer> 8 <Esc>:call conque_experimental#press_key('8')<CR>a
+    inoremap <silent> <buffer> 9 <Esc>:call conque_experimental#press_key('9')<CR>a
     " }}}
 
     " Punctuation {{{
-    inoremap <silent> <buffer> <Space> <C-o>:call conque_experimental#press_key(' ')<CR><Right>
-    inoremap <silent> <buffer> @ <C-o>:call conque_experimental#press_key('@')<CR><Right>
-    inoremap <silent> <buffer> ! <C-o>:call conque_experimental#press_key('!')<CR><Right>
-    inoremap <silent> <buffer> " <C-o>:call conque_experimental#press_key('"')<CR><Right>
-    inoremap <silent> <buffer> # <C-o>:call conque_experimental#press_key('#')<CR><Right>
-    inoremap <silent> <buffer> $ <C-o>:call conque_experimental#press_key('$')<CR><Right>
-    inoremap <silent> <buffer> % <C-o>:call conque_experimental#press_key('%')<CR><Right>
-    inoremap <silent> <buffer> & <C-o>:call conque_experimental#press_key('&')<CR><Right>
-    inoremap <silent> <buffer> ' <C-o>:call conque_experimental#press_key("'")<CR><Right>
-    inoremap <silent> <buffer> ( <C-o>:call conque_experimental#press_key('(')<CR><Right>
-    inoremap <silent> <buffer> ) <C-o>:call conque_experimental#press_key(')')<CR><Right>
-    inoremap <silent> <buffer> * <C-o>:call conque_experimental#press_key('*')<CR><Right>
-    inoremap <silent> <buffer> + <C-o>:call conque_experimental#press_key('+')<CR><Right>
-    inoremap <silent> <buffer> ` <C-o>:call conque_experimental#press_key('`')<CR><Right>
-    inoremap <silent> <buffer> - <C-o>:call conque_experimental#press_key('-')<CR><Right>
-    inoremap <silent> <buffer> . <C-o>:call conque_experimental#press_key('.')<CR><Right>
-    inoremap <silent> <buffer> , <C-o>:call conque_experimental#press_key(',')<CR><Right>
-    inoremap <silent> <buffer> / <C-o>:call conque_experimental#press_key('/')<CR><Right>
-    inoremap <silent> <buffer> : <C-o>:call conque_experimental#press_key(':')<CR><Right>
-    inoremap <silent> <buffer> ; <C-o>:call conque_experimental#press_key(';')<CR><Right>
-    inoremap <silent> <buffer> < <C-o>:call conque_experimental#press_key('<')<CR><Right>
-    inoremap <silent> <buffer> = <C-o>:call conque_experimental#press_key('=')<CR><Right>
-    inoremap <silent> <buffer> > <C-o>:call conque_experimental#press_key('>')<CR><Right>
-    inoremap <silent> <buffer> ? <C-o>:call conque_experimental#press_key('?')<CR><Right>
-    inoremap <silent> <buffer> [ <C-o>:call conque_experimental#press_key('[')<CR><Right>
-    inoremap <silent> <buffer> <Bslash> <C-o>:call conque_experimental#press_key('\')<CR><Right>
-    inoremap <silent> <buffer> ] <C-o>:call conque_experimental#press_key(']')<CR><Right>
-    inoremap <silent> <buffer> ^ <C-o>:call conque_experimental#press_key('^')<CR><Right>
-    inoremap <silent> <buffer> _ <C-o>:call conque_experimental#press_key('_')<CR><Right>
-    inoremap <silent> <buffer> { <C-o>:call conque_experimental#press_key('{')<CR><Right>
-    inoremap <silent> <buffer> <Bar> <C-o>:call conque_experimental#press_key(nr2char(124))<CR><Right>
-    inoremap <silent> <buffer> } <C-o>:call conque_experimental#press_key('}')<CR><Right>
-    inoremap <silent> <buffer> ~ <C-o>:call conque_experimental#press_key('~')<CR><Right>
+    inoremap <silent> <buffer> <Space> <Esc>:call conque_experimental#press_key(' ')<CR>a
+    inoremap <silent> <buffer> @ <Esc>:call conque_experimental#press_key('@')<CR>a
+    inoremap <silent> <buffer> ! <Esc>:call conque_experimental#press_key('!')<CR>a
+    inoremap <silent> <buffer> " <Esc>:call conque_experimental#press_key('"')<CR>a
+    inoremap <silent> <buffer> # <Esc>:call conque_experimental#press_key('#')<CR>a
+    inoremap <silent> <buffer> $ <Esc>:call conque_experimental#press_key('$')<CR>a
+    inoremap <silent> <buffer> % <Esc>:call conque_experimental#press_key('%')<CR>a
+    inoremap <silent> <buffer> & <Esc>:call conque_experimental#press_key('&')<CR>a
+    inoremap <silent> <buffer> ' <Esc>:call conque_experimental#press_key("'")<CR>a
+    inoremap <silent> <buffer> ( <Esc>:call conque_experimental#press_key('(')<CR>a
+    inoremap <silent> <buffer> ) <Esc>:call conque_experimental#press_key(')')<CR>a
+    inoremap <silent> <buffer> * <Esc>:call conque_experimental#press_key('*')<CR>a
+    inoremap <silent> <buffer> + <Esc>:call conque_experimental#press_key('+')<CR>a
+    inoremap <silent> <buffer> ` <Esc>:call conque_experimental#press_key('`')<CR>a
+    inoremap <silent> <buffer> - <Esc>:call conque_experimental#press_key('-')<CR>a
+    inoremap <silent> <buffer> . <Esc>:call conque_experimental#press_key('.')<CR>a
+    inoremap <silent> <buffer> , <Esc>:call conque_experimental#press_key(',')<CR>a
+    inoremap <silent> <buffer> / <Esc>:call conque_experimental#press_key('/')<CR>a
+    inoremap <silent> <buffer> : <Esc>:call conque_experimental#press_key(':')<CR>a
+    inoremap <silent> <buffer> ; <Esc>:call conque_experimental#press_key(';')<CR>a
+    inoremap <silent> <buffer> < <Esc>:call conque_experimental#press_key('<')<CR>a
+    inoremap <silent> <buffer> = <Esc>:call conque_experimental#press_key('=')<CR>a
+    inoremap <silent> <buffer> > <Esc>:call conque_experimental#press_key('>')<CR>a
+    inoremap <silent> <buffer> ? <Esc>:call conque_experimental#press_key('?')<CR>a
+    inoremap <silent> <buffer> [ <Esc>:call conque_experimental#press_key('[')<CR>a
+    inoremap <silent> <buffer> <Bslash> <Esc>:call conque_experimental#press_key('\')<CR>a
+    inoremap <silent> <buffer> ] <Esc>:call conque_experimental#press_key(']')<CR>a
+    inoremap <silent> <buffer> ^ <Esc>:call conque_experimental#press_key('^')<CR>a
+    inoremap <silent> <buffer> _ <Esc>:call conque_experimental#press_key('_')<CR>a
+    inoremap <silent> <buffer> { <Esc>:call conque_experimental#press_key('{')<CR>a
+    inoremap <silent> <buffer> <Bar> <Esc>:call conque_experimental#press_key(nr2char(124))<CR>a
+    inoremap <silent> <buffer> } <Esc>:call conque_experimental#press_key('}')<CR>a
+    inoremap <silent> <buffer> ~ <Esc>:call conque_experimental#press_key('~')<CR>a
     " }}}
 
     " Special keys {{{
-    inoremap <silent> <buffer> <Del> <C-o>:call conque_experimental#press_key(nr2char(127))<CR><Right>
-    inoremap <silent> <buffer> <BS> <C-o>:call conque_experimental#press_key(nr2char(8))<CR><Right>
-    inoremap <silent> <buffer> <Tab> <C-o>:call conque_experimental#press_key(nr2char(9))<CR><Right>
-    inoremap <silent> <buffer> <CR> <C-o>:call conque_experimental#press_key(nr2char(13))<CR><Right>
-    inoremap <silent> <buffer> <LF> <C-o>:call conque_experimental#press_key(nr2char(12))<CR><Right>
-    inoremap <silent> <buffer> <Up> <C-o>:call conque_experimental#press_key("<C-v><Esc>[A")<CR><Right>
-    inoremap <silent> <buffer> <Down> <C-o>:call conque_experimental#press_key("<C-v><Esc>[B")<CR><Right>
-    inoremap <silent> <buffer> <Right> <C-o>:call conque_experimental#press_key("<C-v><Esc>[C")<CR><Right>
-    inoremap <silent> <buffer> <Left> <C-o>:call conque_experimental#press_key("<C-v><Esc>[D")<CR><Right>
+    inoremap <silent> <buffer> <Del> <Esc>:call conque_experimental#press_key(nr2char(127))<CR>a
+    inoremap <silent> <buffer> <BS> <Esc>:call conque_experimental#press_key(nr2char(8))<CR>a
+    inoremap <silent> <buffer> <Tab> <Esc>:call conque_experimental#press_key(nr2char(9))<CR>a
+    inoremap <silent> <buffer> <CR> <Esc>:call conque_experimental#press_key(nr2char(13))<CR>a
+    inoremap <silent> <buffer> <LF> <Esc>:call conque_experimental#press_key(nr2char(12))<CR>a
+    inoremap <silent> <buffer> <Up> <Esc>:call conque_experimental#press_key("<C-v><Esc>[A")<CR>a
+    inoremap <silent> <buffer> <Down> <Esc>:call conque_experimental#press_key("<C-v><Esc>[B")<CR>a
+    inoremap <silent> <buffer> <Right> <Esc>:call conque_experimental#press_key("<C-v><Esc>[C")<CR>a
+    inoremap <silent> <buffer> <Left> <Esc>:call conque_experimental#press_key("<C-v><Esc>[D")<CR>a
     " }}}
 
     " control characters {{{
-    inoremap <silent> <buffer> <C-a> <C-o>:call conque_experimental#press_key("<C-v><C-a>")<CR><Right>
-    inoremap <silent> <buffer> <C-b> <C-o>:call conque_experimental#press_key("<C-v><C-b>")<CR><Right>
-    inoremap <silent> <buffer> <C-c> <C-o>:call conque_experimental#press_key("<C-v><C-c>")<CR><Right>
-    inoremap <silent> <buffer> <C-d> <C-o>:call conque_experimental#press_key("<C-v><C-d>")<CR><Right>
-    inoremap <silent> <buffer> <C-e> <C-o>:call conque_experimental#press_key("<C-v><C-e>")<CR><Right>
-    inoremap <silent> <buffer> <C-f> <C-o>:call conque_experimental#press_key("<C-v><C-f>")<CR><Right>
-    inoremap <silent> <buffer> <C-g> <C-o>:call conque_experimental#press_key("<C-v><C-g>")<CR><Right>
-    inoremap <silent> <buffer> <C-h> <C-o>:call conque_experimental#press_key("<C-v><C-h>")<CR><Right>
-    inoremap <silent> <buffer> <C-i> <C-o>:call conque_experimental#press_key("<C-v><C-i>")<CR><Right>
-    inoremap <silent> <buffer> <C-j> <C-o>:call conque_experimental#press_key("<C-v><C-j>")<CR><Right>
-    inoremap <silent> <buffer> <C-k> <C-o>:call conque_experimental#press_key("<C-v><C-k>")<CR><Right>
-    inoremap <silent> <buffer> <C-l> <C-o>:call conque_experimental#press_key("<C-v><C-l>")<CR><Right>
-    inoremap <silent> <buffer> <C-m> <C-o>:call conque_experimental#press_key("<C-v><C-m>")<CR><Right>
-    inoremap <silent> <buffer> <C-n> <C-o>:call conque_experimental#press_key("<C-v><C-n>")<CR><Right>
-    inoremap <silent> <buffer> <C-o> <C-o>:call conque_experimental#press_key("<C-v><C-o>")<CR><Right>
-    inoremap <silent> <buffer> <C-p> <C-o>:call conque_experimental#press_key("<C-v><C-p>")<CR><Right>
-    inoremap <silent> <buffer> <C-q> <C-o>:call conque_experimental#press_key("<C-v><C-q>")<CR><Right>
-    inoremap <silent> <buffer> <C-r> <C-o>:call conque_experimental#press_key("<C-v><C-r>")<CR><Right>
-    inoremap <silent> <buffer> <C-s> <C-o>:call conque_experimental#press_key("<C-v><C-s>")<CR><Right>
-    inoremap <silent> <buffer> <C-t> <C-o>:call conque_experimental#press_key("<C-v><C-t>")<CR><Right>
-    inoremap <silent> <buffer> <C-u> <C-o>:call conque_experimental#press_key("<C-v><C-u>")<CR><Right>
-    "inoremap <silent> <buffer> <C-v> <C-o>:call conque_experimental#press_key("<C-v><C-v>")<CR><Right>
-    inoremap <silent> <buffer> <C-w> <C-o>:call conque_experimental#press_key("<C-v><C-w>")<CR><Right>
-    inoremap <silent> <buffer> <C-x> <C-o>:call conque_experimental#press_key("<C-v><C-x>")<CR><Right>
-    inoremap <silent> <buffer> <C-y> <C-o>:call conque_experimental#press_key("<C-v><C-y>")<CR><Right>
-    inoremap <silent> <buffer> <C-z> <C-o>:call conque_experimental#press_key("<C-v><C-z>")<CR><Right>
-    inoremap <silent> <buffer> <C-?> <C-o>:call conque_experimental#press_key("<C-v><C-?>")<CR><Right>
-    inoremap <silent> <buffer> <C-\> <C-o>:call conque_experimental#press_key("<C-v><C-\>")<CR><Right>
-    inoremap <silent> <buffer> <C-]> <C-o>:call conque_experimental#press_key("<C-v><C-]>")<CR><Right>
+    inoremap <silent> <buffer> <C-a> <Esc>:call conque_experimental#press_key("<C-v><C-a>")<CR>a
+    inoremap <silent> <buffer> <C-b> <Esc>:call conque_experimental#press_key("<C-v><C-b>")<CR>a
+    inoremap <silent> <buffer> <C-c> <Esc>:call conque_experimental#press_key("<C-v><C-c>")<CR>a
+    inoremap <silent> <buffer> <C-d> <Esc>:call conque_experimental#press_key("<C-v><C-d>")<CR>a
+    inoremap <silent> <buffer> <C-e> <Esc>:call conque_experimental#press_key("<C-v><C-e>")<CR>a
+    inoremap <silent> <buffer> <C-f> <Esc>:call conque_experimental#press_key("<C-v><C-f>")<CR>a
+    inoremap <silent> <buffer> <C-g> <Esc>:call conque_experimental#press_key("<C-v><C-g>")<CR>a
+    inoremap <silent> <buffer> <C-h> <Esc>:call conque_experimental#press_key("<C-v><C-h>")<CR>a
+    inoremap <silent> <buffer> <C-i> <Esc>:call conque_experimental#press_key("<C-v><C-i>")<CR>a
+    inoremap <silent> <buffer> <C-j> <Esc>:call conque_experimental#press_key("<C-v><C-j>")<CR>a
+    inoremap <silent> <buffer> <C-k> <Esc>:call conque_experimental#press_key("<C-v><C-k>")<CR>a
+    inoremap <silent> <buffer> <C-l> <Esc>:call conque_experimental#press_key("<C-v><C-l>")<CR>a
+    inoremap <silent> <buffer> <C-m> <Esc>:call conque_experimental#press_key("<C-v><C-m>")<CR>a
+    inoremap <silent> <buffer> <C-n> <Esc>:call conque_experimental#press_key("<C-v><C-n>")<CR>a
+    inoremap <silent> <buffer> <C-o> <Esc>:call conque_experimental#press_key("<C-v><C-o>")<CR>a
+    inoremap <silent> <buffer> <C-p> <Esc>:call conque_experimental#press_key("<C-v><C-p>")<CR>a
+    inoremap <silent> <buffer> <C-q> <Esc>:call conque_experimental#press_key("<C-v><C-q>")<CR>a
+    inoremap <silent> <buffer> <C-r> <Esc>:call conque_experimental#press_key("<C-v><C-r>")<CR>a
+    inoremap <silent> <buffer> <C-s> <Esc>:call conque_experimental#press_key("<C-v><C-s>")<CR>a
+    inoremap <silent> <buffer> <C-t> <Esc>:call conque_experimental#press_key("<C-v><C-t>")<CR>a
+    inoremap <silent> <buffer> <C-u> <Esc>:call conque_experimental#press_key("<C-v><C-u>")<CR>a
+    "inoremap <silent> <buffer> <C-v> <Esc>:call conque_experimental#press_key("<C-v><C-v>")<CR>a
+    inoremap <silent> <buffer> <C-w> <Esc>:call conque_experimental#press_key("<C-v><C-w>")<CR>a
+    inoremap <silent> <buffer> <C-x> <Esc>:call conque_experimental#press_key("<C-v><C-x>")<CR>a
+    inoremap <silent> <buffer> <C-y> <Esc>:call conque_experimental#press_key("<C-v><C-y>")<CR>a
+    inoremap <silent> <buffer> <C-z> <Esc>:call conque_experimental#press_key("<C-v><C-z>")<CR>a
+    inoremap <silent> <buffer> <C-?> <Esc>:call conque_experimental#press_key("<C-v><C-?>")<CR>a
+    inoremap <silent> <buffer> <C-\> <Esc>:call conque_experimental#press_key("<C-v><C-\>")<CR>a
+    inoremap <silent> <buffer> <C-]> <Esc>:call conque_experimental#press_key("<C-v><C-]>")<CR>a
     " }}}
 
     " other weird stuff {{{
 
     " use F8 key to get more input
-    inoremap <silent> <buffer> <F8> <C-o>:call conque_experimental#read(1)<CR><Right>
-    inoremap <silent> <buffer> <F7> <C-o>i<Right>
+    inoremap <silent> <buffer> <F8> <Esc>:call conque_experimental#read(1)<CR>a
+    inoremap <silent> <buffer> <F7> <C-o>a
 
     " remap paste keys
     nnoremap <silent> <buffer> p :call conque_experimental#paste()<CR>
@@ -377,7 +377,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 	  vnoremap <silent> <F9> :<C-u>call conque_experimental#send_selected(visualmode())<CR>
 
     " send escape
-    inoremap <silent> <buffer> <Esc><Esc> <C-o>:call conque_experimental#press_key("<C-v><Esc>")<CR><Right>
+    inoremap <silent> <buffer> <Esc><Esc> <Esc>:call conque_experimental#press_key("<C-v><Esc>")<CR>a
     nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <Ctrl-e> in normal mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
 
     " }}}
@@ -487,6 +487,9 @@ function! conque_experimental#auto_read() " {{{
     call cursor(b:_l, b:_c - 1)
 
     call s:log.profile_end('autoread')
+endfunction " }}}
+
+function! conque_experimental#nop() " {{{
 endfunction " }}}
 
 function! conque_experimental#message(msg, warn) " {{{
