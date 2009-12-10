@@ -27,6 +27,12 @@
 " THE SOFTWARE.
 " }}}
 
+" TODO ------------------------------------------------
+"  
+"  * Rewrite color handling
+"  * Map all meta keys
+"
+
 if exists('g:Loaded_ConqueExperimental') || v:version < 700
   finish
 endif
@@ -363,6 +369,15 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     inoremap <silent> <buffer> <C-]> <Esc>:call conque_experimental#press_key("<C-v><C-]>")<CR>a
     " }}}
 
+    " meta characters {{{
+    let c = 'a'
+    while c <= 'z'
+        exec "setlocal <M-".toupper(c).">=\e".c
+        exec 'inoremap <silent> <buffer> <Esc>' . c . ' <Esc>:call conque_experimental#press_key("<C-v><Esc>' . c . '")<CR>a'
+        let c = nr2char(1 + char2nr(c))
+    endwhile
+    " }}}
+
     " other weird stuff {{{
 
     " use F8 key to get more input
@@ -378,7 +393,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 
     " send escape
     inoremap <silent> <buffer> <Esc><Esc> <Esc>:call conque_experimental#press_key("<C-v><Esc>")<CR>a
-    nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <Ctrl-e> in normal mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
+    nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
 
     " }}}
 
