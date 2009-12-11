@@ -48,7 +48,7 @@ function! s:lib.open(...) "{{{
 endfunction "}}}
 
 function! s:lib.read(...) "{{{
-    let timeout = get(a:000, 0, 0.2)
+    let timeout = get(a:000, 0, '0.2')
     let b:proc_py_output = []
     silent execute ":python proc".b:subprocess_id.".read(" . string(timeout) . ")"
     return b:proc_py_output
