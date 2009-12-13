@@ -30,7 +30,7 @@
 " TODO ------------------------------------------------
 "  
 "  * Rewrite color handling
-"  * Map all meta keys
+"  * Fix escape sequence failures while running Vim
 "
 
 if exists('g:Loaded_ConqueExperimental') || v:version < 700
@@ -159,7 +159,7 @@ function! conque_experimental#open(...) "{{{
     call conque_experimental#set_buffer_settings(command, hooks)
 
     " set global environment variables
-    let $COLUMNS = winwidth(0) - 8
+    let $COLUMNS = winwidth(0) - 4
     let $LINES = winheight(0)
     let b:COLUMNS = $COLUMNS
     let b:LINES = $LINES
@@ -370,12 +370,12 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " }}}
 
     " meta characters {{{
-    let c = 'a'
-    while c <= 'z'
-        exec "setlocal <M-".toupper(c).">=\e".c
-        exec 'inoremap <silent> <buffer> <Esc>' . c . ' <Esc>:call conque_experimental#press_key("<C-v><Esc>' . c . '")<CR>a'
-        let c = nr2char(1 + char2nr(c))
-    endwhile
+    "let c = 'a'
+    "while c <= 'z'
+    "    exec "setlocal <M-".toupper(c).">=\e".c
+    "    exec 'inoremap <silent> <buffer> <Esc>' . c . ' <Esc>:call conque_experimental#press_key("<C-v><Esc>' . c . '")<CR>a'
+    "    let c = nr2char(1 + char2nr(c))
+    "endwhile
     " }}}
 
     " other weird stuff {{{
@@ -401,6 +401,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " passes HUP to main and all child processes
     autocmd BufUnload <buffer> call conque_experimental#hang_up()
     autocmd CursorHoldI <buffer> call conque_experimental#auto_read()
+    autocmd BufEnter <buffer> call conque_experimental#update_window_size()
 endfunction "}}}
 
 " controller to execute current line
@@ -1086,6 +1087,23 @@ function! conque_experimental#send_selected(type) "{{{
 
     let @@ = reg_save
 endfunction "}}}
+
+" check if the buffer has been resized, and update pty with new size if so
+function! conque_experimental#update_window_size() " {{{
+    if b:COLUMNS == winwidth(0) - 4 && b:LINES == winheight(0)
+        return
+    endif
+
+    " update kernel and subprocess
+    let b:COLUMNS = winwidth(0) - 4
+    let b:LINES = winheight(0)
+    call b:subprocess.update_window_size(b:LINES, b:COLUMNS)
+
+    " update screen
+    call conque_experimental#read(200)
+    normal G
+    call cursor(b:_l, b:_c - 1)
+endfunction " }}}
 
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1
