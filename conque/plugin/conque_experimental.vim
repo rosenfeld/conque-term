@@ -54,7 +54,8 @@ let s:escape_sequences = {
 \ 'P':'delete_chars',
 \ 'd':'cusor_vpos',
 \ 'f':'xy_pos',
-\ 'g':'tab_clear'
+\ 'g':'tab_clear',
+\ 'r':'set_coords'
 \ } 
 " }}}
 
@@ -163,6 +164,9 @@ function! conque_experimental#open(...) "{{{
     let $LINES = winheight(0)
     let b:COLUMNS = $COLUMNS
     let b:LINES = $LINES
+    " the CSI r escape can change the effective working rectangle of screen output
+    let b:WORKING_COLUMNS = $COLUMNS
+    let b:WORKING_LINES = $LINES
 
     " cursor position
     let b:_l = 1
@@ -632,15 +636,15 @@ function! conque_experimental#process_input(input) " {{{
 
         call s:log.profile_start('wrapping_1')
         " handle line wrapping {{{
-        call s:log.debug('testing string ' . l:input[ b:COLUMNS : ])
-        if l:line_pos + l:match_num > b:COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
-            call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+        call s:log.debug('testing string ' . l:input[ b:WORKING_COLUMNS : ])
+        if l:line_pos + l:match_num > b:WORKING_COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
+            call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
             let b:auto_wrapped = 1
 
             " break output at screen width
-            "let l:input = nr2char(13) . l:output[ b:COLUMNS : ] . l:input[ l:match_num : ]
-            let l:input = l:input[ b:COLUMNS : ]
-            let l:output = l:output[ : b:COLUMNS - 1 ]
+            "let l:input = nr2char(13) . l:output[ b:WORKING_COLUMNS : ] . l:input[ l:match_num : ]
+            let l:input = l:input[ b:WORKING_COLUMNS : ]
+            let l:output = l:output[ : b:WORKING_COLUMNS - 1 ]
             
             call s:log.debug('new input: ' . l:input)
             call s:log.debug('new output: ' . l:output)
@@ -681,6 +685,14 @@ function! conque_experimental#process_input(input) " {{{
         elseif l:match_str == nr2char(10) " new line {{{
             call s:log.debug('<NL>')
 
+            " if screen size has been adjusted, scroll partial screen region
+            call s:log.debug('checking working work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES . ' and lines ' . b:LINES . ' and top ' . b:_top)
+            if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
+                call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
+                call append(b:_l, '')
+                normal G
+            endif
+
             " finish off this line
             call setline(b:_l, l:output)
             call conque_experimental#process_colors(l:color_changes)
@@ -688,8 +700,11 @@ function! conque_experimental#process_input(input) " {{{
             call winline()
 
             " initialize cursor in the correct position
-            let b:_l = b:_l + 1
+            let b:_l += 1
             let b:_c = 1
+            if b:_l > b:_top + b:WORKING_LINES - 1
+                let b:_top += 1
+            endif
 
             call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
 
@@ -820,7 +835,7 @@ function! conque_experimental#process_input(input) " {{{
                     " ''|0 == clear down
                     elseif l:delta == '' || l:delta == 0
                         if b:_l < line('$')
-                            execute (b:_l + 1) . "," . line('$') . "d"
+                            silent execute (b:_l + 1) . "," . line('$') . "d"
                         endif
   
                         if line_pos == 0
@@ -863,9 +878,9 @@ function! conque_experimental#process_input(input) " {{{
                 elseif l:action == 'cursor' " {{{
                     let l:new_line = len(l:vals) > 0 ? l:vals[0] : 1
                     let l:new_col = len(l:vals) > 1 ? l:vals[1] : 1
-                    if line('$') > b:LINES && line('$') - b:LINES + 1 > b:_top
-                        let b:_top = line('$') - b:LINES + 1
-                    endif
+                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
+                    "    let b:_top = line('$') - b:WORKING_LINES + 1
+                    "endif
 
                     call setline(b:_l, l:output)
                     call conque_experimental#process_colors(l:color_changes)
@@ -880,6 +895,34 @@ function! conque_experimental#process_input(input) " {{{
                     return
                     " }}}
 
+                elseif l:action == 'set_coords' " {{{
+                    call s:log.debug('really old top ' . b:_top)
+
+                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
+                    "    let b:_top = line('$') - b:WORKING_LINES + 1
+                    "endif
+
+                    let l:new_start = l:vals[0]
+                    let l:new_end = l:vals[1]
+
+                    call s:log.debug('old top ' . b:_top)
+
+                    if l:new_start > 1
+                        let b:_top = b:_top + l:new_start - 1
+                    endif
+
+                    call s:log.debug('new top ' . b:_top)
+
+                    if b:_top + l:new_end - 1 > line('$')
+                        call s:log.debug('creating lines')
+                        for l:ln in range(line('$') + 1, b:_top + l:new_end - 1)
+                            call setline(l:ln, '')
+                        endfor
+                    endif
+
+                    let b:WORKING_LINES = l:new_end - l:new_start + 1
+                    " }}}
+
                 endif
 
             elseif l:match_str =~ '^\e' && exists('s:escape_sequences_plain[l:key]')
@@ -890,9 +933,9 @@ function! conque_experimental#process_input(input) " {{{
                 if l:action == 'scroll_up' " {{{
                     call s:log.debug('scrolling up')
 
-                    if line('$') > b:LINES && line('$') - b:LINES + 1 > b:_top
-                        let b:_top = line('$') - b:LINES + 1
-                    endif
+                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
+                    "    let b:_top = line('$') - b:WORKING_LINES + 1
+                    "endif
                     
                     let b:_top += 1
                     " }}}
@@ -900,9 +943,9 @@ function! conque_experimental#process_input(input) " {{{
                 elseif l:action == 'scroll_down' " {{{
                     call s:log.debug('scrolling down')
 
-                    if line('$') > b:LINES && line('$') - b:LINES + 1 > b:_top
-                        let b:_top = line('$') - b:LINES + 1
-                    endif
+                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
+                    "    let b:_top = line('$') - b:WORKING_LINES + 1
+                    "endif
                     
                     let b:_top += -1
                     let b:_l += -1
@@ -919,9 +962,8 @@ function! conque_experimental#process_input(input) " {{{
                     let l:output = ''
 
                     " remove old line
-                    if line('$') > b:_top + b:LINES - 1
-                        silent execute (b:_top + b:LINES) . ',' . line('$') . 'd'
-                        normal G
+                    if b:_top + b:WORKING_LINES <= line('$')
+                        silent execute (b:_top + b:WORKING_LINES) . ',' . (b:_top + b:WORKING_LINES) . 'd'
                     endif
                     " }}}
 
@@ -948,13 +990,13 @@ function! conque_experimental#process_input(input) " {{{
 
     call s:log.profile_start('wrapping_2')
     " handle line wrapping {{{
-    if len(l:output) > b:COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
-        call s:log.debug('II wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:COLUMNS)
+    if len(l:output) > b:WORKING_COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
+        call s:log.debug('II wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
         let b:auto_wrapped = 1
 
         " break output at screen width
-        let l:input = l:output[ b:COLUMNS : ]
-        let l:output = l:output[ : b:COLUMNS - 1 ]
+        let l:input = l:output[ b:WORKING_COLUMNS : ]
+        let l:output = l:output[ : b:WORKING_COLUMNS - 1 ]
         
         call s:log.debug('new input: ' . l:input)
         call s:log.debug('new output: ' . l:output)
