@@ -161,7 +161,7 @@ function! conque_experimental#open(...) "{{{
     call conque_experimental#set_buffer_settings(command, hooks)
 
     " set global environment variables
-    let $COLUMNS = winwidth(0) - 4
+    let $COLUMNS = winwidth(0)
     let $LINES = winheight(0)
     let b:COLUMNS = $COLUMNS
     let b:LINES = $LINES
@@ -1154,12 +1154,12 @@ endfunction "}}}
 
 " check if the buffer has been resized, and update pty with new size if so
 function! conque_experimental#update_window_size() " {{{
-    if b:COLUMNS == winwidth(0) - 4 && b:LINES == winheight(0)
+    if b:COLUMNS == winwidth(0) && b:LINES == winheight(0)
         return
     endif
 
     " update kernel and subprocess
-    let b:COLUMNS = winwidth(0) - 4
+    let b:COLUMNS = winwidth(0)
     let b:LINES = winheight(0)
     let b:WORKING_COLUMNS = b:COLUMNS
     let b:WORKING_LINES = b:LINES
