@@ -30,7 +30,8 @@
 " TODO ------------------------------------------------
 "  
 "  * Rewrite color handling
-"  * Fix escape sequence failures while running Vim
+"  * find "good" solution to meta keys
+"  * Escapes: full K/J, \eE, \eH, CSIg,
 "
 
 if exists('g:Loaded_ConqueExperimental') || v:version < 700
@@ -53,7 +54,7 @@ let s:escape_sequences = {
 \ 'M':'delete_lines',
 \ 'P':'delete_chars',
 \ 'd':'cusor_vpos',
-\ 'f':'xy_pos',
+\ 'f':'cursor',
 \ 'g':'tab_clear',
 \ 'r':'set_coords'
 \ } 
@@ -495,18 +496,18 @@ function! conque_experimental#read(timeout) "{{{
 endfunction "}}}
 
 function! conque_experimental#auto_read() " {{{
-    call s:log.profile_start('autoread')
+    "call s:log.profile_start('autoread')
 
     "let b:K_IGNORE = "\x80\xFD\x35"
     " triggers timer again
-    call s:log.debug('before: ' . getline(line('.')))
+    "call s:log.debug('before: ' . getline(line('.')))
     call feedkeys("\<F7>", "t")
-    call s:log.debug('after: ' . getline(line('.')))
+    "call s:log.debug('after: ' . getline(line('.')))
 
     call conque_experimental#read(1)
     call cursor(b:_l, b:_c - 1)
 
-    call s:log.profile_end('autoread')
+    "call s:log.profile_end('autoread')
 endfunction " }}}
 
 function! conque_experimental#nop() " {{{
@@ -717,6 +718,7 @@ function! conque_experimental#process_input(input) " {{{
         elseif l:match_str == nr2char(13) " CR {{{
             call s:log.debug('<CR>')
             let l:line_pos = 0
+            let b:_c = 1
             " }}}
 
         elseif l:match_str == nr2char(7) " Bell {{{
@@ -751,11 +753,19 @@ function! conque_experimental#process_input(input) " {{{
                     " }}}
 
                 elseif l:action == 'clear_line' " {{{
-                    if line_pos == 0
+                    if l:line_pos == 0
                         let l:output = ''
                     else
                         let l:output = l:output[ : l:line_pos - 1]
                     endif
+                    if len(l:color_changes) > 0
+                        for l:i in range(len(l:color_changes))
+                            if l:color_changes[l:i].col >= l:line_pos
+                                let l:color_changes[l:i].codes = []
+                            endif
+                        endfor
+                    endif
+                    call conque_experimental#clear_colors(b:_l, l:line_pos)
                     " }}}
 
                 elseif l:action == 'cursor_right' " {{{
@@ -1046,25 +1056,34 @@ function! conque_experimental#process_input(input) " {{{
     call s:log.profile_end('process_input')
 endfunction " }}}
 
-function! conque_experimental#process_colors(color_changes) " {{{
+function! conque_experimental#clear_colors(line, col) " {{{
+    call s:log.debug('clearing colors at line ' . a:line . ' col ' . a:col)
+    " strip previous color changes
+    if exists('b:_hi[' . a:line . ']')
+        for l:hi_col in keys(b:_hi[a:line])
+            if l:hi_col >= a:col - 1
+                for l:hi_name in b:_hi[a:line][l:hi_col]
+                    call s:log.debug('clearing ' . l:hi_name)
+                    silent execute "highlight clear " . l:hi_name
+                endfor
+            endif
+        endfor
+    endif
+endfunction " }}}
 
+function! conque_experimental#process_colors(color_changes) " {{{
     call s:log.profile_start('process_colors')
     if len(a:color_changes) == 0
         call s:log.profile_end('process_colors')
         return
     endif
 
-    " strip previous color changes
-    if exists('b:_hi[' . b:_l . ']')
-        for l:hi_name in b:_hi[b:_l]
-            silent execute "highlight clear " . l:hi_name
-        endfor
-    endif
+    call conque_experimental#clear_colors(b:_l, b:_c)
 
     " color it
     let l:hi_ct = 1
     let l:last_col = len(substitute(getline(b:_l), '\s\+$', '', ''))
-    for cc in reverse(a:color_changes)
+    for cc in a:color_changes
         if cc.col > l:last_col + 2
             continue
         endif
@@ -1083,7 +1102,7 @@ function! conque_experimental#process_colors(color_changes) " {{{
             let cc.end = l:last_col
         endif
 
-        let syntax_name = ' EscapeSequenceAt_' . bufnr('%') . '_' . b:_l . '_' . l:hi_ct
+        let syntax_name = ' EscapeSequenceAt_' . bufnr('%') . '_' . b:_l . '_' . cc.col . '_' . l:hi_ct
         let syntax_region = 'syntax match ' . syntax_name . ' /\%' . b:_l . 'l\%>' . cc.col . 'c.*\%<' . (cc.end + 2) . 'c/ contains=ALL oneline'
         "let syntax_link = 'highlight link ' . syntax_name . ' Normal'
         let syntax_highlight = 'highlight ' . syntax_name . l:highlight
@@ -1099,9 +1118,12 @@ function! conque_experimental#process_colors(color_changes) " {{{
 
         " add highlight to history
         if !exists('b:_hi[' . b:_l . ']')
-            let b:_hi[b:_l] = []
+            let b:_hi[b:_l] = {}
         endif
-        call add(b:_hi[b:_l], syntax_name)
+        if !exists('b:_hi[' . b:_l . '][' . cc.col . ']')
+            let b:_hi[b:_l][cc.col] = []
+        endif
+        call add(b:_hi[b:_l][cc.col], syntax_name)
 
         let l:hi_ct += 1
     endfor
@@ -1139,6 +1161,8 @@ function! conque_experimental#update_window_size() " {{{
     " update kernel and subprocess
     let b:COLUMNS = winwidth(0) - 4
     let b:LINES = winheight(0)
+    let b:WORKING_COLUMNS = b:COLUMNS
+    let b:WORKING_LINES = b:LINES
     call b:subprocess.update_window_size(b:LINES, b:COLUMNS)
 
     " update screen
