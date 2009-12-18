@@ -38,6 +38,18 @@ if exists('g:Loaded_ConqueExperimental') || v:version < 700
   finish
 endif
 
+setlocal encoding=utf-8
+
+" Mappable characters
+let s:chars_alphanumeric = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+let s:chars_punctuation  = '@!#$%&()*+`-.,/:;<>=?[]^_{}~\'
+let s:chars_spelled      = ['Space', 'Bar', 'Del', 'BS', 'Tab', 'CR', 'LF']
+let s:chars_control      = 'abcdefghijklmnopqrstuwxyz?]\'
+let s:chars_meta         = 'abcdefghijklmnopqrstuvwxyz'
+
+" add locale-specific chars here
+let s:chars_extra        = '我能吞下玻璃而不傷身體'
+
 " Escape sequences {{{
 let s:escape_sequences = { 
 \ 'm':'font',
@@ -134,12 +146,6 @@ let s:font_codes = {
 " nr2char() is oddly more reliable than \r etc
 let s:action_match = '\(\e[\??\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(10).'\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
 
-let s:chars_alphanumeric = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-let s:chars_punctuation  = '@!#$%&()*+`-.,/:;<>=?[]^_{}~\'
-let s:chars_spelled      = ['Space', 'Bar', 'Del', 'BS', 'Tab', 'CR', 'LF']
-let s:chars_control      = 'abcdefghijklmnopqrstuwxyz?]\'
-let s:chars_meta         = 'abcdefghijklmnopqrstuvwxyz'
-
 " Open a command in Conque.
 " This is the root function that is called from Vim to start up Conque.
 function! conque_experimental#open(...) "{{{
@@ -235,6 +241,11 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 
     " Simple characters
     for c in split(s:chars_alphanumeric . s:chars_punctuation, '\zs')
+        silent execute 'inoremap <silent> <buffer> ' . c . ' <Esc>:call conque_experimental#press_key(''' . c . ''')<CR>a'
+    endfor
+
+    " Extra characters, E.g. locale-specific
+    for c in split(s:chars_extra, '\zs')
         silent execute 'inoremap <silent> <buffer> ' . c . ' <Esc>:call conque_experimental#press_key(''' . c . ''')<CR>a'
     endfor
 
