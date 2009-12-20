@@ -41,9 +41,6 @@ endif
 setlocal encoding=utf-8
 
 " Mappable characters
-let s:chars_alphanumeric = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-let s:chars_punctuation  = '@!#$%&()*+`-.,/:;<>=?[]^_{}~\'
-let s:chars_spelled      = ['Space', 'Bar', 'Del', 'BS', 'Tab', 'CR', 'LF']
 let s:chars_control      = 'abcdefghijklmnopqrstuwxyz?]\'
 let s:chars_meta         = 'abcdefghijklmnopqrstuvwxyz'
 
@@ -239,24 +236,39 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     setlocal foldmethod=manual
     " }}}
 
-    " Simple characters
-    for c in split(s:chars_alphanumeric . s:chars_punctuation, '\zs')
-        silent execute 'inoremap <silent> <buffer> ' . c . ' <Esc>:call conque_experimental#press_key(''' . c . ''')<CR>a'
-    endfor
-
-    " Extra characters, E.g. locale-specific
-    for c in split(s:chars_extra, '\zs')
-        silent execute 'inoremap <silent> <buffer> ' . c . ' <Esc>:call conque_experimental#press_key(''' . c . ''')<CR>a'
-    endfor
-
-    " Special case, quotes
-    inoremap <silent> <buffer> ' <Esc>:call conque_experimental#press_key("'")<CR>a
-    inoremap <silent> <buffer> " <Esc>:call conque_experimental#press_key('"')<CR>a
-
-    " Spelled special keys
-    for c in s:chars_spelled
-        silent execute 'inoremap <silent> <buffer> <' . c . '> <Esc>:call conque_experimental#press_key("<C-v><' . c . '>")<CR>a'
-    endfor
+    " map first 256 ASCII chars {{{
+    for i in range(1, 255)
+        call s:log.debug(nr2char(i))
+        " <BS>
+        if i == 8
+            silent execute 'inoremap <silent> <buffer> <BS> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+            continue
+        " <TAB>
+        elseif i == 9
+            silent execute 'inoremap <silent> <buffer> <Tab> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+            continue
+        " <LF>
+        elseif i == 10
+            silent execute 'inoremap <silent> <buffer> <LF> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+            continue
+        " <CR>
+        elseif i == 13
+            silent execute 'inoremap <silent> <buffer> <CR> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+            continue
+        " <Esc>
+        elseif i == 27
+            continue
+        " <Space>
+        elseif i == 32
+            silent execute 'inoremap <silent> <buffer> <Space> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+            continue
+        " <Bar>
+        elseif i == 124
+            silent execute 'inoremap <silent> <buffer> <Bar> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+            continue
+        endif
+        silent execute 'inoremap <silent> <buffer> ' . nr2char(i) . ' <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+    endfor " }}}
 
     " Special case, arrow keys
     inoremap <silent> <buffer> <Up> <Esc>:call conque_experimental#press_key("<C-v><Esc>[A")<CR>a
@@ -264,19 +276,15 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     inoremap <silent> <buffer> <Right> <Esc>:call conque_experimental#press_key("<C-v><Esc>[C")<CR>a
     inoremap <silent> <buffer> <Left> <Esc>:call conque_experimental#press_key("<C-v><Esc>[D")<CR>a
 
-    " Control chars
+    " Control / Meta chars {{{
     for c in split(s:chars_control, '\zs')
         silent execute 'inoremap <silent> <buffer> <C-' . c . '> <Esc>:call conque_experimental#press_key("<C-v><C-' . c . '>")<CR>a'
     endfor
 
-    " meta characters {{{
-		setlocal timeout timeoutlen=3000 ttimeoutlen=100
-    let c = 'a'
-    while c <= 'z'
-        exec "setlocal <M-".toupper(c).">=\e".c
-        exec 'inoremap <silent> <buffer> <Esc>' . c . ' <Esc>:call conque_experimental#press_key("<C-v><Esc>' . c . '")<CR>a'
-        let c = nr2char(1 + char2nr(c))
-    endwhile
+    " meta characters 
+    for c in split(s:chars_meta, '\zs')
+        silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_experimental#press_key("<C-v><M-' . c . '>")<CR>a'
+    endfor
     " }}}
 
     " other weird stuff {{{
