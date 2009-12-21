@@ -30,8 +30,10 @@
 " TODO ------------------------------------------------
 "  
 "  * Rewrite color handling
-"  * find "good" solution to meta keys
-"  * Escapes: full K/J, \eE, \eH, CSIg,
+"  * Look for better methods for mapping all keys
+"  * find "good" solution to meta keys (possibly Config option to send <Esc>)
+"  * Escapes: full K/J, \eE, \eH, CSIg
+"  * Look for performance shortcuts
 "
 
 if exists('g:Loaded_ConqueExperimental') || v:version < 700
@@ -180,7 +182,7 @@ function! conque_experimental#open(...) "{{{
 
     " cursor position
     let b:_l = 1
-    let b:_c = 1
+    let b:_c = 0
 
     " top of the screen
     let b:_top = 1
@@ -320,29 +322,16 @@ function! conque_experimental#press_key(char) "{{{
 
     call s:log.profile_start('run')
 
-    " check for escape
-    "if a:char == "\<Esc>" && b:last_key_press == "\<Esc>"
-    "    call s:log.debug('escaping out ')
-    "    return
-    "endif
-
     " check if subprocess still exists
     if !exists('b:subprocess')
         return
     endif
 
-    let b:last_key_press = a:char
-
     call b:subprocess.write(a:char)
 
     call conque_experimental#read(1)
 
-    call cursor(b:_l, b:_c - 1)
-
-    "if a:char == "\<Esc>"
-    "    call s:log.debug('startinsert')
-    "    startinsert!
-    "endif
+    call cursor(b:_l, b:_c)
 
     call s:log.profile_end('run')
     call s:log.debug('</keyboard triggered run>')
@@ -409,7 +398,7 @@ function! conque_experimental#auto_read() " {{{
     "call s:log.debug('after: ' . getline(line('.')))
 
     call conque_experimental#read(1)
-    call cursor(b:_l, b:_c - 1)
+    call cursor(b:_l, b:_c)
 
     "call s:log.profile_end('autoread')
 endfunction " }}}
@@ -460,10 +449,10 @@ function! conque_experimental#process_input(input) " {{{
     if a:input =~ '^\w\+$'
         call s:log.debug('SHORT')
         let l:working = getline(b:_l)
-        if b:_c == 1
-            let l:working = a:input . l:working[ b:_c + strlen(a:input) - 1 : ]
+        if b:_c == 0
+            let l:working = a:input . l:working[ b:_c + strlen(a:input) : ]
         else
-            let l:working = l:working[ : b:_c - 2 ] . a:input . l:working[ b:_c + strlen(a:input) - 1 : ]
+            let l:working = l:working[ : b:_c - 1 ] . a:input . l:working[ b:_c + strlen(a:input) : ]
         endif
         let b:_c += strlen(a:input)
         call setline(b:_l, l:working)
@@ -477,6 +466,7 @@ function! conque_experimental#process_input(input) " {{{
         endfor
     endif
 
+    " XXX - check b:_c len
     if b:_l > 0 && strlen(getline(b:_l)) < b:_c
         call s:log.debug('line ' . b:_l . ' is not ' . b:_c . ' chars')
         call s:log.debug('max line is ' . line('$'))
@@ -486,7 +476,7 @@ function! conque_experimental#process_input(input) " {{{
     " }}}
 
     " init vars
-    let l:line_pos = b:_c - 1
+    let l:line_pos = b:_c
     let l:input = a:input
     let l:output = getline(b:_l)
     let l:color_changes = []
@@ -557,12 +547,12 @@ function! conque_experimental#process_input(input) " {{{
             " finish off this line
             call setline(b:_l, l:output)
             call conque_experimental#process_colors(l:color_changes)
-            call cursor(b:_l, b:_c - 1)
+            call cursor(b:_l, b:_c)
             call winline()
 
             " initialize cursor in the correct position
             let b:_l += 1
-            let b:_c = 1
+            let b:_c = 0
             "call setline(b:_l, '')
 
             " ship off the rest of input to next line
@@ -601,12 +591,12 @@ function! conque_experimental#process_input(input) " {{{
             " finish off this line
             call setline(b:_l, l:output)
             call conque_experimental#process_colors(l:color_changes)
-            call cursor(b:_l, b:_c - 1)
+            call cursor(b:_l, b:_c)
             call winline()
 
             " initialize cursor in the correct position
             let b:_l += 1
-            let b:_c = 1
+            let b:_c = 0
             if b:_l > b:_top + b:WORKING_LINES - 1
                 let b:_top += 1
             endif
@@ -622,7 +612,7 @@ function! conque_experimental#process_input(input) " {{{
         elseif l:match_str == nr2char(13) " CR {{{
             call s:log.debug('<CR>')
             let l:line_pos = 0
-            let b:_c = 1
+            let b:_c = 0
             " }}}
 
         elseif l:match_str == nr2char(7) " Bell {{{
@@ -691,12 +681,12 @@ function! conque_experimental#process_input(input) " {{{
                     " finish off this line
                     call setline(b:_l, l:output)
                     call conque_experimental#process_colors(l:color_changes)
-                    call cursor(b:_l, b:_c - 1)
+                    call cursor(b:_l, b:_c)
                     call winline()
 
                     " initialize cursor in the correct position
                     let b:_l = b:_l - l:delta
-                    let b:_c = l:line_pos + 1
+                    let b:_c = l:line_pos
 
                     call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
 
@@ -710,12 +700,12 @@ function! conque_experimental#process_input(input) " {{{
                     " finish off this line
                     call setline(b:_l, l:output)
                     call conque_experimental#process_colors(l:color_changes)
-                    call cursor(b:_l, b:_c - 1)
+                    call cursor(b:_l, b:_c)
                     call winline()
 
                     " initialize cursor in the correct position
                     let b:_l = b:_l + l:delta
-                    let b:_c = l:line_pos + 1
+                    let b:_c = l:line_pos
 
                     call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
 
@@ -734,7 +724,7 @@ function! conque_experimental#process_input(input) " {{{
                         call setline(b:_l, l:output)
                         call conque_experimental#process_colors(l:color_changes)
 
-                        let b:_c = 1
+                        let b:_c = 0
                         let b:_l = line('$') + 1
                         call setline(b:_l, '')
                         let b:_top = b:_l
@@ -799,8 +789,8 @@ function! conque_experimental#process_input(input) " {{{
                     call setline(b:_l, l:output)
                     call conque_experimental#process_colors(l:color_changes)
 
-                    let b:_c = l:new_col
                     let b:_l = b:_top + l:new_line - 1
+                    let b:_c = l:new_col - 1
 
                     call s:log.debug('moving cursor to  line ' . b:_l . ' column ' . b:_c)
 
@@ -918,12 +908,12 @@ function! conque_experimental#process_input(input) " {{{
         " finish off this line
         call setline(b:_l, l:output)
         call conque_experimental#process_colors(l:color_changes)
-        call cursor(b:_l, b:_c - 1)
+        call cursor(b:_l, b:_c)
         call winline()
 
         " initialize cursor in the correct position
         let b:_l += 1
-        let b:_c = 1
+        let b:_c = 0
 
         " ship off the rest of input to next line
         call s:log.profile_end('process_input')
@@ -937,7 +927,7 @@ function! conque_experimental#process_input(input) " {{{
     call s:log.debug('line pos ' . l:line_pos)
 
     let l:line_pos += len(l:input)
-    let b:_c = l:line_pos + 1
+    let b:_c = l:line_pos
 
     " set line
     call setline(b:_l, l:output)
@@ -955,7 +945,7 @@ function! conque_experimental#process_input(input) " {{{
     call conque_experimental#process_colors(l:color_changes)
 
     " reposition cursor
-    call cursor(b:_l, b:_c - 1)
+    call cursor(b:_l, b:_c)
     call winline()
     call s:log.profile_end('process_input')
 endfunction " }}}
@@ -982,7 +972,7 @@ function! conque_experimental#process_colors(color_changes) " {{{
         return
     endif
 
-    call conque_experimental#clear_colors(b:_l, b:_c)
+    "call conque_experimental#clear_colors(b:_l, b:_c)
 
     " color it
     let l:hi_ct = 1
@@ -1072,7 +1062,7 @@ function! conque_experimental#update_window_size() " {{{
     " update screen
     call conque_experimental#read(200)
     normal G
-    call cursor(b:_l, b:_c - 1)
+    call cursor(b:_l, b:_c)
 endfunction " }}}
 
 " Logging {{{
