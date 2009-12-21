@@ -34,6 +34,7 @@
 "  * find "good" solution to meta keys (possibly Config option to send <Esc>)
 "  * Escapes: full K/J, \eE, \eH, CSIg
 "  * Look for performance shortcuts
+"  * Figure out how to run background checks without leaving insert mode
 "
 
 if exists('g:Loaded_ConqueExperimental') || v:version < 700
@@ -293,7 +294,9 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 
     " use F8 key to get more input
     inoremap <silent> <buffer> <F8> <Esc>:call conque_experimental#read(1)<CR>a
-    inoremap <silent> <buffer> <F7> <C-o>a
+
+    " used for auto read
+    inoremap <silent> <buffer> <expr> <F7> " \<BS>"
 
     " remap paste keys
     nnoremap <silent> <buffer> p :call conque_experimental#paste()<CR>
@@ -305,6 +308,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " send escape
     inoremap <silent> <buffer> <Esc><Esc> <Esc>:call conque_experimental#press_key("<C-v><Esc>")<CR>a
     nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
+    nnoremap <silent> <buffer> <C-c> :call conque_experimental#press_key("<C-v><C-c>")<CR>a
 
     " }}}
 
@@ -331,8 +335,6 @@ function! conque_experimental#press_key(char) "{{{
 
     call conque_experimental#read(1)
 
-    call cursor(b:_l, b:_c)
-
     call s:log.profile_end('run')
     call s:log.debug('</keyboard triggered run>')
 endfunction "}}}
@@ -357,6 +359,7 @@ function! conque_experimental#read(timeout) "{{{
 
     call s:log.debug('raw output: ' . string(l:output))
 
+    " short circuit no output
     if len(l:output) == 1 && l:output[0] == ''
         return
     endif
@@ -377,11 +380,9 @@ function! conque_experimental#read(timeout) "{{{
     endfor
 
     " redraw screen
-    if len(l:output) > 0
-        call s:log.profile_start('finalredraw')
-        redraw
-        call s:log.profile_end('finalredraw')
-    endif
+    call s:log.profile_start('finalredraw')
+    redraw
+    call s:log.profile_end('finalredraw')
 
     call s:log.profile_end('printread')
     call s:log.profile_end('read')
@@ -391,19 +392,11 @@ endfunction "}}}
 function! conque_experimental#auto_read() " {{{
     "call s:log.profile_start('autoread')
 
-    "let b:K_IGNORE = "\x80\xFD\x35"
-    " triggers timer again
-    "call s:log.debug('before: ' . getline(line('.')))
-    call feedkeys("\<F7>", "t")
-    "call s:log.debug('after: ' . getline(line('.')))
-
     call conque_experimental#read(1)
-    call cursor(b:_l, b:_c)
+    call cursor(b:_l, b:_c + 1)
+    call feedkeys("\<F7>", "t")
 
     "call s:log.profile_end('autoread')
-endfunction " }}}
-
-function! conque_experimental#nop() " {{{
 endfunction " }}}
 
 function! conque_experimental#message(msg, warn) " {{{
@@ -456,6 +449,7 @@ function! conque_experimental#process_input(input) " {{{
         endif
         let b:_c += strlen(a:input)
         call setline(b:_l, l:working)
+        call cursor(b:_l, b:_c)
         return
     endif
 
@@ -591,8 +585,8 @@ function! conque_experimental#process_input(input) " {{{
             " finish off this line
             call setline(b:_l, l:output)
             call conque_experimental#process_colors(l:color_changes)
-            call cursor(b:_l, b:_c)
-            call winline()
+            "call cursor(b:_l, b:_c)
+            "call winline()
 
             " initialize cursor in the correct position
             let b:_l += 1
@@ -946,7 +940,6 @@ function! conque_experimental#process_input(input) " {{{
 
     " reposition cursor
     call cursor(b:_l, b:_c)
-    call winline()
     call s:log.profile_end('process_input')
 endfunction " }}}
 
