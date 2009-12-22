@@ -240,40 +240,23 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " }}}
 
     " map first 256 ASCII chars {{{
-    for i in range(1, 255)
+    for i in range(33, 255)
         call s:log.debug(nr2char(i))
-        " <BS>
-        if i == 8
-            silent execute 'inoremap <silent> <buffer> <BS> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
-            continue
-        " <TAB>
-        elseif i == 9
-            silent execute 'inoremap <silent> <buffer> <Tab> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
-            continue
-        " <LF>
-        elseif i == 10
-            silent execute 'inoremap <silent> <buffer> <LF> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
-            continue
-        " <CR>
-        elseif i == 13
-            silent execute 'inoremap <silent> <buffer> <CR> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
-            continue
-        " <Esc>
-        elseif i == 27
-            continue
-        " <Space>
-        elseif i == 32
-            silent execute 'inoremap <silent> <buffer> <Space> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
-            continue
         " <Bar>
-        elseif i == 124
-            silent execute 'inoremap <silent> <buffer> <Bar> <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
+        if i == 124
             continue
         endif
         silent execute 'inoremap <silent> <buffer> ' . nr2char(i) . ' <Esc>:call conque_experimental#press_key(nr2char(' . i . '))<CR>a'
-    endfor " }}}
+    endfor
+    " }}}
 
-    " Special case, arrow keys
+    " Special cases
+    inoremap <silent> <buffer> <BS> <Esc>:call conque_experimental#press_key(nr2char(8))<CR>a
+    inoremap <silent> <buffer> <Tab> <Esc>:call conque_experimental#press_key(nr2char(9))<CR>a
+    inoremap <silent> <buffer> <LF> <Esc>:call conque_experimental#press_key(nr2char(10))<CR>a
+    inoremap <silent> <buffer> <CR> <Esc>:call conque_experimental#press_key(nr2char(13))<CR>a
+    inoremap <silent> <buffer> <Space> <Esc>:call conque_experimental#press_key(nr2char(32))<CR>a
+    inoremap <silent> <buffer> <Bar> <Esc>:call conque_experimental#press_key(nr2char(124))<CR>a
     inoremap <silent> <buffer> <Up> <Esc>:call conque_experimental#press_key("<C-v><Esc>[A")<CR>a
     inoremap <silent> <buffer> <Down> <Esc>:call conque_experimental#press_key("<C-v><Esc>[B")<CR>a
     inoremap <silent> <buffer> <Right> <Esc>:call conque_experimental#press_key("<C-v><Esc>[C")<CR>a
@@ -439,7 +422,7 @@ function! conque_experimental#process_input(input) " {{{
     call s:log.profile_start('process_input')
 
     " attempt a short circuit
-    if a:input =~ '^\w\+$'
+    if a:input =~ '^[a-zA-Z0-9_. ''"-]\+$'
         call s:log.debug('SHORT')
         let l:working = getline(b:_l)
         if b:_c == 0
