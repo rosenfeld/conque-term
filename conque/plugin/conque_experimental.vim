@@ -232,7 +232,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     setlocal foldcolumn=0    " reasonable left margin
     setlocal nowrap          " default to no wrap (esp with MySQL)
     setlocal noswapfile      " don't bother creating a .swp file
-    setlocal updatetime=25   " trigger cursorhold event after 1s
+    setlocal updatetime=100   " trigger cursorhold event after 1s
     set scrolloff=0          " don't use buffer lines. it makes the 'clear' command not work as expected
     setfiletype conque       " useful
     silent execute "setlocal syntax=".g:Conque_Syntax
@@ -364,7 +364,7 @@ function! conque_experimental#read(timeout) "{{{
 
     " redraw screen
     call s:log.profile_start('finalredraw')
-    redraw
+    "redraw
     call s:log.profile_end('finalredraw')
 
     call s:log.profile_end('printread')
