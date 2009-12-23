@@ -48,7 +48,7 @@ let s:chars_control      = 'abcdefghijklmnopqrstuwxyz?]\'
 let s:chars_meta         = 'abcdefghijklmnopqrstuvwxyz'
 
 " add locale-specific chars here
-let s:chars_extra        = '我能吞下玻璃而不傷身體'
+let s:chars_extra        = ''
 
 " Escape sequences {{{
 let s:escape_sequences = { 
@@ -197,7 +197,7 @@ function! conque_experimental#open(...) "{{{
     " open command
     try
         let b:subprocess = subprocess#new()
-        call b:subprocess.open(command, {'TERM': g:Conque_TERM, 'CONQUE': 1, 'EDITOR': 'unsupported'})
+        call b:subprocess.open(command, {'TERM': 'vt100', 'CONQUE': 1, 'EDITOR': 'unsupported'})
         call s:log.info('opening command: ' . command . ' with ptyopen')
     catch 
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
@@ -269,7 +269,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
 
     " meta characters 
     for c in split(s:chars_meta, '\zs')
-        silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_experimental#press_key("<C-v><M-' . c . '>")<CR>a'
+        silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_experimental#press_key("<C-v><Esc>' . c . '")<CR>a'
     endfor
     " }}}
 
@@ -556,13 +556,17 @@ function! conque_experimental#process_input(input) " {{{
 
         elseif l:match_str == nr2char(10) " new line {{{
             call s:log.debug('<NL>')
+            let l:local_scroll = 0
 
             " if screen size has been adjusted, scroll partial screen region
             call s:log.debug('checking working work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES . ' and lines ' . b:LINES . ' and top ' . b:_top)
             if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
                 call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
-                call append(b:_l, '')
-                normal G
+                if b:_top > line('.') - winline() + 1
+                    let l:local_scroll = 1
+                    silent execute b:_top . "," . b:_top . "d"
+                endif
+                call append(b:_l - 1, '')
             endif
 
             " finish off this line
@@ -572,11 +576,16 @@ function! conque_experimental#process_input(input) " {{{
             "call winline()
 
             " initialize cursor in the correct position
-            let b:_l += 1
             let b:_c = 0
+            if l:local_scroll == 0
+                let b:_l += 1
+            endif
             if b:_l > b:_top + b:WORKING_LINES - 1
                 let b:_top += 1
             endif
+
+            call cursor(b:_l, b:_c)
+            call winline()
 
             call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
 
@@ -707,6 +716,10 @@ function! conque_experimental#process_input(input) " {{{
                         let b:_top = b:_l
                         normal Gzt
 
+                        for i in range(b:_top + 1, b:_top + b:WORKING_LINES - 1)
+                            call setline(i, '')
+                        endfor
+
                         call s:log.debug('clearing screen, new top is ' . b:_top)
 
                         call s:log.profile_end('process_input')
@@ -718,6 +731,10 @@ function! conque_experimental#process_input(input) " {{{
                         if b:_l < line('$')
                             silent execute (b:_l + 1) . "," . line('$') . "d"
                         endif
+
+                        for i in range(b:_l + 1, b:_top + b:WORKING_LINES - 1)
+                            call setline(i, '')
+                        endfor
   
                         if line_pos == 0
                             let l:output = ''
@@ -759,14 +776,13 @@ function! conque_experimental#process_input(input) " {{{
                 elseif l:action == 'cursor' " {{{
                     let l:new_line = len(l:vals) > 0 ? l:vals[0] : 1
                     let l:new_col = len(l:vals) > 1 ? l:vals[1] : 1
-                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
-                    "    let b:_top = line('$') - b:WORKING_LINES + 1
-                    "endif
 
                     call setline(b:_l, l:output)
                     call conque_experimental#process_colors(l:color_changes)
 
-                    let b:_l = b:_top + l:new_line - 1
+                    let l:top = line('.') - winline() + 1
+
+                    let b:_l = l:top + l:new_line - 1
                     let b:_c = l:new_col - 1
 
                     call s:log.debug('moving cursor to  line ' . b:_l . ' column ' . b:_c)
@@ -779,24 +795,20 @@ function! conque_experimental#process_input(input) " {{{
                 elseif l:action == 'set_coords' " {{{
                     call s:log.debug('really old top ' . b:_top)
 
-                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
-                    "    let b:_top = line('$') - b:WORKING_LINES + 1
-                    "endif
+                    let l:top = line('.') - winline() + 1
 
                     let l:new_start = l:vals[0]
                     let l:new_end = l:vals[1]
 
                     call s:log.debug('old top ' . b:_top)
 
-                    if l:new_start > 1
-                        let b:_top = b:_top + l:new_start - 1
-                    endif
+                    let b:_top = l:top + l:new_start - 1
 
                     call s:log.debug('new top ' . b:_top)
 
-                    if b:_top + l:new_end - 1 > line('$')
+                    if l:top + l:new_end  > line('$')
                         call s:log.debug('creating lines')
-                        for l:ln in range(line('$') + 1, b:_top + l:new_end - 1)
+                        for l:ln in range(line('$') + 1, l:top + l:new_end - 1)
                             call setline(l:ln, '')
                         endfor
                     endif
@@ -827,25 +839,29 @@ function! conque_experimental#process_input(input) " {{{
                     "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
                     "    let b:_top = line('$') - b:WORKING_LINES + 1
                     "endif
-                    
-                    let b:_top += -1
-                    let b:_l += -1
+
+                    " XXX - this escape kills highlighting, no way around it
+                   
+                    call s:log.debug('old top is ' . b:_top) 
+                    "let b:_top += -1
+                    "let b:_l += -1
 
                     " overscroll
-                    if b:_l < 1
-                        let b:_top += 1
-                        let b:_l += 1
-                        call append(0, '')
-                    endif
+                    "if b:_l < 1
+                    "    call s:log.debug('overscroll ') 
+                    "    let b:_top += 1
+                    "    let b:_l += 1
+                    "    call append(0, '')
+                    "endif
 
                     " clear new line
-                    call setline(b:_top, '')
+                    call append(b:_top - 1, '')
                     let l:output = ''
+                    "call cursor(b:_top, b:_c)
+                    "call winline()
 
                     " remove old line
-                    if b:_top + b:WORKING_LINES <= line('$')
-                        silent execute (b:_top + b:WORKING_LINES) . ',' . (b:_top + b:WORKING_LINES) . 'd'
-                    endif
+                    silent execute (b:_top + b:WORKING_LINES) . ',' . (b:_top + b:WORKING_LINES) . 'd'
                     " }}}
 
                 endif
