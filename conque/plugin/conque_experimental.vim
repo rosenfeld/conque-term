@@ -34,7 +34,7 @@
 "  * find "good" solution to meta keys (possibly Config option to send <Esc>)
 "  * Escapes: full K/J, \eE, \eH, CSIg
 "  * Look for performance shortcuts
-"  * Figure out how to run background checks without leaving insert mode
+"  * Consider rewriting the entire thing in python
 "
 
 if exists('g:Loaded_ConqueExperimental') || v:version < 700
@@ -42,6 +42,33 @@ if exists('g:Loaded_ConqueExperimental') || v:version < 700
 endif
 
 setlocal encoding=utf-8
+
+" Configuration globals {{{
+""""""""""""""""""""""""""""""""""""""""""
+" Default read timeout for running a command, in seconds.
+" Decreasing this value will make Conque seem more responsive, but you will get more '...' read timeouts
+if !exists('g:Conque_Read_Timeout')
+    let g:Conque_Read_Timeout = 1
+endif
+" Show help messages
+if !exists('g:Conque_Help_Messages')
+    let g:Conque_Help_Messages = 1
+endif
+" Syntax for your buffer
+if !exists('g:Conque_Syntax')
+    let g:Conque_Syntax = 'conque'
+endif
+" TERM environment setting
+if !exists('g:Conque_TERM')
+    let g:Conque_TERM =  'vt100'
+endif
+""""""""""""""""""""""""""""""""""""""""""
+" }}}
+
+command! -nargs=+ -complete=shellcmd ConqueExperimental call conque_experimental#open(<q-args>)
+
+let g:Loaded_ConqueExperimental = 1
+let g:Conque_Idx = 1
 
 " Mappable characters
 let s:chars_control      = 'abcdefghijklmnopqrstuwxyz?]\'
@@ -196,7 +223,7 @@ function! conque_experimental#open(...) "{{{
 
     " open command
     try
-        let b:subprocess = subprocess#new()
+        let b:subprocess = s:proc
         call b:subprocess.open(command, {'TERM': 'vt100', 'CONQUE': 1, 'EDITOR': 'unsupported'})
         call s:log.info('opening command: ' . command . ' with ptyopen')
     catch 
@@ -408,7 +435,7 @@ function! conque_experimental#hang_up() "{{{
         " Kill processes.
         try
             " 1 == HUP
-            call b:subprocess.hang_up()
+            call b:subprocess.signal(1)
             call append(line('$'), '*Killed*')
         catch /No such process/
         endtry
@@ -1055,6 +1082,206 @@ function! conque_experimental#update_window_size() " {{{
     call cursor(b:_l, b:_c)
 endfunction " }}}
 
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Subprocess communication
+
+let s:proc = {}
+
+" create new subprocess
+function! s:proc.open(...) "{{{
+    let command = get(a:000, 0, '')
+    let env = get(a:000, 1, {})
+    let env_string = '{'
+    for k in keys(env)
+        let env_string = env_string . "'" . s:python_escape(k) . "':'" . s:python_escape(env[k]) . "',"
+    endfor
+    let env_string = substitute(env_string, ',$', '', '') . '}'
+    let b:subprocess_id = 'b' . string(localtime())
+    silent execute ":python proc".b:subprocess_id." = conque_subprocess()"
+    silent execute ":python proc".b:subprocess_id.".open('" . s:python_escape(command) . "', " . env_string . ")"
+endfunction "}}}
+
+" read available output from fd
+function! s:proc.read(...) "{{{
+    let timeout = get(a:000, 0, '0.2')
+    let b:proc_py_output = []
+    silent execute ":python proc".b:subprocess_id.".read(" . string(timeout) . ")"
+    return b:proc_py_output
+endfunction "}}}
+
+" write text to subprocess
+function! s:proc.write(command) "{{{
+    silent execute ":python proc".b:subprocess_id.".write('" . s:python_escape(a:command) . "')"
+endfunction "}}}
+
+" send signal to subprocess
+function! s:proc.signal(signum) "{{{
+    silent execute ":python proc".b:subprocess_id.".signal(" . string(a:signum) . ")"
+endfunction "}}}
+
+" Update window size in kernel
+function! s:proc.update_window_size(lines, cols) "{{{
+    silent execute ":python proc" . b:subprocess_id . ".update_window_size(" . a:lines . "," . a:cols . ")"
+endfunction "}}}
+
+" Am I alive?
+function! s:proc.get_status() "{{{
+    let b:proc_py_status = 1
+    silent execute ":python proc".b:subprocess_id.".get_status()"
+    return b:proc_py_status
+endfunction "}}}
+
+" useful
+function! s:python_escape(str_in) "{{{
+    let l:cleaned = a:str_in
+    " newlines between python and vim are a mess
+    let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
+    let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
+    let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
+    let l:cleaned = substitute(l:cleaned, "'", "\\\\'", 'g')
+    return l:cleaned
+endfunction "}}}
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Actual python code
+
+" Python {{{
+python << EOF
+
+# Subprocess management in python.
+# Only works with pty libraries at the moment, possibly forever
+
+import vim, sys, os, string, signal, re, time, pty, tty, select, fcntl, termios, struct
+
+class conque_subprocess:
+
+    # constructor I guess (anything could be possible in python?)
+    def __init__(self): # {{{
+        self.buffer  = vim.current.buffer
+        # }}}
+
+    # create the pty or whatever (whatever == windows)
+    def open(self, command, env = {}): # {{{
+        command_arr  = command.split()
+        self.command = command_arr[0]
+        self.args    = command_arr
+
+        try:
+            self.pid, self.fd = pty.fork()
+            #print self.pid
+        except:
+            print "pty.fork() failed. Did you mean pty.spork() ???"
+
+        # child proc, replace with command after fucking with terminal attributes
+        if self.pid == 0:
+
+            # set requested environment variables
+            for env_attr in env:
+                os.environ[env_attr] = env[env_attr]
+
+            # set some attributes
+            try:
+                attrs = tty.tcgetattr(1)
+                attrs[0] = attrs[0] ^ tty.IGNBRK
+                attrs[0] = attrs[0] | tty.BRKINT | tty.IXANY | tty.IMAXBEL
+                attrs[2] = attrs[2] | tty.HUPCL
+                attrs[3] = attrs[3] | tty.ICANON | tty.ECHO | tty.ISIG | tty.ECHOKE
+                attrs[6][tty.VMIN]  = 1
+                attrs[6][tty.VTIME] = 0
+                tty.tcsetattr(1, tty.TCSANOW, attrs)
+            except:
+                pass
+
+            os.execvp(self.command, self.args)
+
+        # else master, do nothing
+        else:
+            pass
+
+        # }}}
+
+    # read from pty
+    # XXX - select.poll() doesn't work in OS X!!!!!!!
+    def read(self, timeout = 100): # {{{
+
+        output = ''
+        rtimeout = float(timeout) / 1000
+
+        # what, no do/while?
+        while 1:
+            s_read, s_write, s_error = select.select( [ self.fd ], [], [], rtimeout)
+
+            lines = ''
+            for s_fd in s_read:
+                try:
+                    lines = os.read( self.fd, 32 )
+                except:
+                    pass
+                output = output + lines
+
+            #self.buffer.append(str(output))
+            if lines == '':
+                break
+
+        # XXX - BRUTAL
+        lines_arr = re.split('\n', output)
+        for v_line in lines_arr:
+            cleaned = v_line
+            cleaned = re.sub('\\\\', '\\\\\\\\', cleaned) # ftw!
+            cleaned = re.sub('"', '\\\\"', cleaned)
+            command = 'call add(b:proc_py_output, "' + cleaned + '")'
+            #self.buffer.append(command)
+            #self.buffer.append('')
+            vim.command(command)
+
+        return 
+        # }}}
+
+    # I guess this one's not bad
+    def write(self, command): # {{{
+        os.write(self.fd, command)
+        # }}}
+
+    # signal process
+    def signal(self, signum): # {{{
+        os.kill(self.pid, signum)
+        # }}}
+
+    # get process status
+    def get_status(self): #{{{
+
+        p_status = 1 # boooooooooooooooooogus
+
+        try:
+            if os.waitpid( self.pid, os.WNOHANG )[0]:
+                p_status = 0
+            else:
+                p_status = 1
+        except:
+            p_status = 0
+
+        command = 'let b:proc_py_status = ' + str(p_status)
+        vim.command(command)
+        # }}}
+
+    # update window size in kernel, then send SIGWINCH to fg process
+    def update_window_size(self, rows, cols): # {{{
+        try:
+            fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+            os.kill(self.pid, signal.SIGWINCH)
+        except:
+            pass
+
+        # }}}
+
+
+EOF
+
+"}}}
+
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1
     let s:log = log#getLogger(expand('<sfile>:t'))
@@ -1084,32 +1311,5 @@ else
     endfunction
 endif
 " }}}
-
-" Configuration globals {{{
-""""""""""""""""""""""""""""""""""""""""""
-" Default read timeout for running a command, in seconds.
-" Decreasing this value will make Conque seem more responsive, but you will get more '...' read timeouts
-if !exists('g:Conque_Read_Timeout')
-    let g:Conque_Read_Timeout = 1
-endif
-" Show help messages
-if !exists('g:Conque_Help_Messages')
-    let g:Conque_Help_Messages = 1
-endif
-" Syntax for your buffer
-if !exists('g:Conque_Syntax')
-    let g:Conque_Syntax = 'conque'
-endif
-" TERM environment setting
-if !exists('g:Conque_TERM')
-    let g:Conque_TERM =  'vt100'
-endif
-""""""""""""""""""""""""""""""""""""""""""
-" }}}
-
-command! -nargs=+ -complete=shellcmd ConqueExperimental call conque_experimental#open(<q-args>)
-
-let g:Loaded_ConqueExperimental = 1
-let g:Conque_Idx = 1
 
 " vim: foldmethod=marker
