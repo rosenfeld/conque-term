@@ -232,7 +232,7 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     setlocal foldcolumn=0    " reasonable left margin
     setlocal nowrap          " default to no wrap (esp with MySQL)
     setlocal noswapfile      " don't bother creating a .swp file
-    setlocal updatetime=100   " trigger cursorhold event after 1s
+    setlocal updatetime=50   " trigger cursorhold event after 1s
     set scrolloff=0          " don't use buffer lines. it makes the 'clear' command not work as expected
     setfiletype conque       " useful
     silent execute "setlocal syntax=".g:Conque_Syntax
@@ -562,10 +562,8 @@ function! conque_experimental#process_input(input) " {{{
             call s:log.debug('checking working work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES . ' and lines ' . b:LINES . ' and top ' . b:_top)
             if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
                 call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
-                if b:_top > line('.') - winline() + 1
-                    let l:local_scroll = 1
-                    silent execute b:_top . "," . b:_top . "d"
-                endif
+                let l:local_scroll = 1
+                silent execute b:_top . "," . b:_top . "d"
                 call append(b:_l - 1, '')
             endif
 
