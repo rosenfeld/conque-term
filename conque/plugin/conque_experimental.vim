@@ -37,9 +37,9 @@
 "  * Consider rewriting the entire thing in python
 "
 
-if exists('g:Loaded_ConqueExperimental') || v:version < 700
-  finish
-endif
+"if exists('g:Loaded_ConqueExperimental') || v:version < 700
+"  finish
+"endif
 
 setlocal encoding=utf-8
 
@@ -78,7 +78,7 @@ let s:chars_meta         = 'abcdefghijklmnopqrstuvwxyz'
 let s:chars_extra        = ''
 
 " Escape sequences {{{
-let s:escape_sequences = { 
+let s:ESCAPE = { 
 \ 'm':'font',
 \ 'J':'clear_screen',
 \ 'K':'clear_line',
@@ -95,12 +95,14 @@ let s:escape_sequences = {
 \ 'd':'cusor_vpos',
 \ 'f':'cursor',
 \ 'g':'tab_clear',
-\ 'r':'set_coords'
+\ 'r':'set_coords',
+\ 'h':'misc_h',
+\ 'l':'misc_l'
 \ } 
 " }}}
 
 " Alternate escape sequences, no [ {{{
-let s:escape_sequences_plain = {
+let s:ESCAPE_PLAIN = {
 \ 'D':'scroll_up',
 \ 'E':'next_line',
 \ 'H':'set_tab',
@@ -114,8 +116,38 @@ let s:escape_sequences_plain = {
 \ }
 " }}}
 
+" Über alternate escape sequences, with # or ? {{{
+let s:ESCAPE_QUESTION = {
+\ '1h':'new_line_mode',
+\ '3h':'132_cols',
+\ '4h':'smooth_scrolling',
+\ '5h':'reverse_video',
+\ '6h':'relative_origin',
+\ '7h':'set_auto_wrap',
+\ '8h':'set_auto_repeat',
+\ '9h':'set_interlacing_mode',
+\ '1l':'set_cursor_key',
+\ '2l':'set_vt52',
+\ '3l':'80_cols',
+\ '4l':'set_jump_scrolling',
+\ '5l':'normal_video',
+\ '6l':'absolute_origin',
+\ '7l':'reset_auto_wrap',
+\ '8l':'reset_auto_repeat',
+\ '9l':'reset_interlacing_mode'
+\ }
+
+let s:ESCAPE_HASH = {
+\ '3':'double_height_top',
+\ '4':'double_height_bottom',
+\ '5':'single_height_single_width',
+\ '6':'single_height_double_width',
+\ '8':'screen_alignment_test'
+\ }
+" }}}
+
 " Font codes {{{
-let s:font_codes = {
+let s:FONT = {
 \ '0': {'description':'Normal (default)', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':1},
 \ '00': {'description':'Normal (default) alternate', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':1},
 \ '1': {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':0},
@@ -171,7 +203,7 @@ let s:font_codes = {
 " }}}
 
 " nr2char() is oddly more reliable than \r etc
-let s:action_match = '\(\e[\??\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(10).'\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
+let s:action_match = '\(\e[\??\?#\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(10).'\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
 
 " Open a command in Conque.
 " This is the root function that is called from Vim to start up Conque.
@@ -315,6 +347,9 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " send selected text into conque
 	  vnoremap <silent> <F9> :<C-u>call conque_experimental#send_selected(visualmode())<CR>
 
+    map <buffer> <F4> :call conque_experimental#get_testline()<CR>
+
+
     " send escape
     inoremap <silent> <buffer> <Esc><Esc> <Esc>:call conque_experimental#press_key("<C-v><Esc>")<CR>a
     nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
@@ -376,12 +411,20 @@ function! conque_experimental#read(timeout) "{{{
 
     " process each line individually
     for i in range(len(l:output))
+    "for i in range(0,1)
+        if !exists('l:output['.i.']')
+            continue
+        endif
+
         if i == len(l:output) - 1
             let l:line = l:output[i]
         else
             let l:line = l:output[i] . "\n"
         endif
-        call conque_experimental#process_input(l:line)
+        let l:retval = conque_experimental#process_input(l:line)
+        while len(l:retval) > 0
+            let l:retval = conque_experimental#process_input(l:retval)
+        endwhile
         if i > 1 && i % 100 == 0
             call s:log.profile_start('partial redraw')
             redraw
@@ -460,7 +503,7 @@ function! conque_experimental#process_input(input) " {{{
         let b:_c += strlen(a:input)
         call setline(b:_l, l:working)
         call cursor(b:_l, b:_c)
-        return
+        return ''
     endif
 
     " prefill whitespace {{{
@@ -538,7 +581,6 @@ function! conque_experimental#process_input(input) " {{{
 
         call s:log.profile_start('wrapping_1')
         " handle line wrapping {{{
-        call s:log.debug('testing string ' . l:input[ b:WORKING_COLUMNS : ])
         if l:line_pos + l:match_num > b:WORKING_COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
             call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
             let b:auto_wrapped = 1
@@ -564,8 +606,7 @@ function! conque_experimental#process_input(input) " {{{
 
             " ship off the rest of input to next line
             call s:log.profile_end('process_input')
-            call conque_experimental#process_input(l:input)
-            return
+            return l:input
         endif " }}}
         call s:log.profile_end('wrapping_1')
 
@@ -582,6 +623,9 @@ function! conque_experimental#process_input(input) " {{{
         if l:match_str == nr2char(8) " backspace {{{
             call s:log.debug('backspace')
             let l:line_pos = l:line_pos - 1
+            if l:line_pos < 0
+                let l:line_pos = 0
+            endif
             " }}}
 
         elseif l:match_str == nr2char(10) " new line {{{
@@ -619,8 +663,7 @@ function! conque_experimental#process_input(input) " {{{
 
             " ship off the rest of input to next line
             call s:log.profile_end('process_input')
-            call conque_experimental#process_input(l:input)
-            return
+            return l:input
             " }}}
 
         elseif l:match_str == nr2char(13) " CR {{{
@@ -641,11 +684,11 @@ function! conque_experimental#process_input(input) " {{{
 
             call s:log.debug('match key ' . l:key)
 
-            if l:match_str =~ '^\e[' && exists('s:escape_sequences[l:key]')
+            if l:match_str =~ '^\e[' && exists('s:ESCAPE[l:key]')
 
                 call s:log.debug('escape type ' . l:key)
                 " action tied to this last character
-                let l:action = s:escape_sequences[l:key]
+                let l:action = s:ESCAPE[l:key]
                 " numeric modifiers
                 let l:vals = split(l:match_str[2 : -2], ';')
                 let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
@@ -661,11 +704,27 @@ function! conque_experimental#process_input(input) " {{{
                     " }}}
 
                 elseif l:action == 'clear_line' " {{{
-                    if l:line_pos == 0
+                    " this escape defaults to 0
+                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 0
+                    call s:log.debug('clear line with ' . l:delta)
+
+                    if l:delta == 0
+                        if l:line_pos == 0
+                            let l:output = ''
+                        else
+                            let l:output = l:output[ : l:line_pos - 1]
+                        endif
+                    elseif l:delta == 1
+                        call s:log.debug('clear line with ' . l:delta . ' ' . l:line_pos)
+                        if l:line_pos == 0
+                            let l:output = ''
+                        else
+                            let l:output = printf("%" . (l:line_pos + 1) . "s", '') . l:output[ l:line_pos : ]
+                        endif
+                    elseif l:delta == 2
                         let l:output = ''
-                    else
-                        let l:output = l:output[ : l:line_pos - 1]
                     endif
+
                     if len(l:color_changes) > 0
                         for l:i in range(len(l:color_changes))
                             if l:color_changes[l:i].col >= l:line_pos
@@ -673,18 +732,29 @@ function! conque_experimental#process_input(input) " {{{
                             endif
                         endfor
                     endif
-                    call conque_experimental#clear_colors(b:_l, l:line_pos)
                     " }}}
 
                 elseif l:action == 'cursor_right' " {{{
                     call s:log.debug('cursor right ' . l:delta)
                     call s:log.debug('lpos before ' . l:line_pos)
+                    if l:delta == 0
+                        let l:delta = 1
+                    endif
                     let l:line_pos = l:line_pos + l:delta
+                    if l:line_pos >= b:COLUMNS
+                        let l:line_pos = b:COLUMNS - 1
+                    endif
                     call s:log.debug('lpos after ' . l:line_pos)
                     " }}}
 
                 elseif l:action == 'cursor_left' " {{{
+                    if l:delta == 0
+                        let l:delta = 1
+                    endif
                     let l:line_pos = l:line_pos - l:delta
+                    if l:line_pos < 0
+                        let l:line_pos = 0
+                    endif
                     " }}}
 
                 elseif l:action == 'cursor_to_column' " {{{
@@ -703,14 +773,16 @@ function! conque_experimental#process_input(input) " {{{
 
                     " initialize cursor in the correct position
                     let b:_l = b:_l - l:delta
+                    if b:_l < line('.') - winline() + 1
+                        let b:_l = line('.') - winline() + 1
+                    endif
                     let b:_c = l:line_pos
 
                     call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
 
                     " ship off the rest of input to next line
                     call s:log.profile_end('process_input')
-                    call conque_experimental#process_input(l:input)
-                    return
+                    return l:input
                     " }}}
 
                 elseif l:action == 'cursor_down' " {{{
@@ -728,8 +800,7 @@ function! conque_experimental#process_input(input) " {{{
 
                     " ship off the rest of input to next line
                     call s:log.profile_end('process_input')
-                    call conque_experimental#process_input(l:input)
-                    return
+                    return l:input
                     " }}}
 
                 elseif l:action == 'clear_screen' " {{{
@@ -754,8 +825,7 @@ function! conque_experimental#process_input(input) " {{{
                         call s:log.debug('clearing screen, new top is ' . b:_top)
 
                         call s:log.profile_end('process_input')
-                        call conque_experimental#process_input(l:input)
-                        return
+                        return l:input
 
                     " ''|0 == clear down
                     elseif l:delta == '' || l:delta == 0
@@ -774,8 +844,16 @@ function! conque_experimental#process_input(input) " {{{
                         endif
 
                     " 1 == clear up
-                    elseif l:delta == ''
-                        normal Gzt
+                    elseif l:delta == '1'
+                        for i in range(b:_top, b:_l - 1)
+                            call setline(i, '')
+                        endfor
+
+                        if l:line_pos == 0
+                            let l:output = ''
+                        else
+                            let l:output = printf("%" . (l:line_pos + 1) . "s", '') . l:output[ l:line_pos : ]
+                        endif
 
                     endif
                     " }}}
@@ -819,8 +897,7 @@ function! conque_experimental#process_input(input) " {{{
                     call s:log.debug('moving cursor to  line ' . b:_l . ' column ' . b:_c)
 
                     call s:log.profile_end('process_input')
-                    call conque_experimental#process_input(l:input)
-                    return
+                    return l:input
                     " }}}
 
                 elseif l:action == 'set_coords' " {{{
@@ -828,8 +905,13 @@ function! conque_experimental#process_input(input) " {{{
 
                     let l:top = line('.') - winline() + 1
 
-                    let l:new_start = l:vals[0]
-                    let l:new_end = l:vals[1]
+                    if len(l:vals) == 2
+                        let l:new_start = l:vals[0]
+                        let l:new_end = l:vals[1]
+                    else
+                        let l:new_start = 1
+                        let l:new_end = winheight(0)
+                    endif
 
                     call s:log.debug('old top ' . b:_top)
 
@@ -847,21 +929,108 @@ function! conque_experimental#process_input(input) " {{{
                     let b:WORKING_LINES = l:new_end - l:new_start + 1
                     " }}}
 
+                elseif l:action == 'misc_h' " {{{
+                    call s:log.debug('misch')
+                    let l:val = l:match_str[3 : -2]
+                    call s:log.debug('mischval' . l:val)
+                    if l:match_str =~ '^\e[?' && exists("s:ESCAPE_QUESTION['" . l:val . "h']")
+                        call s:log.debug('QUESTION...')
+                        let l:action = s:ESCAPE_QUESTION[l:val . 'h']
+                        if l:action == '132_cols' " {{{
+                            call s:log.debug('QUESTION 132...')
+                            let b:COLUMNS = 132
+                            " }}}
+                        endif
+                    endif
+                    " }}}
+
+                elseif l:action == 'misc_l' " {{{
+                    call s:log.debug('miscl')
+                    let l:val = l:match_str[3 : -2]
+                    call s:log.debug('misclval' . l:val)
+                    if l:match_str =~ '^\e[?' && exists("s:ESCAPE_QUESTION['" . l:val . "l']")
+                        call s:log.debug('QUESTION...')
+                        let l:action = s:ESCAPE_QUESTION[l:val . 'l']
+                        if l:action == '80_cols' " {{{
+                            call s:log.debug('CHCOL 80')
+                            let b:COLUMNS = 80
+                            " }}}
+                        endif
+                    endif
+                    " }}}
+
                 endif
 
-            elseif l:match_str =~ '^\e' && exists('s:escape_sequences_plain[l:key]')
-                let l:action = s:escape_sequences_plain[l:key]
+            " HASH ESCAPES -------------------------------------------------------------------------------------------------
+            elseif l:match_str =~ '^\e#\d' && exists('s:ESCAPE_HASH[l:key]')
+                call s:log.debug('found hash escape')
+                " action tied to this last character
+                let l:action = s:ESCAPE_HASH[l:key]
+
+                if l:action == 'screen_alignment_test' " {{{
+                    call s:log.debug('screen test')
+                    let l:output = ''
+                    let l:line_pos = 0
+
+                    let b:_top = line('$')
+                    call cursor(b:_top, 1)
+                    normal! Gzt
+
+                    for l:line in range(b:_top, b:_top + b:WORKING_LINES - 1)
+                        let l:filler = ''
+                        for l:i in range(0, b:COLUMNS - 1)
+                            let l:filler = l:filler . 'E'
+                        endfor
+                        call s:log.debug('setting line ' . l:line . ' to ' . l:filler)
+                        call setline(l:line, l:filler)
+                    endfor
+                    let b:_l = b:_top
+                    let b:_c = 0
+                    " }}}
+                endif 
+
+            " PLAIN ESCAPES -------------------------------------------------------------------------------------------------
+            elseif l:match_str =~ '^\e' && exists('s:ESCAPE_PLAIN[l:key]')
+                let l:action = s:ESCAPE_PLAIN[l:key]
 
                 call s:log.debug('plain key match ' . l:action)
 
                 if l:action == 'scroll_up' " {{{
-                    call s:log.debug('scrolling up')
+                    let l:local_scroll = 0
 
-                    "if line('$') > b:WORKING_LINES && line('$') - b:WORKING_LINES + 1 > b:_top
-                    "    let b:_top = line('$') - b:WORKING_LINES + 1
-                    "endif
-                    
-                    let b:_top += 1
+                    " if screen size has been adjusted, scroll partial screen region
+                    call s:log.debug('checking working work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES . ' and lines ' . b:LINES . ' and top ' . b:_top)
+                    if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
+                        call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
+                        let l:local_scroll = 1
+                        silent execute b:_top . "," . b:_top . "d"
+                        call append(b:_l - 1, '')
+                    endif
+
+                    " finish off this line
+                    call s:log.debug('setting line ' . b:_l . ' to ' . l:output)
+                    call setline(b:_l, l:output)
+                    call conque_experimental#process_colors(l:color_changes)
+                    "call cursor(b:_l, b:_c)
+                    "call winline()
+
+                    " initialize cursor in the correct position
+                    "let b:_c = 0
+                    if l:local_scroll == 0
+                        let b:_l += 1
+                    endif
+                    if b:_l > b:_top + b:WORKING_LINES - 1
+                        let b:_top += 1
+                    endif
+
+                    call cursor(b:_l, b:_c)
+                    call winline()
+
+                    call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
+
+                    " ship off the rest of input to next line
+                    call s:log.profile_end('process_input')
+                    return l:input
                     " }}}
 
                 elseif l:action == 'scroll_down' " {{{
@@ -885,17 +1054,66 @@ function! conque_experimental#process_input(input) " {{{
                     "    call append(0, '')
                     "endif
 
-                    " clear new line
-                    call append(b:_top - 1, '')
-                    let l:output = ''
-                    "call cursor(b:_top, b:_c)
-                    "call winline()
+                    if b:_l <= b:_top
+                        call s:log.debug('AUGH! ' . b:_l . ' ' . b:_top)
+                        " clear new line
+                        call append(b:_top - 1, '')
+                        let l:output = ''
+                        "call cursor(b:_top, b:_c)
+                        "call winline()
 
-                    " remove old line
-                    silent execute (b:_top + b:WORKING_LINES) . ',' . (b:_top + b:WORKING_LINES) . 'd'
+                        " remove old line
+                        if b:_top + b:WORKING_LINES <= line('$')
+                            silent execute (b:_top + b:WORKING_LINES) . ',' . (b:_top + b:WORKING_LINES) . 'd'
+                        endif
+                    else
+                        call s:log.debug('EEE! ' . b:_l . ' ' . b:_top)
+                        call setline(b:_l, l:output)
+                        call conque_experimental#process_colors(l:color_changes)
+                        let b:_l += -1
+                        return l:input
+                    endif
                     " }}}
 
+                elseif l:action == 'next_line'
+                    let l:local_scroll = 0
+
+                    " if screen size has been adjusted, scroll partial screen region
+                    call s:log.debug('checking working work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES . ' and lines ' . b:LINES . ' and top ' . b:_top)
+                    if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
+                        call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
+                        let l:local_scroll = 1
+                        silent execute b:_top . "," . b:_top . "d"
+                        call append(b:_l - 1, '')
+                    endif
+
+                    " finish off this line
+                    call s:log.debug('setting line ' . b:_l . ' to ' . l:output)
+                    call setline(b:_l, l:output)
+                    call conque_experimental#process_colors(l:color_changes)
+                    "call cursor(b:_l, b:_c)
+                    "call winline()
+
+                    " initialize cursor in the correct position
+                    let b:_c = 0
+                    if l:local_scroll == 0
+                        let b:_l += 1
+                    endif
+                    if b:_l > b:_top + b:WORKING_LINES - 1
+                        let b:_top += 1
+                    endif
+
+                    call cursor(b:_l, b:_c)
+                    call winline()
+
+                    call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
+
+                    " ship off the rest of input to next line
+                    call s:log.profile_end('process_input')
+                    return l:input
+
                 endif
+
             endif
 
             call s:log.profile_end('escape')
@@ -941,8 +1159,7 @@ function! conque_experimental#process_input(input) " {{{
 
         " ship off the rest of input to next line
         call s:log.profile_end('process_input')
-        call conque_experimental#process_input(l:input)
-        return
+        return l:input
     endif
     " }}}
     call s:log.profile_end('wrapping_2')
@@ -971,6 +1188,8 @@ function! conque_experimental#process_input(input) " {{{
     " reposition cursor
     call cursor(b:_l, b:_c)
     call s:log.profile_end('process_input')
+
+    return ''
 endfunction " }}}
 
 function! conque_experimental#clear_colors(line, col) " {{{
@@ -1089,7 +1308,7 @@ function! conque_experimental#update_window_size() " {{{
 endfunction " }}}
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Subprocess communication
+" Subprocess communication {{{
 
 let s:proc = {}
 
@@ -1285,8 +1504,22 @@ EOF
 
 "}}}
 
-
+" }}}
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+function! conque_experimental#get_testline() " {{{
+    if !exists('b:test_i')
+        let b:test_i = 0
+    endif
+
+    let l:line = g:Testvt[b:test_i] . "\n"
+    let l:retval = conque_experimental#process_input(l:line)
+    while len(l:retval) > 0
+        let l:retval = conque_experimental#process_input(l:retval)
+    endwhile
+
+    let b:test_i += 1
+endfunction " }}}
 
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1
