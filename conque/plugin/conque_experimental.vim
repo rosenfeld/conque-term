@@ -267,6 +267,11 @@ function! conque_experimental#open(...) "{{{
 
     " tabstops
     let b:_tabstops = {}
+    for c in range(4, b:WORKING_COLUMNS)
+        if c % 8 == 0
+            let b:_tabstops[c] = 1
+        endif
+    endfor 
 
     " open command
     try
@@ -766,7 +771,7 @@ function! conque_experimental#process_input(input) " {{{
                         let l:vals[i] = substitute(l:vals[i], '^0*', '', 'g')
                     endif
                 endfor
-                let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
+                let l:delta = len(l:vals) > 0 ? str2nr(l:vals[0]) : 1
                 call s:log.debug('escape type ' . l:action . ' with nums ' . string(l:vals))
 
                 " ********************************************************************************** "
@@ -781,7 +786,7 @@ function! conque_experimental#process_input(input) " {{{
 
                 elseif l:action == 'clear_line' " {{{
                     " this escape defaults to 0
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : 0
+                    let l:delta = len(l:vals) > 0 ? str2nr(l:vals[0]) : 0
                     call s:log.debug('clear line with ' . l:delta)
 
                     if l:delta == 0
@@ -884,7 +889,7 @@ function! conque_experimental#process_input(input) " {{{
 
                 elseif l:action == 'clear_screen' " {{{
                     " do not default to 1
-                    let l:delta = len(l:vals) > 0 ? l:vals[0] : ''
+                    let l:delta = len(l:vals) > 0 ? str2nr(l:vals[0]) : ''
 
                     " 2 == clear entire screen
                     if l:delta == 2
@@ -962,8 +967,9 @@ function! conque_experimental#process_input(input) " {{{
                     " }}}
 
                 elseif l:action == 'cursor' " {{{
-                    let l:new_line = len(l:vals) > 0 ? l:vals[0] : 1
-                    let l:new_col = len(l:vals) > 1 ? l:vals[1] : 1
+                    call s:log.debug('cursor with vals ' . string(l:vals))
+                    let l:new_line = len(l:vals) > 0 ? str2nr(l:vals[0]) : 1
+                    let l:new_col = len(l:vals) > 1 ? str2nr(l:vals[1]) : 1
                     let l:new_col = l:new_col > 0 ? l:new_col : 1
                     let l:new_col = l:new_col <= b:WORKING_COLUMNS ? l:new_col : b:WORKING_COLUMNS
 
@@ -991,8 +997,8 @@ function! conque_experimental#process_input(input) " {{{
                     let l:top = line('.') - winline() + 1
 
                     if len(l:vals) == 2
-                        let l:new_start = l:vals[0]
-                        let l:new_end = l:vals[1]
+                        let l:new_start = str2nr(l:vals[0])
+                        let l:new_end = str2nr(l:vals[1])
                     else
                         let l:new_start = 1
                         let l:new_end = winheight(0)
@@ -1015,7 +1021,7 @@ function! conque_experimental#process_input(input) " {{{
                     " }}}
 
                 elseif l:action == 'tab_clear' " {{{
-                    let l:val = len(l:vals) > 0 ? l:vals[0] : 0
+                    let l:val = len(l:vals) > 0 ? str2nr(l:vals[0]) : 0
 
                     if l:val == 0
                         if exists('b:_tabstops[' . l:line_pos . ']')
