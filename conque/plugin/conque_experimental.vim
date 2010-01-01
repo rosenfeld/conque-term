@@ -27,7 +27,7 @@
 " THE SOFTWARE.
 " }}}
 
-" TODO ------------------------------------------------
+" TODO  {{{
 "  
 "  * Rewrite color handling
 "  * Look for better methods for mapping all keys
@@ -35,13 +35,20 @@
 "  * Escapes: full K/J, \eE, \eH, CSIg
 "  * Look for performance shortcuts
 "  * Consider rewriting the entire thing in python
-"
+" }}}
 
-"if exists('g:Loaded_ConqueExperimental') || v:version < 700
-"  finish
-"endif
+" Startup {{{
+if exists('g:Loaded_ConqueExperimental') || v:version < 700
+    finish
+endif
+
+let g:Loaded_ConqueExperimental = 1
+let g:Conque_Idx = 1
+
+command! -nargs=+ -complete=shellcmd ConqueExperimental call conque_experimental#open(<q-args>)
 
 setlocal encoding=utf-8
+" }}}
 
 " Configuration globals {{{
 """"""""""""""""""""""""""""""""""""""""""
@@ -65,10 +72,7 @@ endif
 """"""""""""""""""""""""""""""""""""""""""
 " }}}
 
-command! -nargs=+ -complete=shellcmd ConqueExperimental call conque_experimental#open(<q-args>)
-
-let g:Loaded_ConqueExperimental = 1
-let g:Conque_Idx = 1
+" VARIOUS SETTINGS {{{ 
 
 " Mappable characters
 let s:chars_control      = 'abcdefghijklmnopqrstuwxyz?]\'
@@ -203,7 +207,9 @@ let s:FONT = {
 " }}}
 
 " nr2char() is oddly more reliable than \r etc
-let s:action_match = '\(\e[\??\?#\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(10).'\|'.nr2char(13).'\|'.nr2char(8).'\|'.nr2char(7).'\)'
+let s:CTL_REGEX = '\(\e[\??\?#\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(7).'\|'.nr2char(8).'\|'.nr2char(9).'\|'.nr2char(10).'\|'.nr2char(13).'\)'
+
+" }}}
 
 " Open a command in Conque.
 " This is the root function that is called from Vim to start up Conque.
@@ -251,12 +257,21 @@ function! conque_experimental#open(...) "{{{
     let b:_hi = {}
 
     " used for timer
-    let b:K_IGNORE = "\x80\xFD\x35"
+    "let b:K_IGNORE = "\x80\xFD\x35"
+
+    " are we in autowrap mode?
+    let b:_autowrap = 1
+
+    " are we in relative positioning mode?
+    let b:_relative_coords = 0
+
+    " tabstops
+    let b:_tabstops = {}
 
     " open command
     try
         let b:subprocess = s:proc
-        call b:subprocess.open(command, {'TERM': 'vt100', 'CONQUE': 1, 'EDITOR': 'unsupported'})
+        call b:subprocess.open(command, {'TERM': 'vt100', 'CONQUE': 1})
         call s:log.info('opening command: ' . command . ' with ptyopen')
     catch 
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
@@ -347,9 +362,6 @@ function! conque_experimental#set_buffer_settings(command, pre_hooks) "{{{
     " send selected text into conque
 	  vnoremap <silent> <F9> :<C-u>call conque_experimental#send_selected(visualmode())<CR>
 
-    map <buffer> <F4> :call conque_experimental#get_testline()<CR>
-
-
     " send escape
     inoremap <silent> <buffer> <Esc><Esc> <Esc>:call conque_experimental#press_key("<C-v><Esc>")<CR>a
     nnoremap <silent> <buffer> <Esc> :<C-u>call conque_experimental#message('To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
@@ -403,6 +415,11 @@ function! conque_experimental#read(timeout) "{{{
     call s:log.profile_start('printread')
 
     call s:log.debug('raw output: ' . string(l:output))
+    for line in l:output
+        for c in split(line, '\zs')
+            call s:log.debug(c . '=' . char2nr(c))
+        endfor
+    endfor
 
     " short circuit no output
     if len(l:output) == 1 && l:output[0] == ''
@@ -489,9 +506,11 @@ function! conque_experimental#hang_up() "{{{
 endfunction "}}}
 
 function! conque_experimental#process_input(input) " {{{
+    call s:log.debug('********************************************************************************************************************************')
+    call s:log.debug('********************************************************************************************************************************')
     call s:log.profile_start('process_input')
 
-    " attempt a short circuit
+    " attempt a short circuit {{{
     if a:input =~ '^[a-zA-Z0-9_. ''"-]\+$'
         call s:log.debug('SHORT')
         let l:working = getline(b:_l)
@@ -505,6 +524,7 @@ function! conque_experimental#process_input(input) " {{{
         call cursor(b:_l, b:_c)
         return ''
     endif
+    " }}}
 
     " prefill whitespace {{{
     if b:_l > line('$')
@@ -539,7 +559,7 @@ function! conque_experimental#process_input(input) " {{{
         " remove trailing <CR>s. conque assumes cursor will be at col 0 for new lines
         "let l:input = substitute(l:input, '\r\+$', '', '')
         " remove shift in
-        let l:input = substitute(l:input, nr2char(15), '', 'g')
+        "let l:input = substitute(l:input, nr2char(15), '', 'g')
         " remove character set escapes. they would be ignored
         let l:input = substitute(l:input, '\e(.', '', 'g')
         let l:input = substitute(l:input, '\e).', '', 'g')
@@ -566,53 +586,81 @@ function! conque_experimental#process_input(input) " {{{
     call s:log.profile_start('big_wrap')
     " ****************************************************************************************** "
     " Loop over action matches {{{
-    let l:match_num = match(l:input, s:action_match)
+    let l:match_num = match(l:input, s:CTL_REGEX)
     call s:log.debug('FIRST MATCH ' . l:match_num)
     while l:match_num != -1
+        call s:log.debug('==========================================================================================')
+        call s:log.debug('line ' . b:_l . ' col ' . b:_c . ' line_pos ' . l:line_pos . ' match ' . matchstr(l:input, s:CTL_REGEX, l:match_num) . ' match num ' . l:match_num)
+        call s:log.debug('first output:' . l:output)
+
         " pack characters up to the match onto output
         if l:line_pos > len(l:output)
             let l:output = l:output . printf("%" . (l:line_pos - len(l:output)) . "s", ' ')
+            call s:log.debug('second output:' . l:output)
         endif
         if l:match_num > 0 && l:line_pos == 0
             let l:output =                                  l:input[ 0 : l:match_num - 1 ] . l:output[ l:line_pos + l:match_num : ]
+            call s:log.debug('third output:' . l:output)
         elseif l:match_num > 0
+            call s:log.debug('fourth output a:' . l:output[ 0 : l:line_pos - 1])
+            call s:log.debug('fourth output b:' . l:input[ 0 : l:match_num - 1])
+            call s:log.debug('fourth output c:' . l:output[ l:line_pos + l:match_num : ])
             let l:output = l:output[ 0 : l:line_pos - 1 ] . l:input[ 0 : l:match_num - 1 ] . l:output[ l:line_pos + l:match_num : ]
+            call s:log.debug('fourth output:' . l:output)
         endif
 
         call s:log.profile_start('wrapping_1')
         " handle line wrapping {{{
-        if l:line_pos + l:match_num > b:WORKING_COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
-            call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
-            let b:auto_wrapped = 1
+        if len(l:output) > b:WORKING_COLUMNS || l:line_pos + l:match_num > b:WORKING_COLUMNS
+            if l:output =~ '^\s*|.*|\s*$' || l:output =~ '^\s*+[+=-]*+\s*$'
+                call s:log.debug('mysql autowrap override')
+            elseif b:_autowrap == 0
+                let l:output = l:output[ : b:WORKING_COLUMNS - 2 ] . l:output[ -1 : -1 ]
+            else
+                call s:log.debug('wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
+                let l:scroll = 0
 
-            " break output at screen width
-            "let l:input = nr2char(13) . l:output[ b:WORKING_COLUMNS : ] . l:input[ l:match_num : ]
-            let l:input = l:input[ b:WORKING_COLUMNS : ]
-            let l:output = l:output[ : b:WORKING_COLUMNS - 1 ]
-            
-            call s:log.debug('new input: ' . l:input)
-            call s:log.debug('new output: ' . l:output)
+                " break output at screen width
+                "let l:input = nr2char(13) . l:output[ b:WORKING_COLUMNS : ] . l:input[ l:match_num : ]
+                let l:input = l:output[ b:WORKING_COLUMNS : ] . l:input[ l:match_num : ]
+                let l:output = l:output[ : b:WORKING_COLUMNS - 1 ]
+                
+                call s:log.debug('new input: ' . l:input)
+                call s:log.debug('new output: ' . l:output)
 
-            " finish off this line
-            call setline(b:_l, l:output)
-            call conque_experimental#process_colors(l:color_changes)
-            call cursor(b:_l, b:_c)
-            call winline()
+                if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
+                    call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
+                    silent execute b:_top . "," . b:_top . "d"
+                    call append(b:_l - 1, '')
+                    let l:scroll = 1
+                endif
 
-            " initialize cursor in the correct position
-            let b:_l += 1
-            let b:_c = 0
-            "call setline(b:_l, '')
+                " finish off this line
+                call s:log.debug('setting line ' . b:_l)
+                call setline(b:_l, l:output)
+                call conque_experimental#process_colors(l:color_changes)
 
-            " ship off the rest of input to next line
-            call s:log.profile_end('process_input')
-            return l:input
+                if l:scroll == 0
+                    let b:_l += 1
+                endif
+
+                " initialize cursor in the correct position
+                let b:_c = 0
+                let l:line_pos = 0
+                call cursor(b:_l, b:_c)
+                call winline()
+                "call setline(b:_l, '')
+
+                " ship off the rest of input to next line
+                call s:log.profile_end('process_input')
+                return l:input
+            endif
         endif " }}}
         call s:log.profile_end('wrapping_1')
 
         call s:log.debug('PREADDING OUTPUT resulting in ' . l:output)
 
-        let l:match_str = matchstr(l:input, s:action_match, l:match_num)
+        let l:match_str = matchstr(l:input, s:CTL_REGEX, l:match_num)
 
         call s:log.debug('MATCH STR ' . l:match_str)
         let l:input = l:input[l:match_num + len(l:match_str) :]
@@ -620,11 +668,38 @@ function! conque_experimental#process_input(input) " {{{
         let l:line_pos += l:match_num
         call s:log.debug('line pos now ' . l:line_pos)
 
-        if l:match_str == nr2char(8) " backspace {{{
+        if l:match_str == nr2char(7) " Bell {{{
+            call s:log.debug('bell')
+            echohl WarningMsg | echomsg "BELL!" | echohl None
+            " }}}
+
+        elseif l:match_str == nr2char(8) " backspace {{{
             call s:log.debug('backspace')
-            let l:line_pos = l:line_pos - 1
+            let l:line_pos += -1
+            let b:_c += -1
             if l:line_pos < 0
                 let l:line_pos = 0
+                let b:_c = 0
+            endif
+            " }}}
+
+        elseif l:match_str == nr2char(9) " tab {{{
+            let l:tabstop = b:WORKING_COLUMNS - 1
+            call s:log.debug('tabstops: ' . string(b:_tabstops))
+            for c in sort(keys(b:_tabstops), "conque_experimental#int_compare")
+                call s:log.debug('checking stop ' . c)
+                if c > l:line_pos
+                    let l:tabstop = c
+                    break
+                endif
+            endfor
+            let l:line_pos = l:tabstop
+            let b:_c = l:tabstop
+
+            " check whitespace
+            if l:line_pos > len(l:output)
+                let l:output = l:output . printf("%" . (l:line_pos - len(l:output)) . "s", ' ')
+                call s:log.debug('tabstop whitespace fill:' . l:output)
             endif
             " }}}
 
@@ -672,11 +747,6 @@ function! conque_experimental#process_input(input) " {{{
             let b:_c = 0
             " }}}
 
-        elseif l:match_str == nr2char(7) " Bell {{{
-            call s:log.debug('bell')
-            echohl WarningMsg | echomsg "BELL!" | echohl None
-            " }}}
-
         else
             call s:log.profile_start('escape')
             " last character
@@ -691,12 +761,18 @@ function! conque_experimental#process_input(input) " {{{
                 let l:action = s:ESCAPE[l:key]
                 " numeric modifiers
                 let l:vals = split(l:match_str[2 : -2], ';')
+                for i in range(len(l:vals))
+                    if len(l:vals[i]) > 1
+                        let l:vals[i] = substitute(l:vals[i], '^0*', '', 'g')
+                    endif
+                endfor
                 let l:delta = len(l:vals) > 0 ? l:vals[0] : 1
                 call s:log.debug('escape type ' . l:action . ' with nums ' . string(l:vals))
 
                 " ********************************************************************************** "
                 " Escape actions 
                 if l:action == 'font' " {{{
+                    call s:log.debug('COLOR')
                     if len(l:color_changes) > 0
                         let l:color_changes[len(l:color_changes) - 1].end = l:line_pos
                     endif
@@ -719,7 +795,7 @@ function! conque_experimental#process_input(input) " {{{
                         if l:line_pos == 0
                             let l:output = ''
                         else
-                            let l:output = printf("%" . (l:line_pos + 1) . "s", '') . l:output[ l:line_pos : ]
+                            let l:output = printf("%" . (l:line_pos + 1) . "s", '') . l:output[ l:line_pos + 1 : ]
                         endif
                     elseif l:delta == 2
                         let l:output = ''
@@ -741,8 +817,8 @@ function! conque_experimental#process_input(input) " {{{
                         let l:delta = 1
                     endif
                     let l:line_pos = l:line_pos + l:delta
-                    if l:line_pos >= b:COLUMNS
-                        let l:line_pos = b:COLUMNS - 1
+                    if l:line_pos >= b:WORKING_COLUMNS
+                        let l:line_pos = b:WORKING_COLUMNS - 1
                     endif
                     call s:log.debug('lpos after ' . l:line_pos)
                     " }}}
@@ -795,6 +871,9 @@ function! conque_experimental#process_input(input) " {{{
                     " initialize cursor in the correct position
                     let b:_l = b:_l + l:delta
                     let b:_c = l:line_pos
+                    if b:_l > b:_top + b:WORKING_LINES - 1
+                        let b:_l = b:_top + b:WORKING_LINES - 1
+                    endif
 
                     call s:log.debug('set line to ' . b:_l . ' col to ' . b:_c)
 
@@ -852,7 +931,7 @@ function! conque_experimental#process_input(input) " {{{
                         if l:line_pos == 0
                             let l:output = ''
                         else
-                            let l:output = printf("%" . (l:line_pos + 1) . "s", '') . l:output[ l:line_pos : ]
+                            let l:output = printf("%" . (l:line_pos + 1) . "s", '') . l:output[ l:line_pos + 1 : ]
                         endif
 
                     endif
@@ -885,11 +964,17 @@ function! conque_experimental#process_input(input) " {{{
                 elseif l:action == 'cursor' " {{{
                     let l:new_line = len(l:vals) > 0 ? l:vals[0] : 1
                     let l:new_col = len(l:vals) > 1 ? l:vals[1] : 1
+                    let l:new_col = l:new_col > 0 ? l:new_col : 1
+                    let l:new_col = l:new_col <= b:WORKING_COLUMNS ? l:new_col : b:WORKING_COLUMNS
 
                     call setline(b:_l, l:output)
                     call conque_experimental#process_colors(l:color_changes)
 
-                    let l:top = line('.') - winline() + 1
+                    if b:_relative_coords == 1
+                        let l:top = b:_top
+                    else
+                        let l:top = line('.') - winline() + 1
+                    endif
 
                     let b:_l = l:top + l:new_line - 1
                     let b:_c = l:new_col - 1
@@ -929,6 +1014,18 @@ function! conque_experimental#process_input(input) " {{{
                     let b:WORKING_LINES = l:new_end - l:new_start + 1
                     " }}}
 
+                elseif l:action == 'tab_clear' " {{{
+                    let l:val = len(l:vals) > 0 ? l:vals[0] : 0
+
+                    if l:val == 0
+                        if exists('b:_tabstops[' . l:line_pos . ']')
+                            unlet b:_tabstops[l:line_pos]
+                        endif
+                    elseif l:val == 3
+                        let b:_tabstops = {}
+                    endif
+                " }}}
+
                 elseif l:action == 'misc_h' " {{{
                     call s:log.debug('misch')
                     let l:val = l:match_str[3 : -2]
@@ -938,7 +1035,23 @@ function! conque_experimental#process_input(input) " {{{
                         let l:action = s:ESCAPE_QUESTION[l:val . 'h']
                         if l:action == '132_cols' " {{{
                             call s:log.debug('QUESTION 132...')
-                            let b:COLUMNS = 132
+                            let b:WORKING_COLUMNS = 132
+
+                            let b:_top = line('$')
+                            call cursor(b:_top, 1)
+                            normal! Gzt
+
+                            let b:_l = b:_top
+                            let b:_c = 0
+                            let l:line_pos = 0
+                            call setline(b:_l, '')
+                            let l:output = ''
+                            " }}}
+                        elseif l:action == 'relative_origin' " {{{
+                            let b:_relative_coords = 1
+                            " }}}
+                        elseif l:action == 'set_auto_wrap' " {{{
+                            let b:_autowrap = 1
                             " }}}
                         endif
                     endif
@@ -953,7 +1066,23 @@ function! conque_experimental#process_input(input) " {{{
                         let l:action = s:ESCAPE_QUESTION[l:val . 'l']
                         if l:action == '80_cols' " {{{
                             call s:log.debug('CHCOL 80')
-                            let b:COLUMNS = 80
+                            let b:WORKING_COLUMNS = 80
+
+                            let b:_top = line('$')
+                            call cursor(b:_top, 1)
+                            normal! Gzt
+
+                            let b:_l = b:_top
+                            let b:_c = 0
+                            let l:line_pos = 0
+                            call setline(b:_l, '')
+                            let l:output = ''
+                            " }}}
+                        elseif l:action == 'absolute_origin' " {{{
+                            let b:_relative_coords = 0
+                            " }}}
+                        elseif l:action == 'reset_auto_wrap' " {{{
+                            let b:_autowrap = 0
                             " }}}
                         endif
                     endif
@@ -978,7 +1107,7 @@ function! conque_experimental#process_input(input) " {{{
 
                     for l:line in range(b:_top, b:_top + b:WORKING_LINES - 1)
                         let l:filler = ''
-                        for l:i in range(0, b:COLUMNS - 1)
+                        for l:i in range(0, b:WORKING_COLUMNS - 1)
                             let l:filler = l:filler . 'E'
                         endfor
                         call s:log.debug('setting line ' . l:line . ' to ' . l:filler)
@@ -1075,7 +1204,7 @@ function! conque_experimental#process_input(input) " {{{
                     endif
                     " }}}
 
-                elseif l:action == 'next_line'
+                elseif l:action == 'next_line' " {{{
                     let l:local_scroll = 0
 
                     " if screen size has been adjusted, scroll partial screen region
@@ -1111,6 +1240,11 @@ function! conque_experimental#process_input(input) " {{{
                     " ship off the rest of input to next line
                     call s:log.profile_end('process_input')
                     return l:input
+                    " }}}
+
+                elseif l:action == 'set_tab' " {{{
+                    let b:_tabstops[l:line_pos] = 1
+                    " }}}
 
                 endif
 
@@ -1120,7 +1254,7 @@ function! conque_experimental#process_input(input) " {{{
 
         endif
 
-        let l:match_num = match(l:input, s:action_match)
+        let l:match_num = match(l:input, s:CTL_REGEX)
         call s:log.debug('NEXT MATCH NUM ' . l:match_num)
     endwhile
     " }}}
@@ -1136,30 +1270,50 @@ function! conque_experimental#process_input(input) " {{{
 
     call s:log.profile_start('wrapping_2')
     " handle line wrapping {{{
-    if len(l:output) > b:WORKING_COLUMNS && (l:input =~ '\e' || l:input =~ nr2char(13) . '.*\w')
-        call s:log.debug('II wrapping needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
-        let b:auto_wrapped = 1
+    if len(l:output) > b:WORKING_COLUMNS
+        if l:output =~ '^\s*|.*|\s*$' || l:output =~ '^\s*+[+=-]*+\s*$'
+            call s:log.debug('mysql autowrap override')
+        elseif b:_autowrap == 0
+            let l:output = l:output[ : b:WORKING_COLUMNS - 2 ] . l:output[ -1 : -1 ]
+        else
+            call s:log.debug('wrapping2 needed ' . l:output . ' len ' . len(l:output) . ' is greater than ' . b:WORKING_COLUMNS)
+            let l:scroll = 0
 
-        " break output at screen width
-        let l:input = l:output[ b:WORKING_COLUMNS : ]
-        let l:output = l:output[ : b:WORKING_COLUMNS - 1 ]
-        
-        call s:log.debug('new input: ' . l:input)
-        call s:log.debug('new output: ' . l:output)
+            " break output at screen width
+            "let l:input = nr2char(13) . l:output[ b:WORKING_COLUMNS : ] . l:input[ l:match_num : ]
+            let l:input = l:output[ b:WORKING_COLUMNS : ] . l:input[ l:match_num : ]
+            let l:output = l:output[ : b:WORKING_COLUMNS - 1 ]
+            
+            call s:log.debug('new input: ' . l:input)
+            call s:log.debug('new output: ' . l:output)
 
-        " finish off this line
-        call setline(b:_l, l:output)
-        call conque_experimental#process_colors(l:color_changes)
-        call cursor(b:_l, b:_c)
-        call winline()
+            if b:WORKING_LINES < b:LINES && b:_l + 1 > b:_top + b:WORKING_LINES - 1
+                call s:log.debug('work overflow at line ' . b:_l . ' with working lines ' . b:WORKING_LINES)
+                silent execute b:_top . "," . b:_top . "d"
+                call append(b:_l - 1, '')
+                let l:scroll = 1
+            endif
 
-        " initialize cursor in the correct position
-        let b:_l += 1
-        let b:_c = 0
+            " finish off this line
+            call s:log.debug('setting line ' . b:_l)
+            call setline(b:_l, l:output)
+            call conque_experimental#process_colors(l:color_changes)
 
-        " ship off the rest of input to next line
-        call s:log.profile_end('process_input')
-        return l:input
+            if l:scroll == 0
+                let b:_l += 1
+            endif
+
+            " initialize cursor in the correct position
+            let b:_c = 0
+            let l:line_pos = 0
+            call cursor(b:_l, b:_c)
+            call winline()
+            "call setline(b:_l, '')
+
+            " ship off the rest of input to next line
+            call s:log.profile_end('process_input')
+            return l:input
+        endif
     endif
     " }}}
     call s:log.profile_end('wrapping_2')
@@ -1192,29 +1346,12 @@ function! conque_experimental#process_input(input) " {{{
     return ''
 endfunction " }}}
 
-function! conque_experimental#clear_colors(line, col) " {{{
-    call s:log.debug('clearing colors at line ' . a:line . ' col ' . a:col)
-    " strip previous color changes
-    if exists('b:_hi[' . a:line . ']')
-        for l:hi_col in keys(b:_hi[a:line])
-            if l:hi_col >= a:col - 1
-                for l:hi_name in b:_hi[a:line][l:hi_col]
-                    call s:log.debug('clearing ' . l:hi_name)
-                    silent execute "highlight clear " . l:hi_name
-                endfor
-            endif
-        endfor
-    endif
-endfunction " }}}
-
 function! conque_experimental#process_colors(color_changes) " {{{
     call s:log.profile_start('process_colors')
     if len(a:color_changes) == 0
         call s:log.profile_end('process_colors')
         return
     endif
-
-    "call conque_experimental#clear_colors(b:_l, b:_c)
 
     " color it
     let l:hi_ct = 1
@@ -1226,9 +1363,9 @@ function! conque_experimental#process_colors(color_changes) " {{{
 
         let l:highlight = ''
         for color_number in cc.codes
-            if exists('s:font_codes['.color_number.']')
-                for attr in keys(s:font_codes[color_number].attributes)
-                    let l:highlight = l:highlight . ' ' . attr . '=' . s:font_codes[color_number].attributes[attr]
+            if exists('s:FONT['.color_number.']')
+                for attr in keys(s:FONT[color_number].attributes)
+                    let l:highlight = l:highlight . ' ' . attr . '=' . s:FONT[color_number].attributes[attr]
                 endfor
             endif
         endfor
@@ -1306,6 +1443,12 @@ function! conque_experimental#update_window_size() " {{{
     normal G
     call cursor(b:_l, b:_c)
 endfunction " }}}
+
+" sort strings as if they were numbers
+function! conque_experimental#int_compare(i1, i2) " {{{
+         return str2nr(a:i1) - str2nr(a:i2)
+endfunction " }}}
+
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Subprocess communication {{{
@@ -1506,20 +1649,6 @@ EOF
 
 " }}}
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-function! conque_experimental#get_testline() " {{{
-    if !exists('b:test_i')
-        let b:test_i = 0
-    endif
-
-    let l:line = g:Testvt[b:test_i] . "\n"
-    let l:retval = conque_experimental#process_input(l:line)
-    while len(l:retval) > 0
-        let l:retval = conque_experimental#process_input(l:retval)
-    endwhile
-
-    let b:test_i += 1
-endfunction " }}}
 
 " Logging {{{
 if exists('g:Conque_Logging') && g:Conque_Logging == 1
