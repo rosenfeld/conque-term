@@ -207,7 +207,16 @@ let s:FONT = {
 " }}}
 
 " nr2char() is oddly more reliable than \r etc
-let s:CTL_REGEX = '\(\e[\??\?#\?\(\d\+;\)*\d*\(\w\|@\)\|'.nr2char(7).'\|'.nr2char(8).'\|'.nr2char(9).'\|'.nr2char(10).'\|'.nr2char(13).'\)'
+let s:CTL_REGEX = '\(\e[\??\?#\?\(\d\+;\)*\d*\(\w\|@\)\|' 
+\ . nr2char(7) . '\|' 
+\ . nr2char(8) . '\|' 
+\ . nr2char(9) . '\|'
+\ . nr2char(10) . '\|'
+\ . nr2char(11) . '\|'
+\ . nr2char(12) . '\|'
+\ . nr2char(13) . '\|'
+\ . nr2char(14) . '\|'
+\ . nr2char(15) . '\)'
 
 " }}}
 
@@ -456,7 +465,7 @@ function! conque_experimental#read(timeout) "{{{
 
     " redraw screen
     call s:log.profile_start('finalredraw')
-    "redraw
+    redraw
     call s:log.profile_end('finalredraw')
 
     call s:log.profile_end('printread')
@@ -917,7 +926,7 @@ function! conque_experimental#process_input(input) " {{{
                             silent execute (b:_l + 1) . "," . line('$') . "d"
                         endif
 
-                        for i in range(b:_l + 1, b:_top + b:WORKING_LINES - 1)
+                        for i in range(b:_l + 1, line('$'))
                             call setline(i, '')
                         endfor
   
@@ -1369,7 +1378,7 @@ function! conque_experimental#process_colors(color_changes) " {{{
 
         let l:highlight = ''
         for color_number in cc.codes
-            if exists('s:FONT['.color_number.']')
+            if exists('s:FONT['.string(color_number).']')
                 for attr in keys(s:FONT[color_number].attributes)
                     let l:highlight = l:highlight . ' ' . attr . '=' . s:FONT[color_number].attributes[attr]
                 endfor
