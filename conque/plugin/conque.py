@@ -77,7 +77,9 @@ CONQUE_ESCAPE_HASH = {
 
 # regular expression matching (almost) all control sequences
 CONQUE_SEQ_REGEX = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|[\u0007-\u000f])", re.DOTALL | re.UNICODE)
-CONQUE_SEQ_REGEX_SIMPLE = re.compile(ur"^[\u0007-\u001e]", re.UNICODE)
+CONQUE_SEQ_REGEX_CTL = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
+CONQUE_SEQ_REGEX_CSI = re.compile(ur"^\u001b\[", re.UNICODE)
+CONQUE_SEQ_REGEX_ESC = re.compile(ur"^\u001b", re.UNICODE)
 
 # }}}
 
@@ -102,18 +104,21 @@ class Conque:
     working_columns = 80 # can be changed by CSI ? 3 l/h
     working_lines   = 24 # can be changed by CSI r
 
+    # top of the scroll region
+    top             = 1 # relative to top of screen
+
     # cursor position
     l               = 1  # current cursor line
     c               = 1  # current cursor column
 
     # autowrap mode
-    autowrap        = 1
+    autowrap        = True
 
     # absolute coordinate mode
-    absolute_coords = 1
+    absolute_coords = True
 
     # tabstop positions
-    tabstops        = {}
+    tabstops        = []
 
     # }}}
 
@@ -134,9 +139,11 @@ class Conque:
         self.working_lines = self.window.height
 
         # init tabstops
-        for i in range(8, self.columns):
+        for i in range(1, self.columns):
             if i % 8 == 0:
-                self.tabstops[i] = 1
+                self.tabstops.append(True)
+            else:
+                self.tabstops.append(False)
 
         # open command
         self.proc = ConqueSubprocess()
@@ -160,11 +167,43 @@ class Conque:
             if s == '':
                 continue
 
-            if CONQUE_SEQ_REGEX_SIMPLE.match(s[0]):
-                pass
-                #logging.debug(str(s))
+            # Check for control character match {{{
+            if CONQUE_SEQ_REGEX_CTL.match(s[0]):
+                logging.debug(str(s))
+                if s == u"\u0007": # bell
+                    self.ctl_bel()
+                elif s == u"\u0008": # backspace
+                    self.ctl_bs()
+                elif s == u"\u0009": # tab
+                    self.ctl_tab()
+                elif s == u"\u000a": # new line
+                    self.ctl_nl()
+                elif s == u"\u000b": # vertical tab
+                    pass
+                elif s == u"\u000c": # form feed
+                    pass
+                elif s == u"\u000d": # carriage return
+                    self.ctl_cr()
+                elif s == u"\u000e": # shift out
+                    pass
+                elif s == u"\u000f": # shift in
+                    pass
+                # }}}
+
+            # check for escape sequence match {{{
+            elif CONQUE_SEQ_REGEX_CSI.match(s):
+                logging.debug(str(s))
+                # }}}
+    
+            # check for other escape match {{{
+            elif CONQUE_SEQ_REGEX_ESC.match(s):
+                logging.debug(str(s))
+                # }}}
+            
+            # else process plain text {{{
             else:
-                self.screen.append(s)
+                self.plain_text(s)
+                # }}}
 
         #lines = output.split("\n")
         logging.debug('ouput looping took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
@@ -174,5 +213,65 @@ class Conque:
     def test(self):
         self.proc.write("ls -lha\n")
         self.read(500)
+
+    ###############################################################################################
+    def plain_text(self, input): # {{{
+        current_line = self.screen[self.l]
+        if self.c + len(input) > self.working_columns:
+            if self.autowrap:
+                this_line = input[ : self.working_columns - self.c]
+                next_line = input[self.working_columns - self.c + 1 :]
+                self.plain_text(this_line)
+                self.ctl_nl()
+                self.ctl_cr()
+                self.plain_text(next_line)
+            else:
+                self.screen[self.l][self.working_columns] = input[-1]
+        else:
+            ed_line = current_line[ : self.c - 1] + input
+            if len(current_line) > len(ed_line):
+                ed_line = ed_line + current_line[ len(ed_line) : ]
+            self.screen[self.l] = ed_line
+            self.c += len(input)
+    # }}}
+
+    ###############################################################################################
+    # Control functions {{{
+
+    def ctl_nl(self):
+        # if we're in a scrolling region, scroll instead of moving cursor down
+        if self.lines != self.working_lines and self.l == self.top + self.working_lines - 1:
+            del self.screen[self.top]
+            self.screen.insert(self.top + self.working_lines - 1, '')
+        else:
+            self.l += 1
+
+    def ctl_cr(self):
+        self.c = 1
+
+    def ctl_bs(self):
+        if self.c > 1:
+            self.c += -1
+
+    def ctl_bel(self):
+        print 'BELL'
+
+    def ctl_tab(self):
+        # default tabstop location
+        ts = self.working_columns
+
+        # check set tabstops
+        for i in range(self.c, self.working_columns):
+            if self.tabstops[i]:
+                ts = i
+                break
+
+        self.c = ts
+
+    # }}}
+
+
+
+
 
 
