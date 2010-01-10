@@ -147,18 +147,22 @@ class Conque:
 
         # open command
         self.proc = ConqueSubprocess()
-        self.proc.open(command)
+        self.proc.open(command, { 'TERM' : CONQUE_TERM, 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
 
         # }}}
 
     # read from pty, and update buffer
     def read(self, timeout = 1): # {{{
+        debug_profile_start = time.time()
+
         output = self.proc.read(timeout)
+
+        if output == '':
+            return
 
         logging.debug('read *********************************************************************')
         logging.debug(str(output))
 
-        debug_profile_start = time.time()
         chunks = CONQUE_SEQ_REGEX.split(output)
         logging.debug('ouput chunking took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
 
@@ -167,9 +171,11 @@ class Conque:
             if s == '':
                 continue
 
+            logging.debug(str(s))
+
             # Check for control character match {{{
             if CONQUE_SEQ_REGEX_CTL.match(s[0]):
-                logging.debug(str(s))
+                logging.debug('control match')
                 if s == u"\u0007": # bell
                     self.ctl_bel()
                 elif s == u"\u0008": # backspace
@@ -192,12 +198,17 @@ class Conque:
 
             # check for escape sequence match {{{
             elif CONQUE_SEQ_REGEX_CSI.match(s):
-                logging.debug(str(s))
+                logging.debug('csi match')
+                try:
+                    last_char = s[ -1 : -1 ]
+                    eval('self.' + getattr(CONQUE_ESCAPE, 'last_char') + '()')
+                except:
+                    logging.debug('escape not found for ' + str(s))
                 # }}}
     
             # check for other escape match {{{
             elif CONQUE_SEQ_REGEX_ESC.match(s):
-                logging.debug(str(s))
+                logging.debug('escape match')
                 # }}}
             
             # else process plain text {{{
@@ -205,14 +216,29 @@ class Conque:
                 self.plain_text(s)
                 # }}}
 
-        #lines = output.split("\n")
-        logging.debug('ouput looping took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
+        # set cursor position
+        # XXX - Using python's version makes lots of super-fun segfaults
+        #vim.command('call cursor(' + str(self.l) + ', ' + str(self.c) + ')')
+        if self.l > len(self.buffer):
+            self.buffer.append(' ')
 
+        self.window.cursor = (self.l, self.c - 1)
+        vim.command('redraw')
+
+        logging.info('::: read took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
     # }}}
 
-    def test(self):
-        self.proc.write("ls -lha\n")
-        self.read(500)
+    def auto_read(self): # {{{
+        self.read(1)
+        vim.command('call feedkeys("\<F7>", "t")')
+    # }}}
+
+    def write(self, input):
+        logging.debug('writing input ' + str(input))
+
+        # write and read
+        self.proc.write(input)
+        self.read(1)
 
     ###############################################################################################
     def plain_text(self, input): # {{{

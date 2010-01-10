@@ -39,9 +39,9 @@ let g:ConqueTerm_Idx = 1
 
 command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
 
+pyfile ~/.vim/plugin/conque.py
 pyfile ~/.vim/plugin/conque_subprocess.py
 pyfile ~/.vim/plugin/conque_screen.py
-pyfile ~/.vim/plugin/conque.py
 " }}}
 
 " Open a command in Conque.
@@ -70,13 +70,7 @@ function! conque_term#open(...) "{{{
     " open command {{{
     "try
         execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
-
-        let l:cleaned = command
-        let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
-        let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
-        let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
-        let l:cleaned = substitute(l:cleaned, "'", "\\\\'", 'g')
-        execute "python " . b:ConqueTerm_Var . ".open('" . l:cleaned . "')"
+        execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "')"
     "catch 
     "    echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
     "    return 0
@@ -121,19 +115,36 @@ function! conque_term#set_mappings() "{{{
     "autocmd CursorHoldI <buffer> call conque_term#auto_read()
     "autocmd BufEnter <buffer> call conque_term#update_window_size()
 
-    return
-
     " map first 256 ASCII chars {{{
     for i in range(33, 255)
         " <Bar>
         if i == 124
+            silent execute "inoremap <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write('\\|')<CR>"
             continue
         endif
-        silent execute 'inoremap <silent> <buffer> ' . nr2char(i) . ' <Esc>:call conque_term#press_key(nr2char(' . i . '))<CR>a'
+        silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . conque_term#python_escape(nr2char(i)) . "')<CR>"
     endfor
     " }}}
 
     " Special cases
+    silent execute 'inoremap <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+    silent execute 'inoremap <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
+    silent execute 'inoremap <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
+    silent execute 'inoremap <silent> <buffer> <CR> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000d")<CR>'
+    silent execute 'inoremap <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
+    silent execute 'inoremap <silent> <buffer> <Up> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
+    silent execute 'inoremap <silent> <buffer> <Down> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
+    silent execute 'inoremap <silent> <buffer> <Right> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
+    silent execute 'inoremap <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
+
+    " use F8 key to get more input
+    inoremap <silent> <buffer> <expr> <F7> " \<BS>"
+    silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
+    
+
+
+    return
+
     inoremap <silent> <buffer> <BS> <Esc>:call conque_term#press_key(nr2char(8))<CR>a
     inoremap <silent> <buffer> <Tab> <Esc>:call conque_term#press_key(nr2char(9))<CR>a
     inoremap <silent> <buffer> <LF> <Esc>:call conque_term#press_key(nr2char(10))<CR>a
@@ -179,5 +190,16 @@ function! conque_term#set_mappings() "{{{
     " }}}
 
 endfunction "}}}
+
+
+function! conque_term#python_escape(input) "{{{
+    let l:cleaned = a:input
+    let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
+    let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
+    let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
+    let l:cleaned = substitute(l:cleaned, "'", "\\\\'", 'g')
+    return l:cleaned
+endfunction "}}}
+
 
 

@@ -43,7 +43,7 @@ class ConqueScreen(object):
 
     # LIST OVERLOAD {{{
     def __len__(self):
-        return self.scroll_bottom - self.scroll_top + 1
+        return len(self.buffer)
 
     def __getitem__(self, key):
         real_line = self.scroll_top + key - 2
@@ -52,7 +52,7 @@ class ConqueScreen(object):
             logging.debug('need to append')
             for i in range(len(self.buffer), real_line + 1):
                 logging.debug('appending')
-                self.buffer.append('')
+                self.buffer.append(' ' * self.screen_width)
         return self.buffer[ real_line ]
 
     def __setitem__(self, key, value):
@@ -63,7 +63,7 @@ class ConqueScreen(object):
         del self.buffer[ self.scroll_top + key - 2 ]
 
     def append(self, value):
-        print "not implemented"
+        self.buffer.append(value)
 
     def insert(self, line, value):
         self.buffer.insert(self.scroll_top + line - 2, value)

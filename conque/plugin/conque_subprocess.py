@@ -8,7 +8,7 @@ class ConqueSubprocess:
         # }}}
 
     # create the pty or whatever (whatever == windows)
-    def open(self, command): # {{{
+    def open(self, command, env = {}): # {{{
         command_arr  = command.split()
         self.command = command_arr[0]
         self.args    = command_arr
@@ -23,8 +23,8 @@ class ConqueSubprocess:
         if self.pid == 0:
 
             # set requested environment variables
-            os.environ['CONQUE'] = '1'
-            os.environ['TERM'] = CONQUE_TERM
+            for k in env.keys():
+                os.environ[k] = env[k]
 
             # set some attributes
             try:
