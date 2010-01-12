@@ -82,7 +82,7 @@ function! conque_term#open(...) "{{{
 
     execute 'python ' . b:ConqueTerm_Var . '.read(500)'
 
-    "startinsert!
+    startinsert!
     return 1
 endfunction "}}}
 
@@ -140,26 +140,18 @@ function! conque_term#set_mappings() "{{{
     " use F8 key to get more input
     inoremap <silent> <buffer> <expr> <F7> " \<BS>"
     silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
-    
-
-
-    return
-
-    inoremap <silent> <buffer> <BS> <Esc>:call conque_term#press_key(nr2char(8))<CR>a
-    inoremap <silent> <buffer> <Tab> <Esc>:call conque_term#press_key(nr2char(9))<CR>a
-    inoremap <silent> <buffer> <LF> <Esc>:call conque_term#press_key(nr2char(10))<CR>a
-    inoremap <silent> <buffer> <CR> <Esc>:call conque_term#press_key(nr2char(13))<CR>a
-    inoremap <silent> <buffer> <Space> <Esc>:call conque_term#press_key(nr2char(32))<CR>a
-    inoremap <silent> <buffer> <Bar> <Esc>:call conque_term#press_key(nr2char(124))<CR>a
-    inoremap <silent> <buffer> <Up> <Esc>:call conque_term#press_key("<C-v><Esc>[A")<CR>a
-    inoremap <silent> <buffer> <Down> <Esc>:call conque_term#press_key("<C-v><Esc>[B")<CR>a
-    inoremap <silent> <buffer> <Right> <Esc>:call conque_term#press_key("<C-v><Esc>[C")<CR>a
-    inoremap <silent> <buffer> <Left> <Esc>:call conque_term#press_key("<C-v><Esc>[D")<CR>a
 
     " Control / Meta chars {{{
-    for c in split(s:chars_control, '\zs')
-        silent execute 'inoremap <silent> <buffer> <C-' . c . '> <Esc>:call conque_term#press_key("<C-v><C-' . c . '>")<CR>a'
+    for c in range(1, 31)
+        " esc
+        if c == 27
+            continue
+        endif
+        silent execute 'inoremap <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
     endfor
+    silent execute 'inoremap <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+    
+    return
 
     " meta characters 
     for c in split(s:chars_meta, '\zs')
@@ -190,7 +182,6 @@ function! conque_term#set_mappings() "{{{
     " }}}
 
 endfunction "}}}
-
 
 function! conque_term#python_escape(input) "{{{
     let l:cleaned = a:input
