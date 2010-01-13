@@ -82,6 +82,9 @@ CONQUE_SEQ_REGEX_CSI  = re.compile(ur"^\u001b\[", re.UNICODE)
 CONQUE_SEQ_REGEX_HASH = re.compile(ur"^\u001b#", re.UNICODE)
 CONQUE_SEQ_REGEX_ESC  = re.compile(ur"^\u001b", re.UNICODE)
 
+# match table output
+CONQUE_TABLE_OUTPUT   = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
+
 # }}}
 
 ###################################################################################################
@@ -129,6 +132,9 @@ class Conque:
     csi_functions = {}
     esc_functions = {}
     hash_functions = {}
+
+    # don't wrap table output
+    table_output = True
 
     # }}}
 
@@ -284,6 +290,11 @@ class Conque:
 
         # if line is wider than screen
         if self.c + len(input) - 1 > self.working_columns:
+            # Table formatting hack
+            if self.table_output and CONQUE_TABLE_OUTPUT.match(input):
+                self.screen[self.l] = current_line[ : self.c - 1] + input + current_line[ self.c + len(input) - 1 : ]
+                self.c += len(input)
+                return
             logging.debug('autowrap triggered')
             diff = self.c + len(input) - self.working_columns - 1
             # if autowrap is enabled
