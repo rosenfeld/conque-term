@@ -44,18 +44,18 @@ class ConqueScreen(object):
 
     def __getitem__(self, key):
         real_line = self.screen_top + key - 2
-        logging.debug('getitem ' + str(key) + ' translates to ' + str(self.screen_top) + ' + ' + str(key) + ' - ' + str(2) + ' = ' + str(real_line))
+        #logging.debug('getitem ' + str(key) + ' translates to ' + str(self.screen_top) + ' + ' + str(key) + ' - ' + str(2) + ' = ' + str(real_line))
         if real_line >= len(self.buffer):
-            logging.debug('need to append')
+            #logging.debug('need to append')
             for i in range(len(self.buffer), real_line + 1):
-                logging.debug('appending')
+                #logging.debug('appending')
                 self.append(' ' * self.screen_width)
         return self.buffer[ real_line ]
 
     def __setitem__(self, key, value):
         real_line = self.screen_top + key - 2
-        logging.debug('set key is ' + str(key))
-        logging.debug('used val is ' + str(real_line))
+        #logging.debug('set key is ' + str(key))
+        #logging.debug('used val is ' + str(real_line))
         if real_line == len(self.buffer):
             self.buffer.append(value)
         else:
@@ -69,6 +69,7 @@ class ConqueScreen(object):
         logging.debug('checking new line ' + str(len(self.buffer)) + ' against top ' + str(self.screen_top) + ' + height ' + str(self.screen_height) + ' - 1 = ' + str(self.screen_top + self.screen_height - 1))
         if len(self.buffer) > self.screen_top + self.screen_height - 1:
             self.screen_top += 1
+            vim.command('normal G')
 
     def insert(self, line, value):
         logging.debug('insert at line ' + str(self.screen_top + line - 2))
@@ -83,10 +84,26 @@ class ConqueScreen(object):
     def clear(self):
         self.buffer.append(' ')
         vim.command('normal Gzt')
+        self.screen_top = len(self.buffer)
 
     def get_top(self):
         return self.screen_top
 
+    def set_cursor(self, line, column):
+        # figure out line
+        real_line =  self.screen_top + line - 1
+        if real_line > len(self.buffer):
+            for l in range(len(self.buffer) - 1, real_line):
+                self.buffer.append('')
+
+        # figure out column
+        real_column = column
+        if len(self.buffer[real_line - 1]) < real_column:
+            self.buffer[real_line - 1] = self.buffer[real_line - 1] + ' ' * (real_column - len(self.buffer[real_line - 1]))
+
+        # XXX - Using python's version makes lots of super-fun segfaults
+        self.window.cursor = (real_line, real_column - 1)
+        #vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
 
 
 

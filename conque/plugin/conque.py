@@ -160,7 +160,7 @@ class Conque:
         self.bottom = self.window.height
 
         # init tabstops
-        for i in range(1, self.columns):
+        for i in range(0, self.columns + 1):
             if i % 8 == 0:
                 self.tabstops.append(True)
             else:
@@ -190,7 +190,9 @@ class Conque:
             if s == '':
                 continue
 
-            logging.debug('>' + str(s))
+            logging.debug(str(s) + '--------------------------------------------------------------')
+            logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
+            logging.debug('current: ' + self.screen[self.l])
 
             # Check for control character match {{{
             if CONQUE_SEQ_REGEX_CTL.match(s[0]):
@@ -220,6 +222,7 @@ class Conque:
                 logging.debug('csi match')
                 if s[-1] in self.csi_functions:
                     csi = self.parse_csi(s[2:])
+                    logging.debug(str(csi))
                     self.csi_functions[s[-1]](csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
@@ -229,7 +232,7 @@ class Conque:
             elif CONQUE_SEQ_REGEX_HASH.match(s):
                 logging.debug('hash match')
                 if s[-1] in self.hash_functions:
-                    csi = self.parse_csi(s[1:])
+                    csi = self.parse_csi(s[2:])
                     self.hash_functions[s[-1]](csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
@@ -250,13 +253,8 @@ class Conque:
                 self.plain_text(s)
                 # }}}
 
-        if self.l > len(self.buffer):
-            self.screen.append('')
-
         # set cursor position
-        # XXX - Using python's version makes lots of super-fun segfaults
-        #vim.command('call cursor(' + str(self.l) + ', ' + str(self.c) + ')')
-        self.window.cursor = (self.screen.get_top() + self.l - 1, self.c - 1)
+        self.screen.set_cursor(self.l, self.c)
 
         vim.command('redraw')
 
@@ -266,7 +264,7 @@ class Conque:
     def auto_read(self): # {{{
         self.read(1)
         vim.command('call feedkeys("\<F7>", "t")')
-        self.window.cursor = (self.screen.get_top() + self.l - 1, self.c - 1)
+        self.screen.set_cursor(self.l, self.c)
     # }}}
 
     def write(self, input): # {{{
@@ -280,21 +278,27 @@ class Conque:
     ###############################################################################################
     def plain_text(self, input): # {{{
         current_line = self.screen[self.l]
-        if self.c + len(input) > self.working_columns:
+
+        if len(current_line) < self.working_columns:
+            current_line = current_line + ' ' * (self.c - len(current_line))
+
+        # if line is wider than screen
+        if self.c + len(input) - 1 > self.working_columns:
+            logging.debug('autowrap triggered')
+            diff = self.c + len(input) - self.working_columns - 1
+            # if autowrap is enabled
             if self.autowrap:
-                this_line = input[ : self.working_columns - self.c]
-                next_line = input[self.working_columns - self.c + 1 :]
-                self.plain_text(this_line)
+                self.screen[self.l] = current_line[ : self.c - 1] + input[ : -1 * diff ]
                 self.ctl_nl()
                 self.ctl_cr()
-                self.plain_text(next_line)
+                self.plain_text(input[ -1 * diff : ])
             else:
-                self.screen[self.l][self.working_columns] = input[-1]
+                self.screen[self.l] = current_line[ : self.c - 1] + input[ : -1 * diff - 1 ] + input[-1]
+                self.c = self.working_columns
+
+        # no autowrap
         else:
-            ed_line = current_line[ : self.c - 1] + input
-            if len(current_line) > len(ed_line):
-                ed_line = ed_line + current_line[ len(ed_line) : ]
-            self.screen[self.l] = ed_line
+            self.screen[self.l] = current_line[ : self.c - 1] + input + current_line[ self.c + len(input) - 1 : ]
             self.c += len(input)
     # }}}
 
@@ -361,7 +365,7 @@ class Conque:
 
         # 1 means cursor left
         elif csi['val'] == 1:
-            self.screen[self.l] = ' ' * (self.c - 1) + self.screen[self.l][self.c - 1 : ]
+            self.screen[self.l] = ' ' * (self.c) + self.screen[self.l][self.c : ]
 
         # clear entire line
         elif csi['val'] == 2:
@@ -411,7 +415,7 @@ class Conque:
 
         # 0 == clear down
         elif csi['val'] == 0:
-            for l in range(self.bound(self.l + 1, 1, self.lines), self.lines):
+            for l in range(self.bound(self.l + 1, 1, self.lines), self.lines + 1):
                 self.screen[l] = ''
             
             # clear end of current line
@@ -419,7 +423,7 @@ class Conque:
 
         # 1 == clear up
         elif csi['val'] == 1:
-            for l in range(1, self.bound(self.l - 1, 1, self.lines)):
+            for l in range(1, self.bound(self.l, 1, self.lines + 1)):
                 self.screen[l] = ''
 
             # clear beginning of current line
@@ -478,11 +482,35 @@ class Conque:
         # }}}
 
     def csi_set(self, csi): # {{{
-        pass
+        # 132 cols
+        if csi['val'] == 3: 
+            self.csi_clear_screen(self.parse_csi('2J'))
+            self.working_columns = 132
+
+        # relative_origin
+        elif csi['val'] == 6: 
+            self.absolute_coords = False
+
+        # set auto wrap
+        elif csi['val'] == 7: 
+            self.autowrap = True
+
         # }}}
 
     def csi_reset(self, csi): # {{{
-        pass
+        # 80 cols
+        if csi['val'] == 3: 
+            self.csi_clear_screen(self.parse_csi('2J'))
+            self.working_columns = 80
+
+        # absolute origin
+        elif csi['val'] == 6: 
+            self.absolute_coords = True
+
+        # reset auto wrap
+        elif csi['val'] == 7: 
+            self.autowrap = False
+
         # }}}
 
     # }}}
@@ -517,7 +545,10 @@ class Conque:
     # HASH functions {{{
 
     def hash_screen_alignment_test(self, csi): # {{{
-        pass
+        self.csi_clear_screen(self.parse_csi('2J'))
+        self.working_lines = self.lines
+        for l in range(1, self.lines + 1):
+            self.screen[l] = 'E' * self.working_columns
         # }}}
 
     # }}}
