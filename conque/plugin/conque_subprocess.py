@@ -100,21 +100,12 @@ class ConqueSubprocess:
         # }}}
 
     # update window size in kernel, then send SIGWINCH to fg process
-    def check_window_size(self): # {{{
-
-        if self.window.width != self.columns or self.window.height != self.lines:
-            # update instance properties
-            self.columns = self.window.width
-            self.lines = self.window.height
-            self.working_columns = self.window.width
-            self.working_lines = self.window.height
-
-            # update window size in kernel
-            try:
-                fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", self.lines, self.columns, 0, 0))
-                os.kill(self.pid, signal.SIGWINCH)
-            except:
-                pass
+    def window_resize(self, lines, columns): # {{{
+        try:
+            fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", lines, columns, 0, 0))
+            os.kill(self.pid, signal.SIGWINCH)
+        except:
+            pass
 
         # }}}
 

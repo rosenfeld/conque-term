@@ -105,5 +105,9 @@ class ConqueScreen(object):
         self.window.cursor = (real_line, real_column - 1)
         #vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
 
-
+    def reset_size(self):
+        self.screen_width = self.window.width
+        self.screen_height = self.window.height
+        self.screen_top = len(self.buffer) - self.window.height + 1
+        vim.command('normal ' + str(self.screen_height) + 'kG')
 

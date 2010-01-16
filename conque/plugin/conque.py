@@ -1,5 +1,5 @@
 
-import vim, sys, os, string, signal, re, time, pty, tty, select, fcntl, termios, struct
+import vim, sys, os, string, signal, re, time, pty, tty, select, fcntl, termios, struct, math
 
 import logging # DEBUG
 LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
@@ -92,11 +92,8 @@ class Conque:
 
     # CLASS PROPERTIES {{{ 
 
-    # the buffer
-    buffer          = None
-    window          = None
-
     # screen object
+    window          = None
     screen          = None
 
     # subprocess object
@@ -134,13 +131,15 @@ class Conque:
     hash_functions = {}
 
     # don't wrap table output
-    table_output = True
+    unwrap_tables = True
+
+    # wrap CUF/CUB around line breaks
+    wrap_cursor = True
 
     # }}}
 
     # constructor
     def __init__(self): # {{{
-        self.buffer = vim.current.buffer
         self.window = vim.current.window
         self.screen = ConqueScreen()
 
@@ -175,6 +174,15 @@ class Conque:
         # open command
         self.proc = ConqueSubprocess()
         self.proc.open(command, { 'TERM' : CONQUE_TERM, 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
+        # }}}
+
+    # write to pty
+    def write(self, input): # {{{
+        logging.debug('writing input ' + str(input))
+
+        # write and read
+        self.proc.write(input)
+        self.read(1)
         # }}}
 
     # read from pty, and update buffer
@@ -267,19 +275,12 @@ class Conque:
         logging.info('::: read took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
     # }}}
 
+    # for polling
     def auto_read(self): # {{{
         self.read(1)
         vim.command('call feedkeys("\<F7>", "t")')
         self.screen.set_cursor(self.l, self.c)
     # }}}
-
-    def write(self, input): # {{{
-        logging.debug('writing input ' + str(input))
-
-        # write and read
-        self.proc.write(input)
-        self.read(1)
-        # }}}
 
     ###############################################################################################
     def plain_text(self, input): # {{{
@@ -291,7 +292,7 @@ class Conque:
         # if line is wider than screen
         if self.c + len(input) - 1 > self.working_columns:
             # Table formatting hack
-            if self.table_output and CONQUE_TABLE_OUTPUT.match(input):
+            if self.unwrap_tables and CONQUE_TABLE_OUTPUT.match(input):
                 self.screen[self.l] = current_line[ : self.c - 1] + input + current_line[ self.c + len(input) - 1 : ]
                 self.c += len(input)
                 return
@@ -390,6 +391,14 @@ class Conque:
         if csi['val'] == 0:
             csi['val'] = 1
 
+        logging.debug('working columns is ' + str(self.working_columns))
+        logging.debug('new col is ' + str(self.c + csi['val']))
+
+        if self.wrap_cursor and self.c + csi['val'] > self.working_columns:
+            self.l += int(math.floor( (self.c + csi['val']) / self.working_columns ))
+            self.c = (self.c + csi['val']) % self.working_columns
+            return
+
         self.c = self.bound(self.c + csi['val'], 1, self.working_columns)
         # }}}
 
@@ -397,6 +406,11 @@ class Conque:
         # we use 1 even if escape explicitly specifies 0
         if csi['val'] == 0:
             csi['val'] = 1
+
+        if self.wrap_cursor and csi['val'] >= self.c:
+            self.l += int(math.floor( (self.c - csi['val']) / self.working_columns ))
+            self.c = self.working_columns - (csi['val'] - self.c) % self.working_columns
+            return
 
         self.c = self.bound(self.c - csi['val'], 1, self.working_columns)
         # }}}
@@ -561,6 +575,35 @@ class Conque:
         for l in range(1, self.lines + 1):
             self.screen[l] = 'E' * self.working_columns
         # }}}
+
+    # }}}
+
+    ###############################################################################################
+    # Random stuff {{{
+
+    def paste(self):
+        self.write(vim.eval('@@'))
+        self.read(50)
+
+    def paste_selection(self):
+        self.write(vim.eval('@@'))
+
+    def update_window_size(self):
+        # resize if needed
+        if self.window.width != self.columns or self.window.height != self.lines:
+
+            # reset all window size attributes to default
+            self.columns = self.window.width
+            self.lines = self.window.height
+            self.working_columns = self.window.width
+            self.working_lines = self.window.height
+            self.bottom = self.window.height
+
+            # reset screen object attributes
+            self.screen.reset_size()
+
+            # signal process that screen size has changed
+            self.proc.window_resize(self.lines, self.columns)
 
     # }}}
 

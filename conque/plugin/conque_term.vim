@@ -63,9 +63,11 @@ function! conque_term#open(...) "{{{
     endif " }}}
 
     " configure shell buffer display and key mappings
+    let g:Conque_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
     call conque_term#set_buffer_settings(command, hooks)
 
     let b:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
+    let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
 
     " open command {{{
     "try
@@ -94,8 +96,9 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     endfor
 
     " buffer settings 
-    silent execute "edit " . substitute(a:command, ' ', '\\ ', 'g') . "\\ -\\ " . g:Conque_Idx
+    silent execute "edit " . g:Conque_BufName
     setlocal buftype=nofile  " this buffer is not a file, you can't save it
+    "setlocal virtualedit=all " allow cursor to go past end of line
     setlocal nonumber        " hide line numbers
     setlocal foldcolumn=0    " reasonable left margin
     setlocal nowrap          " default to no wrap (esp with MySQL)
@@ -112,17 +115,16 @@ function! conque_term#set_mappings() "{{{
     " handle unexpected closing of shell
     " passes HUP to main and all child processes
     execute 'autocmd BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
-    "autocmd CursorHoldI <buffer> call conque_term#auto_read()
-    "autocmd BufEnter <buffer> call conque_term#update_window_size()
+    execute 'autocmd BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
 
     " map first 256 ASCII chars {{{
     for i in range(33, 255)
         " <Bar>
         if i == 124
-            silent execute "inoremap <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write('\\|')<CR>"
+            silent execute "inoremap <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write(chr(124))<CR>"
             continue
         endif
-        silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . conque_term#python_escape(nr2char(i)) . "')<CR>"
+        silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
     endfor
     " }}}
 
@@ -150,37 +152,44 @@ function! conque_term#set_mappings() "{{{
         silent execute 'inoremap <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
     endfor
     silent execute 'inoremap <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+    silent execute 'nnoremap <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
     
-    return
-
     " meta characters 
-    for c in split(s:chars_meta, '\zs')
-        silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_term#press_key("<C-v><Esc>' . c . '")<CR>a'
-    endfor
+    "for c in split(s:chars_meta, '\zs')
+    "    silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_term#press_key("<C-v><Esc>' . c . '")<CR>a'
+    "endfor
     " }}}
 
     " other weird stuff {{{
 
-    " use F8 key to get more input
-    inoremap <silent> <buffer> <F8> <Esc>:call conque_term#read(1)<CR>a
-
-    " used for auto read
-    inoremap <silent> <buffer> <expr> <F7> " \<BS>"
-
     " remap paste keys
-    nnoremap <silent> <buffer> p :call conque_term#paste()<CR>
-    nnoremap <silent> <buffer> P :call conque_term#paste()<CR>
+    silent execute 'nnoremap <silent> <buffer> p :python ' . b:ConqueTerm_Var . '.paste()<CR>'
+    silent execute 'nnoremap <silent> <buffer> P :python ' . b:ConqueTerm_Var . '.paste()<CR>'
 
     " send selected text into conque
-	  vnoremap <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>
+	vnoremap <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>
 
-    " send escape
-    inoremap <silent> <buffer> <Esc><Esc> <Esc>:call conque_term#press_key("<C-v><Esc>")<CR>a
-    nnoremap <silent> <buffer> <Esc> :<C-u>call conque_term#message('To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>', 1)<CR>
-    nnoremap <silent> <buffer> <C-c> :call conque_term#press_key("<C-v><C-c>")<CR>a
+    nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR>
 
     " }}}
 
+endfunction "}}}
+
+" send selected text from another buffer
+function! conque_term#send_selected(type) "{{{
+    let reg_save = @@
+
+    " yank current selection
+    silent execute "normal! `<" . a:type . "`>y"
+
+    let @@ = substitute(@@, '^[\r\n]*', '', '')
+    let @@ = substitute(@@, '[\r\n]*$', '', '')
+
+    silent execute ":sb " . g:Conque_BufName
+    silent execute 'python ' . g:ConqueTerm_Var . '.paste_selection()'
+
+    let @@ = reg_save
+    startinsert!
 endfunction "}}}
 
 function! conque_term#python_escape(input) "{{{
