@@ -75,6 +75,59 @@ CONQUE_ESCAPE_HASH = {
 #    '5':'single_height_single_width',
 #    '6':'single_height_double_width',
 
+# Font codes {{{
+CONQUE_FONT = {
+    0: {'description':'Normal (default)', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':True},
+    1: {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':False},
+    4: {'description':'Underlined', 'attributes': {'cterm':'UNDERLINE','gui':'UNDERLINE'}, 'normal':False},
+    5: {'description':'Blink (appears as Bold)', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':False},
+    7: {'description':'Inverse', 'attributes': {'cterm':'REVERSE','gui':'REVERSE'}, 'normal':False},
+    8: {'description':'Invisible (hidden)', 'attributes': {'ctermfg':'0','ctermbg':'0','guifg':'#000000','guibg':'#000000'}, 'normal':False},
+    22: {'description':'Normal (neither bold nor faint)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
+    24: {'description':'Not underlined', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
+    25: {'description':'Steady (not blinking)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
+    27: {'description':'Positive (not inverse)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
+    28: {'description':'Visible (not hidden)', 'attributes': {'ctermfg':'NONE','ctermbg':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':True},
+    30: {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'16','guifg':'#000000'}, 'normal':False},
+    31: {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'1','guifg':'#ff0000'}, 'normal':False},
+    32: {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'2','guifg':'#00ff00'}, 'normal':False},
+    33: {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'3','guifg':'#ffff00'}, 'normal':False},
+    34: {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'4','guifg':'#0000ff'}, 'normal':False},
+    35: {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'5','guifg':'#990099'}, 'normal':False},
+    36: {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'6','guifg':'#009999'}, 'normal':False},
+    37: {'description':'Set foreground color to White', 'attributes': {'ctermfg':'7','guifg':'#ffffff'}, 'normal':False},
+    39: {'description':'Set foreground color to default (original)', 'attributes': {'ctermfg':'NONE','guifg':'NONE'}, 'normal':True},
+    40: {'description':'Set background color to Black', 'attributes': {'ctermbg':'16','guibg':'#000000'}, 'normal':False},
+    41: {'description':'Set background color to Red', 'attributes': {'ctermbg':'1','guibg':'#ff0000'}, 'normal':False},
+    42: {'description':'Set background color to Green', 'attributes': {'ctermbg':'2','guibg':'#00ff00'}, 'normal':False},
+    43: {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'3','guibg':'#ffff00'}, 'normal':False},
+    44: {'description':'Set background color to Blue', 'attributes': {'ctermbg':'4','guibg':'#0000ff'}, 'normal':False},
+    45: {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'5','guibg':'#990099'}, 'normal':False},
+    46: {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'6','guibg':'#009999'}, 'normal':False},
+    47: {'description':'Set background color to White', 'attributes': {'ctermbg':'7','guibg':'#ffffff'}, 'normal':False},
+    49: {'description':'Set background color to default (original).', 'attributes': {'ctermbg':'NONE','guibg':'NONE'}, 'normal':True},
+    90: {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'8','guifg':'#000000'}, 'normal':False},
+    91: {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'9','guifg':'#ff0000'}, 'normal':False},
+    92: {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'10','guifg':'#00ff00'}, 'normal':False},
+    93: {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'11','guifg':'#ffff00'}, 'normal':False},
+    94: {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'12','guifg':'#0000ff'}, 'normal':False},
+    95: {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'13','guifg':'#990099'}, 'normal':False},
+    96: {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'14','guifg':'#009999'}, 'normal':False},
+    97: {'description':'Set foreground color to White', 'attributes': {'ctermfg':'15','guifg':'#ffffff'}, 'normal':False},
+    100: {'description':'Set background color to Black', 'attributes': {'ctermbg':'8','guibg':'#000000'}, 'normal':False},
+    101: {'description':'Set background color to Red', 'attributes': {'ctermbg':'9','guibg':'#ff0000'}, 'normal':False},
+    102: {'description':'Set background color to Green', 'attributes': {'ctermbg':'10','guibg':'#00ff00'}, 'normal':False},
+    103: {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'11','guibg':'#ffff00'}, 'normal':False},
+    104: {'description':'Set background color to Blue', 'attributes': {'ctermbg':'12','guibg':'#0000ff'}, 'normal':False},
+    105: {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'13','guibg':'#990099'}, 'normal':False},
+    106: {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'14','guibg':'#009999'}, 'normal':False},
+    107: {'description':'Set background color to White', 'attributes': {'ctermbg':'15','guibg':'#ffffff'}, 'normal':False}
+} 
+# }}}
+
+# used to make unique color keys
+CONQUE_COLOR_CT = 1
+
 # regular expression matching (almost) all control sequences
 CONQUE_SEQ_REGEX      = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|[\u0007-\u000f])", re.UNICODE)
 CONQUE_SEQ_REGEX_CTL  = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
@@ -123,7 +176,7 @@ class Conque:
     tabstops        = []
 
     # color changes
-    color_changes = []
+    color_changes = {}
 
     # function dictionaries
     csi_functions = {}
@@ -135,6 +188,9 @@ class Conque:
 
     # wrap CUF/CUB around line breaks
     wrap_cursor = True
+
+    # enable colors
+    enable_colors = True
 
     # }}}
 
@@ -283,7 +339,9 @@ class Conque:
     # }}}
 
     ###############################################################################################
-    def plain_text(self, input): # {{{
+    # Plain text # {{{
+
+    def plain_text(self, input):
         current_line = self.screen[self.l]
 
         if len(current_line) < self.working_columns:
@@ -294,6 +352,7 @@ class Conque:
             # Table formatting hack
             if self.unwrap_tables and CONQUE_TABLE_OUTPUT.match(input):
                 self.screen[self.l] = current_line[ : self.c - 1] + input + current_line[ self.c + len(input) - 1 : ]
+                self.apply_color(self.c, self.c + len(input))
                 self.c += len(input)
                 return
             logging.debug('autowrap triggered')
@@ -301,17 +360,40 @@ class Conque:
             # if autowrap is enabled
             if self.autowrap:
                 self.screen[self.l] = current_line[ : self.c - 1] + input[ : -1 * diff ]
+                self.apply_color(self.c, self.working_columns)
                 self.ctl_nl()
                 self.ctl_cr()
                 self.plain_text(input[ -1 * diff : ])
             else:
                 self.screen[self.l] = current_line[ : self.c - 1] + input[ : -1 * diff - 1 ] + input[-1]
+                self.apply_color(self.c, self.working_columns)
                 self.c = self.working_columns
 
         # no autowrap
         else:
             self.screen[self.l] = current_line[ : self.c - 1] + input + current_line[ self.c + len(input) - 1 : ]
+            self.apply_color(self.c, self.c + len(input))
             self.c += len(input)
+
+    def apply_color(self, start, end):
+        if len(self.color_changes) == 0 or not self.enable_colors:
+            return
+
+        global CONQUE_COLOR_CT
+
+        highlight = ''
+        for attr in self.color_changes.keys():
+            highlight = highlight + ' ' + attr + '=' + self.color_changes[attr]
+
+        syntax_name = 'EscapeSequenceAt_' + str(self.l) + '_' + str(start) + '_' + str(CONQUE_COLOR_CT)
+        syntax_region = 'syntax match ' + syntax_name + ' /\%' + str(self.screen.get_real_line(self.l)) + 'l\%>' + str(start - 1) + 'c.*\%<' + str(end + 1) + 'c/ contains=ALL oneline'
+        syntax_highlight = 'highlight ' + syntax_name + highlight
+
+        vim.command(syntax_region)
+        vim.command(syntax_highlight)
+
+        CONQUE_COLOR_CT += 1
+
     # }}}
 
     ###############################################################################################
@@ -326,6 +408,8 @@ class Conque:
             self.screen.append('')
         else:
             self.l += 1
+
+        self.color_changes = {}
 
     def ctl_cr(self):
         self.c = 1
@@ -344,8 +428,10 @@ class Conque:
         # check set tabstops
         for i in range(self.c, self.working_columns):
             if self.tabstops[i]:
-                ts = i
+                ts = i + 1
                 break
+
+        logging.debug('tabbing from ' + str(self.c) + ' to ' + str(ts))
 
         self.c = ts
 
@@ -355,10 +441,14 @@ class Conque:
     # CSI functions {{{
 
     def csi_font(self, csi): # {{{
-        return
-        if self.color_changes.len() > 0:
-            self.color_changes[-1].end = self.c
-        self.color_changes.append({'col': self.c, 'end' : -1 , 'codes': csi['vals']})
+        for val in csi['vals']:
+            if CONQUE_FONT.has_key(val):
+                # ignore starting normal colors
+                if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
+                    return
+                # save these color attributes for next plain_text() call
+                for attr in CONQUE_FONT[val]['attributes'].keys():
+                    self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
         # }}}
 
     def csi_clear_line(self, csi): # {{{
@@ -492,6 +582,12 @@ class Conque:
         self.top = new_start
         self.bottom = new_end
         self.working_lines = new_end - new_start + 1
+
+        # if cursor is outside scrolling region, reset it
+        if self.l < self.top:
+            self.l = self.top
+        elif self.l > self.bottom:
+            self.l = self.bottom
         # }}}
 
     def csi_tab_clear(self, csi): # {{{
@@ -499,10 +595,12 @@ class Conque:
         if len(csi['vals']) == 0:
             csi['val'] = 0
 
+        logging.debug('clearing tab with ' + str(csi['val']))
+
         if csi['val'] == 0:
-            self.tabstops[self.c] = False
+            self.tabstops[self.c - 1] = False
         elif csi['val'] == 3:
-            for i in range(1, self.columns):
+            for i in range(0, self.columns + 1):
                 self.tabstops[i] = False
         # }}}
 
@@ -553,7 +651,8 @@ class Conque:
         # }}}
 
     def esc_set_tab(self, csi): # {{{
-        self.tabstops[self.c] = True
+        logging.debug('set tab at ' + str(self.c))
+        self.tabstops[self.c - 1] = True
         # }}}
 
     def esc_scroll_down(self, csi): # {{{
@@ -600,7 +699,9 @@ class Conque:
             self.bottom = self.window.height
 
             # reset screen object attributes
-            self.screen.reset_size()
+            self.l = self.screen.reset_size(self.l)
+
+            logging.debug('signal window resize here ---')
 
             # signal process that screen size has changed
             self.proc.window_resize(self.lines, self.columns)
@@ -625,7 +726,8 @@ class Conque:
         if full != '':
             vals = full.split(';')
             for val in vals:
-                attr['vals'].append(int(val.replace("^0*", "")))
+                if val != '':
+                    attr['vals'].append(int(val.replace("^0*", "")))
 
         if len(attr['vals']) == 1:
             attr['val'] = int(attr['vals'][0])

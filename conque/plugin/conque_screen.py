@@ -89,6 +89,9 @@ class ConqueScreen(object):
     def get_top(self):
         return self.screen_top
 
+    def get_real_line(self, line):
+        return (self.screen_top + line - 1)
+
     def set_cursor(self, line, column):
         # figure out line
         real_line =  self.screen_top + line - 1
@@ -105,9 +108,29 @@ class ConqueScreen(object):
         self.window.cursor = (real_line, real_column - 1)
         #vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
 
-    def reset_size(self):
+    def reset_size(self, line):
+        logging.debug('buffer len is ' + str(len(self.buffer)))
+        logging.debug('buffer height ' + str(self.window.height))
+        logging.debug('old screen top was ' + str(self.screen_top))
+
+        # save cursor line number
+        real_line = self.screen_top + line
+
+        # reset screen size
         self.screen_width = self.window.width
         self.screen_height = self.window.height
         self.screen_top = len(self.buffer) - self.window.height + 1
+        if self.screen_top < 1:
+            self.screen_top = 1
+        logging.debug('new screen top is  ' + str(self.screen_top))
+
+        # align bottom of buffer to bottom of screen
         vim.command('normal ' + str(self.screen_height) + 'kG')
+
+        # return new relative line number
+        return (real_line - self.screen_top)
+
+    def scroll_to_bottom(self):
+        self.window.cursor = (len(self.buffer) - 1, 1)
+        
 
