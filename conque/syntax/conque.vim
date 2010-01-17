@@ -50,7 +50,7 @@ syn match MySQLPrompt "^.\?mysql>" oneline
 syn match MySQLPrompt "^    ->" oneline
 
 syn case ignore
-syn keyword Keyword select count max show table status like as from left right outer inner join where group by having limit offset order desc asc show
+"syn keyword Keyword select count max show table status like as from left right outer inner join where group by having limit offset order desc asc show
 syn case match
 
 " Typical Prompt

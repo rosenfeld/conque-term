@@ -1,5 +1,5 @@
 
-import vim, sys, os, string, signal, re, time, pty, tty, select, fcntl, termios, struct, math
+import vim, re, time, math
 
 import logging # DEBUG
 LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
@@ -376,6 +376,8 @@ class Conque:
             self.c += len(input)
 
     def apply_color(self, start, end):
+        logging.debug('applying colors ' + str(self.color_changes))
+
         if len(self.color_changes) == 0 or not self.enable_colors:
             return
 
@@ -414,6 +416,8 @@ class Conque:
     def ctl_cr(self):
         self.c = 1
 
+        self.color_changes = {}
+
     def ctl_bs(self):
         if self.c > 1:
             self.c += -1
@@ -441,14 +445,23 @@ class Conque:
     # CSI functions {{{
 
     def csi_font(self, csi): # {{{
+        # defaults to 0
+        if len(csi['vals']) == 0:
+            csi['vals'] = [0]
+
         for val in csi['vals']:
             if CONQUE_FONT.has_key(val):
+                logging.debug('color ' + str(CONQUE_FONT[val]))
                 # ignore starting normal colors
                 if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
                     return
+                # clear color changes
+                elif CONQUE_FONT[val]['normal']:
+                    self.color_changes = {}
                 # save these color attributes for next plain_text() call
-                for attr in CONQUE_FONT[val]['attributes'].keys():
-                    self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
+                else:
+                    for attr in CONQUE_FONT[val]['attributes'].keys():
+                        self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
         # }}}
 
     def csi_clear_line(self, csi): # {{{
@@ -511,10 +524,14 @@ class Conque:
 
     def csi_cursor_up(self, csi): # {{{
         self.l = self.bound(self.l - csi['val'], self.top, self.bottom)
+
+        self.color_changes = {}
         # }}}
 
     def csi_cursor_down(self, csi): # {{{
         self.l = self.bound(self.l + csi['val'], self.top, self.bottom)
+
+        self.color_changes = {}
         # }}}
 
     def csi_clear_screen(self, csi): # {{{
@@ -543,6 +560,8 @@ class Conque:
 
             # clear beginning of current line
             self.csi_clear_line(self.parse_csi('1K'))
+
+        self.color_changes = {}
         # }}}
 
     def csi_delete_chars(self, csi): # {{{
@@ -569,6 +588,8 @@ class Conque:
         self.c = self.bound(new_col, 1, self.working_columns)
         if self.c > len(self.screen[self.l]):
             self.screen[self.l] = self.screen[self.l] + ' ' * (self.c - len(self.screen[self.l]))
+
+        self.color_changes = {}
         # }}}
 
     def csi_set_coords(self, csi): # {{{
@@ -588,6 +609,8 @@ class Conque:
             self.l = self.top
         elif self.l > self.bottom:
             self.l = self.bottom
+
+        self.color_changes = {}
         # }}}
 
     def csi_tab_clear(self, csi): # {{{
@@ -618,6 +641,8 @@ class Conque:
         elif csi['val'] == 7: 
             self.autowrap = True
 
+
+        self.color_changes = {}
         # }}}
 
     def csi_reset(self, csi): # {{{
@@ -634,6 +659,8 @@ class Conque:
         elif csi['val'] == 7: 
             self.autowrap = False
 
+
+        self.color_changes = {}
         # }}}
 
     # }}}
@@ -643,6 +670,8 @@ class Conque:
 
     def esc_scroll_up(self, csi): # {{{
         self.ctl_nl()
+
+        self.color_changes = {}
         # }}}
 
     def esc_next_line(self, csi): # {{{
@@ -661,6 +690,8 @@ class Conque:
             self.screen.insert(self.top, '')
         else:
             self.l += -1
+
+        self.color_changes = {}
         # }}}
 
     # }}}

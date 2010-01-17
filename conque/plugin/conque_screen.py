@@ -10,6 +10,8 @@
 #   s[5] = 'Since previous append() command scrolled the terminal down, this is a different line than first cb[5] call'
 #
 
+import vim
+
 ###################################################################################################
 class ConqueScreen(object):
 

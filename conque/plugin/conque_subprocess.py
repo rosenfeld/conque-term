@@ -1,6 +1,14 @@
 
+import os, signal, pty, tty, select, fcntl, termios, struct
+
 ###################################################################################################
 class ConqueSubprocess:
+
+    # process id
+    pid = 0
+    
+    # stdout+stderr file descriptor
+    fd = None
 
     # constructor
     def __init__(self): # {{{
@@ -10,8 +18,8 @@ class ConqueSubprocess:
     # create the pty or whatever (whatever == windows)
     def open(self, command, env = {}): # {{{
         command_arr  = command.split()
-        self.command = command_arr[0]
-        self.args    = command_arr
+        executable   = command_arr[0]
+        args         = command_arr
 
         try:
             self.pid, self.fd = pty.fork()
@@ -39,7 +47,7 @@ class ConqueSubprocess:
             except:
                 pass
 
-            os.execvp(self.command, self.args)
+            os.execvp(executable, args)
 
         # else master, do nothing
         else:
@@ -85,18 +93,16 @@ class ConqueSubprocess:
     # get process status
     def get_status(self): #{{{
 
-        p_status = 1 # boooooooooooooooooogus
+        p_status = True
 
         try:
             if os.waitpid( self.pid, os.WNOHANG )[0]:
-                p_status = 0
-            else:
-                p_status = 1
+                p_status = False
         except:
-            p_status = 0
+            p_status = False
 
-        command = 'let b:proc_py_status = ' + str(p_status)
-        vim.command(command)
+        return p_status
+
         # }}}
 
     # update window size in kernel, then send SIGWINCH to fg process
