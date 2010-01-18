@@ -9,6 +9,18 @@ LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
 
 CONQUE_TERM = 'vt100'
 
+CONQUE_CTL = {
+     7:'bel', # bell
+     8:'bs',  # backspace
+     9:'tab', # tab
+    10:'nl',  # new line
+    13:'cr'   # carriage return
+}
+#    11 : 'vt',  # vertical tab
+#    12 : 'ff',  # form feed
+#    14 : 'so',  # shift out
+#    15 : 'si'   # shift in
+
 # Escape sequences 
 CONQUE_ESCAPE = { 
     'm':'font',
@@ -228,7 +240,10 @@ class Conque:
 
     # read from pty, and update buffer
     def read(self, timeout = 1): # {{{
+        # read from subprocess
         output = self.proc.read(timeout)
+        # and strip null chars
+        output = output.replace(chr(0), '')
 
         if output == '':
             return
@@ -253,24 +268,11 @@ class Conque:
             # Check for control character match {{{
             if CONQUE_SEQ_REGEX_CTL.match(s[0]):
                 logging.debug('control match')
-                if s == u"\u0007": # bell
-                    self.ctl_bel()
-                elif s == u"\u0008": # backspace
-                    self.ctl_bs()
-                elif s == u"\u0009": # tab
-                    self.ctl_tab()
-                elif s == u"\u000a": # new line
-                    self.ctl_nl()
-                elif s == u"\u000b": # vertical tab
-                    pass
-                elif s == u"\u000c": # form feed
-                    pass
-                elif s == u"\u000d": # carriage return
-                    self.ctl_cr()
-                elif s == u"\u000e": # shift out
-                    pass
-                elif s == u"\u000f": # shift in
-                    pass
+                nr = ord(s[0])
+                if nr in CONQUE_CTL:
+                    getattr(self, 'ctl_' + CONQUE_CTL[nr])()
+                else:
+                    logging.debug('escape not found for ' + str(s))
                 # }}}
 
             # check for escape sequence match {{{
