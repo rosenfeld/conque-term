@@ -116,6 +116,7 @@ function! conque_term#set_mappings() "{{{
     " passes HUP to main and all child processes
     execute 'autocmd BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
     execute 'autocmd BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
+    "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
 
     " map first 256 ASCII chars {{{
     for i in range(33, 255)

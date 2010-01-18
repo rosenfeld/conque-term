@@ -125,9 +125,6 @@ CONQUE_FONT = {
 } 
 # }}}
 
-# used to make unique color keys
-CONQUE_COLOR_CT = 1
-
 # regular expression matching (almost) all control sequences
 CONQUE_SEQ_REGEX      = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|[\u0007-\u000f])", re.UNICODE)
 CONQUE_SEQ_REGEX_CTL  = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
@@ -175,13 +172,14 @@ class Conque:
     # tabstop positions
     tabstops        = []
 
+    # enable colors
+    enable_colors = True
+
     # color changes
     color_changes = {}
 
-    # function dictionaries
-    csi_functions = {}
-    esc_functions = {}
-    hash_functions = {}
+    # color history
+    color_history = {}
 
     # don't wrap table output
     unwrap_tables = True
@@ -189,25 +187,12 @@ class Conque:
     # wrap CUF/CUB around line breaks
     wrap_cursor = True
 
-    # enable colors
-    enable_colors = True
-
     # }}}
 
     # constructor
     def __init__(self): # {{{
         self.window = vim.current.window
         self.screen = ConqueScreen()
-
-        # initialize function mappings
-        for k in CONQUE_ESCAPE.keys():
-            self.csi_functions[k] = getattr(self, 'csi_' + CONQUE_ESCAPE[k])
-
-        for k in CONQUE_ESCAPE_PLAIN.keys():
-            self.esc_functions[k] = getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[k])
-
-        for k in CONQUE_ESCAPE_HASH.keys():
-            self.hash_functions[k] = getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[k])
         # }}}
 
     # start program and initialize this instance
@@ -261,6 +246,7 @@ class Conque:
                 continue
 
             logging.debug(str(s) + '--------------------------------------------------------------')
+            logging.debug('chgs ' + str(self.color_changes))
             logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
             logging.debug('current: ' + self.screen[self.l])
 
@@ -290,10 +276,10 @@ class Conque:
             # check for escape sequence match {{{
             elif CONQUE_SEQ_REGEX_CSI.match(s):
                 logging.debug('csi match')
-                if s[-1] in self.csi_functions:
+                if s[-1] in CONQUE_ESCAPE:
                     csi = self.parse_csi(s[2:])
                     logging.debug(str(csi))
-                    self.csi_functions[s[-1]](csi)
+                    getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
                 # }}}
@@ -301,9 +287,9 @@ class Conque:
             # check for hash match {{{
             elif CONQUE_SEQ_REGEX_HASH.match(s):
                 logging.debug('hash match')
-                if s[-1] in self.hash_functions:
+                if s[-1] in CONQUE_ESCAPE_HASH:
                     csi = self.parse_csi(s[2:])
-                    self.hash_functions[s[-1]](csi)
+                    getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])(csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
                 # }}}
@@ -311,9 +297,9 @@ class Conque:
             # check for other escape match {{{
             elif CONQUE_SEQ_REGEX_ESC.match(s):
                 logging.debug('escape match')
-                if s[-1] in self.esc_functions:
+                if s[-1] in CONQUE_ESCAPE_PLAIN:
                     csi = self.parse_csi(s[1:])
-                    self.esc_functions[s[-1]](csi)
+                    getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])(csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
                 # }}}
@@ -342,6 +328,7 @@ class Conque:
     # Plain text # {{{
 
     def plain_text(self, input):
+        logging.debug('plain -- ' + str(self.color_changes))
         current_line = self.screen[self.l]
 
         if len(current_line) < self.working_columns:
@@ -378,23 +365,38 @@ class Conque:
     def apply_color(self, start, end):
         logging.debug('applying colors ' + str(self.color_changes))
 
-        if len(self.color_changes) == 0 or not self.enable_colors:
+        # stop here if coloration is disabled
+        if not self.enable_colors:
             return
 
-        global CONQUE_COLOR_CT
+        real_line = self.screen.get_real_line(self.l)
+        unique_key = str(self.proc.pid)
+
+        # clear colors if we're starting at col 1
+        if start == 1 and self.color_history.has_key(real_line):
+            for syn_name in self.color_history[real_line]:
+                vim.command('syn clear ' + syn_name)
+
+        # if there are no new colors
+        if len(self.color_changes) == 0:
+            return
 
         highlight = ''
         for attr in self.color_changes.keys():
             highlight = highlight + ' ' + attr + '=' + self.color_changes[attr]
 
-        syntax_name = 'EscapeSequenceAt_' + str(self.l) + '_' + str(start) + '_' + str(CONQUE_COLOR_CT)
-        syntax_region = 'syntax match ' + syntax_name + ' /\%' + str(self.screen.get_real_line(self.l)) + 'l\%>' + str(start - 1) + 'c.*\%<' + str(end + 1) + 'c/ contains=ALL oneline'
+        syntax_name = 'EscapeSequenceAt_' + unique_key + '_' + str(self.l) + '_' + str(start) + '_' + str(len(self.color_history) + 1)
+        syntax_region = 'syntax match ' + syntax_name + ' /\%' + str(real_line) + 'l\%>' + str(start - 1) + 'c.*\%<' + str(end + 1) + 'c/ contains=ALL oneline'
         syntax_highlight = 'highlight ' + syntax_name + highlight
 
         vim.command(syntax_region)
         vim.command(syntax_highlight)
 
-        CONQUE_COLOR_CT += 1
+        # add syntax name to history
+        if not self.color_history.has_key(real_line):
+            self.color_history[real_line] = []
+
+        self.color_history[real_line].append(syntax_name)
 
     # }}}
 
@@ -445,6 +447,9 @@ class Conque:
     # CSI functions {{{
 
     def csi_font(self, csi): # {{{
+        if not self.enable_colors:
+            return
+        
         # defaults to 0
         if len(csi['vals']) == 0:
             csi['vals'] = [0]
@@ -454,12 +459,15 @@ class Conque:
                 logging.debug('color ' + str(CONQUE_FONT[val]))
                 # ignore starting normal colors
                 if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
-                    return
+                    logging.debug('a')
+                    continue
                 # clear color changes
                 elif CONQUE_FONT[val]['normal']:
+                    logging.debug('b')
                     self.color_changes = {}
                 # save these color attributes for next plain_text() call
                 else:
+                    logging.debug('c')
                     for attr in CONQUE_FONT[val]['attributes'].keys():
                         self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
         # }}}
@@ -486,6 +494,14 @@ class Conque:
         elif csi['val'] == 2:
             self.screen[self.l] = ''
 
+        # clear colors
+        if csi['val'] == 2 or (csi['val'] == 0 and self.c == 1):
+            real_line = self.screen.get_real_line(self.l)
+            if self.color_history.has_key(real_line):
+                for syn_name in self.color_history[real_line]:
+                    vim.command('syn clear ' + syn_name)
+
+        logging.debug(str(self.color_changes))
         logging.debug('new line: ' + self.screen[self.l])
         # }}}
 
@@ -561,6 +577,14 @@ class Conque:
             # clear beginning of current line
             self.csi_clear_line(self.parse_csi('1K'))
 
+        # clear coloration
+        if csi['val'] == 2 or csi['val'] == 0:
+            real_line = self.screen.get_real_line(self.l)
+            for line in self.color_history.keys():
+                if line >= real_line:
+                    for syn_name in self.color_history[line]:
+                        vim.command('syn clear ' + syn_name)
+
         self.color_changes = {}
         # }}}
 
@@ -589,7 +613,6 @@ class Conque:
         if self.c > len(self.screen[self.l]):
             self.screen[self.l] = self.screen[self.l] + ' ' * (self.c - len(self.screen[self.l]))
 
-        self.color_changes = {}
         # }}}
 
     def csi_set_coords(self, csi): # {{{

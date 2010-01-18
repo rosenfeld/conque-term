@@ -135,4 +135,8 @@ class ConqueScreen(object):
     def scroll_to_bottom(self):
         self.window.cursor = (len(self.buffer) - 1, 1)
         
+    def align(self):
+        # align bottom of buffer to bottom of screen
+        vim.command('normal ' + str(self.screen_height) + 'kG')
+
 
