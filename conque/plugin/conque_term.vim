@@ -1,8 +1,8 @@
-" FILE:     plugin/conque_term.vim
+" FILE:     plugin/conque_term.vim {{{
 " AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
-" LICENSE: {{{
+" LICENSE:
 " Conque - pty interaction in Vim
 " Copyright (C) 2009-2010 Nico Raffo 
 "
@@ -25,6 +25,21 @@
 " LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 " OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 " THE SOFTWARE.
+" }}}
+
+" Requirements {{{
+"   - Vim 7.1+
+"   - Python 2.4+
+"   - Supported operating systems: *nix, Mac, or Cygwin
+"
+" Tested on:
+"  - Vim 7.2 / Python 2.6 / Ubuntu 9.10 (Gnome & GTK)
+"  - Vim 7.2 / Python 2.6 / FreeBSD 8.0 (GTK)
+"  - Vim 7.1 / Python 2.6 / FreeBSD 8.0 (GTK)
+"  - Vim 7.0 / Python 2.6 / FreeBSD 8.0 (GTK)
+"      * Polling doesn't work
+"      * Hangs on exit
+"  - Vim 7.2 / Python 2.4 / OpenSolaris 2009.06 (Gnome)
 " }}}
 
 " Startup {{{
