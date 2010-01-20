@@ -29,17 +29,19 @@
 
 " Requirements {{{
 "   - Vim 7.1+
-"   - Python 2.4+
+"   - Python 2.3+
 "   - Supported operating systems: *nix, Mac, or Cygwin
 "
 " Tested on:
 "  - Vim 7.2 / Python 2.6 / Ubuntu 9.10 (Gnome & GTK)
 "  - Vim 7.2 / Python 2.6 / FreeBSD 8.0 (GTK)
 "  - Vim 7.1 / Python 2.6 / FreeBSD 8.0 (GTK)
-"  - Vim 7.0 / Python 2.6 / FreeBSD 8.0 (GTK)
-"      * Polling doesn't work
-"      * Hangs on exit
+"  x Vim 7.0 / Python 2.6 / FreeBSD 8.0 (GTK)
+"      * feedkeys() doesn't restart updatetime
+"      * Hangs on Vim exit
 "  - Vim 7.2 / Python 2.4 / OpenSolaris 2009.06 (Gnome)
+"  - Vim 7.2 / Python 2.4 / CentOS 5.3 (no GUI)
+"  - Vim 7.1 / Python 2.3 / RHEL 4 (no GUI)
 " }}}
 
 " Startup {{{
