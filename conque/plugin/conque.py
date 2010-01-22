@@ -471,7 +471,10 @@ class Conque:
                 else:
                     logging.debug('c')
                     for attr in CONQUE_FONT[val]['attributes'].keys():
-                        self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
+                        if self.color_changes.has_key(attr) and (attr == 'cterm' or attr == 'gui'):
+                            self.color_changes[attr] += ',' + CONQUE_FONT[val]['attributes'][attr]
+                        else:
+                            self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
         # }}}
 
     def csi_clear_line(self, csi): # {{{

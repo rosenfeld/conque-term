@@ -135,14 +135,19 @@ function! conque_term#set_mappings() "{{{
     execute 'autocmd BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
     "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
 
-    " map first 256 ASCII chars {{{
-    for i in range(33, 255)
+    " map first 128 ASCII chars {{{
+    for i in range(33, 127)
         " <Bar>
         if i == 124
             silent execute "inoremap <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write(chr(124))<CR>"
             continue
         endif
         silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
+    endfor
+
+    " map second 128 ASCII chars
+    for i in range(128, 255)
+        silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . nr2char(i) . "')<CR>"
     endfor
     " }}}
 
@@ -188,6 +193,12 @@ function! conque_term#set_mappings() "{{{
 	vnoremap <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>
 
     nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR>
+    nnoremap <silent> <buffer> r :echo 'Replace mode disabled in shell.'<CR>
+    nnoremap <silent> <buffer> R :echo 'Replace mode disabled in shell.'<CR>
+    nnoremap <silent> <buffer> c :echo 'Change mode disabled in shell.'<CR>
+    nnoremap <silent> <buffer> C :echo 'Change mode disabled in shell.'<CR>
+    nnoremap <silent> <buffer> s :echo 'Change mode disabled in shell.'<CR>
+    nnoremap <silent> <buffer> S :echo 'Change mode disabled in shell.'<CR>
 
     " }}}
 
