@@ -87,7 +87,10 @@ class ConqueSubprocess:
 
     # signal process
     def signal(self, signum): # {{{
-        os.kill(self.pid, signum)
+        try:
+            os.kill(self.pid, signum)
+        except:
+            pass
         # }}}
 
     # get process status

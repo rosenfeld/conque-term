@@ -7,8 +7,6 @@ LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
 
 # CONFIG CONSTANTS  {{{
 
-CONQUE_TERM = 'vt100'
-
 CONQUE_CTL = {
      7:'bel', # bell
      8:'bs',  # backspace
@@ -208,7 +206,7 @@ class Conque:
         # }}}
 
     # start program and initialize this instance
-    def open(self, command): # {{{
+    def open(self, command, options): # {{{
 
         # int vars
         self.columns = self.window.width
@@ -216,6 +214,9 @@ class Conque:
         self.working_columns = self.window.width
         self.working_lines = self.window.height
         self.bottom = self.window.height
+
+        # init color
+        self.enable_colors = options['color']
 
         # init tabstops
         for i in range(0, self.columns + 1):
@@ -226,7 +227,7 @@ class Conque:
 
         # open command
         self.proc = ConqueSubprocess()
-        self.proc.open(command, { 'TERM' : CONQUE_TERM, 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
+        self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
         # }}}
 
     # write to pty
@@ -322,7 +323,7 @@ class Conque:
     # for polling
     def auto_read(self): # {{{
         self.read(1)
-        vim.command('call feedkeys("\<F7>", "t")')
+        vim.command('call feedkeys("\<F22>", "t")')
         self.screen.set_cursor(self.l, self.c)
     # }}}
 

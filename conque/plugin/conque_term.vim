@@ -27,47 +27,112 @@
 " THE SOFTWARE.
 " }}}
 
-" Requirements {{{
-"   - Vim 7.1+
-"   - Python 2.3+
-"   - Supported operating systems: *nix, Mac, or Cygwin
-"
-" Tested on:
-"  - Vim 7.2 / Python 2.6 / Ubuntu 9.10 (Gnome & GTK)
-"  - Vim 7.2 / Python 2.6 / FreeBSD 8.0 (GTK)
-"  - Vim 7.1 / Python 2.6 / FreeBSD 8.0 (GTK)
-"  x Vim 7.0 / Python 2.6 / FreeBSD 8.0 (GTK)
-"      * feedkeys() doesn't restart updatetime
-"      * Hangs on Vim exit
-"  - Vim 7.2 / Python 2.4 / OpenSolaris 2009.06 (Gnome)
-"  - Vim 7.2 / Python 2.4 / CentOS 5.3 (no GUI)
-"  - Vim 7.1 / Python 2.3 / RHEL 4 (no GUI)
-" }}}
-
 " Startup {{{
+setlocal encoding=utf-8
+
 if exists('g:ConqueTerm_Loaded') || v:version < 700
     finish
 endif
-
-setlocal encoding=utf-8
 
 let g:ConqueTerm_Loaded = 1
 let g:ConqueTerm_Idx = 1
 
 command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
+command! -nargs=+ -complete=shellcmd ConqueTermSplit call conque_term#open(<q-args>, ['split'])
+command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-args>, ['vsplit'])
 
-pyfile ~/.vim/plugin/conque.py
-pyfile ~/.vim/plugin/conque_subprocess.py
-pyfile ~/.vim/plugin/conque_screen.py
 " }}}
 
-" Open a command in Conque.
-" This is the root function that is called from Vim to start up Conque.
+" **********************************************************************************************************
+" **** DOCS ************************************************************************************************
+" **********************************************************************************************************
+
+" Usage {{{
+"
+" Type :ConqueTerm <command> to launch an application in the current buffer. E.g.
+" 
+"   :ConqueTerm bash
+"   :ConqueTerm mysql -h localhost -u joe_lunchbox Menu
+"   :ConqueTerm tail -f /var/log/httpd/error_log
+"
+" Keys pressed in insert mode will be sent to the shell, along with output from put commands.
+"
+" Press <F9> in any buffer to send a visual selection to the shell.
+"
+" Press the <Esc> key twice to send a single <Esc> to the shell. Pressing this key once will leave insert mode.
+"
+" }}}
+
+" Options {{{
+"
+" Set the following in your .vimrc (default values shown)
+"
+"   " Enable colors. Setting this to 0 will make your terminal faster.
+"   let g:ConqueTerm_Color = 1
+"
+"   " Set your terminal type. I strong recommend leaving this as vt100, however more features wil be enabled with xterm
+"   let g:ConqueTerm_TERM = 'vt100'
+"
+"   " Set buffer syntax. Conque has highlighting for MySQL, but not much else.
+"   let g:ConqueTerm_Syntax = 'conque'
+"
+" }}}
+
+" Minimum Requirements {{{
+"   - Vim 7.1
+"   - Python 2.3
+"   - Supported operating systems: *nix, Mac, or Cygwin, anything with python pty module
+"
+"     Tested on:
+"      - Vim 7.2 / Python 2.6 / Ubuntu 9.10 (Gnome & GTK)
+"      - Vim 7.2 / Python 2.6 / FreeBSD 8.0 (GTK)
+"      - Vim 7.1 / Python 2.6 / FreeBSD 8.0 (GTK)
+"      x Vim 7.0 / Python 2.6 / FreeBSD 8.0 (GTK)
+"          * feedkeys() doesn't restart updatetime
+"      - Vim 7.2 / Python 2.4 / OpenSolaris 2009.06 (Gnome)
+"      - Vim 7.2 / Python 2.4 / CentOS 5.3 (no GUI)
+"      - Vim 7.1 / Python 2.3 / RHEL 4 (no GUI)
+"      - Vim 7.2 / Python 2.5 / Cygwin (Windows Vista 64b)
+" }}}
+
+" Known bugs {{{
+"
+"  * Font/color highlighting is imperfect and slow. If you don't care about color in your shell, set g:ConqueTerm_Color = 0 in your .vimrc
+"  * Conque only supports the extended ASCII character set for input.
+"  * VT100 escape sequence support is not complete.
+"  * Alt/Meta key support in Vim isn't great in general, and conque is no exception. Pressing <Esc><Esc>x or <Esc><M-x> instead of <M-x> works in most cases.
+"
+" }}}
+
+" **********************************************************************************************************
+" **** CONFIG **********************************************************************************************
+" **********************************************************************************************************
+
+" Enable color {{{
+if !exists('g:ConqueTerm_Color')
+    let g:ConqueTerm_Color = 1
+endif " }}}
+
+" TERM environment setting {{{
+if !exists('g:ConqueTerm_TERM')
+    let g:ConqueTerm_TERM =  'vt100'
+endif " }}}
+
+" Syntax for your buffer {{{
+if !exists('g:ConqueTerm_Syntax')
+    let g:ConqueTerm_Syntax = 'conque'
+endif " }}}
+
+" **********************************************************************************************************
+" **** VIM FUNCTIONS ***************************************************************************************
+" **********************************************************************************************************
+
+" launch conque
 function! conque_term#open(...) "{{{
     let command = get(a:000, 0, '')
     let hooks   = get(a:000, 1, [])
 
-    " bare minimum validation {{{
+    " bare minimum validation
     if empty(command)
         echohl WarningMsg | echomsg "No command found" | echohl None
         return 0
@@ -77,65 +142,84 @@ function! conque_term#open(...) "{{{
             echohl WarningMsg | echomsg "Not an executable" | echohl None
             return 0
         endif
-    endif " }}}
+    endif
 
-    " configure shell buffer display and key mappings
+    " set buffer window options
     let g:Conque_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
     call conque_term#set_buffer_settings(command, hooks)
-
     let b:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
-
-    " open command {{{
-    "try
-        execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
-        execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "')"
-    "catch 
-    "    echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
-    "    return 0
-    "endtry " }}}
-
-    call conque_term#set_mappings()
-
     let g:ConqueTerm_Idx += 1
 
-    execute 'python ' . b:ConqueTerm_Var . '.read(500)'
+    " open command
+    try
+        let l:config = '{"color":' . string(g:ConqueTerm_Color) . ',"TERM":"' . g:ConqueTerm_TERM . '"}'
+        execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
+        execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
+    catch 
+        echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
+        return 0
+    endtry
+
+    " set buffer mappings and auto commands 
+    call conque_term#set_mappings()
 
     startinsert!
     return 1
 endfunction "}}}
 
-" buffer settings, layout, key mappings, and auto commands
+" set buffer options
 function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
+
     " optional hooks to execute, e.g. 'split'
     for h in a:pre_hooks
         silent execute h
     endfor
+    silent execute "edit " . g:Conque_BufName
 
     " buffer settings 
-    silent execute "edit " . g:Conque_BufName
-    setlocal buftype=nofile  " this buffer is not a file, you can't save it
-    "setlocal virtualedit=all " allow cursor to go past end of line
-    setlocal nonumber        " hide line numbers
-    setlocal foldcolumn=0    " reasonable left margin
-    setlocal nowrap          " default to no wrap (esp with MySQL)
-    setlocal noswapfile      " don't bother creating a .swp file
-    setlocal updatetime=50   " trigger cursorhold event after 1s
-    set scrolloff=0          " don't use buffer lines. it makes the 'clear' command not work as expected
-    setfiletype conque       " useful
-    silent execute "setlocal syntax=".g:Conque_Syntax
-    setlocal foldmethod=manual
+    setlocal buftype=nofile    " this buffer is not a file, you can't save it
+    setlocal nonumber          " hide line numbers
+    setlocal foldcolumn=0      " reasonable left margin
+    setlocal nowrap            " default to no wrap (esp with MySQL)
+    setlocal noswapfile        " don't bother creating a .swp file
+    setlocal updatetime=50     " trigger cursorhold event after 1s
+    setlocal scrolloff=0       " don't use buffer lines. it makes the 'clear' command not work as expected
+    setlocal foldmethod=manual " don't fold on {{{}}} and stuff
+    silent execute "setlocal syntax=" . g:ConqueTerm_Syntax
+    setfiletype conque         " useful
 
 endfunction " }}}
 
+" set key mappings and auto commands
 function! conque_term#set_mappings() "{{{
-    " handle unexpected closing of shell
-    " passes HUP to main and all child processes
+
+    " handle unexpected closing of shell, passes HUP to parent and all child processes
     execute 'autocmd BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
+
+    " check for resized/scrolled buffer when entering buffer
     execute 'autocmd BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
+
+    " check for resized/scrolled buffer when entering insert mode
+    " XXX - messed up since we enter insert mode at each updatetime
     "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
 
-    " map first 128 ASCII chars {{{
+    " use F22 key to get more input
+    inoremap <silent> <buffer> <expr> <F22> " \<BS>"
+    silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
+
+    " map ASCII 1-31
+    for c in range(1, 31)
+        " <Esc>
+        if c == 27
+            continue
+        endif
+        silent execute 'inoremap <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
+    endfor
+    silent execute 'inoremap <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+    silent execute 'nnoremap <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
+
+    " map ASCII 33-127
     for i in range(33, 127)
         " <Bar>
         if i == 124
@@ -145,15 +229,14 @@ function! conque_term#set_mappings() "{{{
         silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
     endfor
 
-    " map second 128 ASCII chars
+    " map ASCII 128-255
     for i in range(128, 255)
         silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . nr2char(i) . "')<CR>"
     endfor
-    " }}}
 
     " Special cases
-    silent execute 'inoremap <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
-    silent execute 'inoremap <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
+    "silent execute 'inoremap <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+    "silent execute 'inoremap <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
     silent execute 'inoremap <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
     silent execute 'inoremap <silent> <buffer> <CR> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000d")<CR>'
     silent execute 'inoremap <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
@@ -162,37 +245,19 @@ function! conque_term#set_mappings() "{{{
     silent execute 'inoremap <silent> <buffer> <Right> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
     silent execute 'inoremap <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
 
-    " use F8 key to get more input
-    inoremap <silent> <buffer> <expr> <F7> " \<BS>"
-    silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
-
-    " Control / Meta chars {{{
-    for c in range(1, 31)
-        " esc
-        if c == 27
-            continue
-        endif
-        silent execute 'inoremap <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
-    endfor
-    silent execute 'inoremap <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
-    silent execute 'nnoremap <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
-    
     " meta characters 
     "for c in split(s:chars_meta, '\zs')
     "    silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_term#press_key("<C-v><Esc>' . c . '")<CR>a'
     "endfor
-    " }}}
 
-    " other weird stuff {{{
+    " send selected text into conque
+	vnoremap <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>
 
     " remap paste keys
     silent execute 'nnoremap <silent> <buffer> p :python ' . b:ConqueTerm_Var . '.paste()<CR>'
     silent execute 'nnoremap <silent> <buffer> P :python ' . b:ConqueTerm_Var . '.paste()<CR>'
 
-    " send selected text into conque
-	vnoremap <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>
-
-    nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR>
+    " disable other normal mode keys which insert text
     nnoremap <silent> <buffer> r :echo 'Replace mode disabled in shell.'<CR>
     nnoremap <silent> <buffer> R :echo 'Replace mode disabled in shell.'<CR>
     nnoremap <silent> <buffer> c :echo 'Change mode disabled in shell.'<CR>
@@ -200,7 +265,8 @@ function! conque_term#set_mappings() "{{{
     nnoremap <silent> <buffer> s :echo 'Change mode disabled in shell.'<CR>
     nnoremap <silent> <buffer> S :echo 'Change mode disabled in shell.'<CR>
 
-    " }}}
+    " help message about <Esc>
+    nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR>
 
 endfunction "}}}
 
@@ -221,6 +287,7 @@ function! conque_term#send_selected(type) "{{{
     startinsert!
 endfunction "}}}
 
+" util function to add enough \s to pass a string to python
 function! conque_term#python_escape(input) "{{{
     let l:cleaned = a:input
     let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
@@ -230,5 +297,11 @@ function! conque_term#python_escape(input) "{{{
     return l:cleaned
 endfunction "}}}
 
+" **********************************************************************************************************
+" **** PYTHON **********************************************************************************************
+" **********************************************************************************************************
 
+pyfile ~/.vim/plugin/conque.py
+pyfile ~/.vim/plugin/conque_subprocess.py
+pyfile ~/.vim/plugin/conque_screen.py
 
