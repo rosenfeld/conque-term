@@ -25,6 +25,7 @@ class ConqueSubprocess:
             self.pid, self.fd = pty.fork()
             logging.debug(self.pid)
         except:
+            pass
             logging.debug("pty.fork() failed. Did you mean pty.spork() ???")
 
         # child proc, replace with command after altering terminal attributes

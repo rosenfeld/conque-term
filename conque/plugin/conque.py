@@ -274,6 +274,7 @@ class Conque:
                     getattr(self, 'ctl_' + CONQUE_CTL[nr])()
                 else:
                     logging.debug('escape not found for ' + str(s))
+                    pass
                 # }}}
 
             # check for escape sequence match {{{
@@ -285,6 +286,7 @@ class Conque:
                     getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
+                    pass
                 # }}}
     
             # check for hash match {{{
@@ -295,6 +297,7 @@ class Conque:
                     getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])(csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
+                    pass
                 # }}}
             
             # check for other escape match {{{
@@ -305,6 +308,7 @@ class Conque:
                     getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])(csi)
                 else:
                     logging.debug('escape not found for ' + str(s))
+                    pass
                 # }}}
             
             # else process plain text {{{
