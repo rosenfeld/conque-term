@@ -3,7 +3,7 @@ import vim, re, time, math
 
 import logging # DEBUG
 LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{
 
@@ -219,11 +219,7 @@ class Conque:
         self.enable_colors = options['color']
 
         # init tabstops
-        for i in range(0, self.columns + 1):
-            if i % 8 == 0:
-                self.tabstops.append(True)
-            else:
-                self.tabstops.append(False)
+        self.init_tabstops()
 
         # open command
         self.proc = ConqueSubprocess()
@@ -439,7 +435,7 @@ class Conque:
         ts = self.working_columns
 
         # check set tabstops
-        for i in range(self.c, self.working_columns):
+        for i in range(self.c, len(self.tabstops)):
             if self.tabstops[i]:
                 ts = i + 1
                 break
@@ -765,10 +761,20 @@ class Conque:
             # reset screen object attributes
             self.l = self.screen.reset_size(self.l)
 
+            # reset tabstops
+            self.init_tabstops()
+
             logging.debug('signal window resize here ---')
 
             # signal process that screen size has changed
             self.proc.window_resize(self.lines, self.columns)
+
+    def init_tabstops(self):
+        for i in range(0, self.columns + 1):
+            if i % 8 == 0:
+                self.tabstops.append(True)
+            else:
+                self.tabstops.append(False)
 
     # }}}
 

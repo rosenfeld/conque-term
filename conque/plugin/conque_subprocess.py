@@ -63,27 +63,33 @@ class ConqueSubprocess:
         output = ''
         read_timeout = float(timeout) / 1000
 
-        # what, no do/while?
-        while 1:
-            s_read, s_write, s_error = select.select( [ self.fd ], [], [], read_timeout)
+        try:
+            # what, no do/while?
+            while 1:
+                s_read, s_write, s_error = select.select( [ self.fd ], [], [], read_timeout)
 
-            lines = ''
-            for s_fd in s_read:
-                try:
-                    lines = os.read( self.fd, 32 )
-                except:
-                    pass
-                output = output + lines
+                lines = ''
+                for s_fd in s_read:
+                    try:
+                        lines = os.read( self.fd, 32 )
+                    except:
+                        pass
+                    output = output + lines
 
-            if lines == '':
-                break
+                if lines == '':
+                    break
+        except:
+            pass
 
         return output
         # }}}
 
     # I guess this one's not bad
     def write(self, input): # {{{
-        os.write(self.fd, input)
+        try:
+            os.write(self.fd, input)
+        except:
+            pass
         # }}}
 
     # signal process
