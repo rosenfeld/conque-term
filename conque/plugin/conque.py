@@ -396,7 +396,7 @@ class Conque:
                     # outside
                     if syn['start'] < start:
                         logging.debug('second.half')
-                        self.exec_highlight(real_line, syn['start'], start - 1, syn['highlight'])
+                        self.exec_highlight(real_line, syn['start'], start, syn['highlight'])
 
         if len(to_del) > 0:
             to_del.reverse()
