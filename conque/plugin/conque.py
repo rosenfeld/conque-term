@@ -195,7 +195,7 @@ class Conque:
     unwrap_tables = True
 
     # wrap CUF/CUB around line breaks
-    wrap_cursor = True
+    wrap_cursor = False
 
     # }}}
 
@@ -353,7 +353,9 @@ class Conque:
                 self.apply_color(self.c, self.working_columns)
                 self.ctl_nl()
                 self.ctl_cr()
-                self.plain_text(input[ -1 * diff : ])
+                remaining = input[ -1 * diff : ]
+                logging.debug('remaining text: "' + remaining + '"')
+                self.plain_text(remaining)
             else:
                 self.screen[self.l] = current_line[ : self.c - 1] + input[ : -1 * diff - 1 ] + input[-1]
                 self.apply_color(self.c, self.working_columns)
@@ -739,7 +741,8 @@ class Conque:
 
     def esc_set_tab(self, csi): # {{{
         logging.debug('set tab at ' + str(self.c))
-        self.tabstops[self.c - 1] = True
+        if self.c <= len(self.tabstops):
+            self.tabstops[self.c - 1] = True
         # }}}
 
     def esc_scroll_down(self, csi): # {{{
