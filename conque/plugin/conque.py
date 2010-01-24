@@ -3,7 +3,7 @@ import vim, re, time, math
 
 import logging # DEBUG
 LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{
 
@@ -373,12 +373,35 @@ class Conque:
             return
 
         real_line = self.screen.get_real_line(self.l)
-        unique_key = str(self.proc.pid)
 
-        # clear colors if we're starting at col 1
-        if start == 1 and self.color_history.has_key(real_line):
-            for syn_name in self.color_history[real_line]:
-                vim.command('syn clear ' + syn_name)
+        # check for previous overlapping coloration
+        logging.debug('start ' + str(start) + ' end ' + str(end))
+        to_del = []
+        if self.color_history.has_key(real_line):
+            for i in range(len(self.color_history[real_line])):
+                syn = self.color_history[real_line][i]
+                logging.debug('checking syn ' + str(syn))
+                if syn['start'] >= start and syn['start'] < end:
+                    logging.debug('first')
+                    vim.command('syn clear ' + syn['name'])
+                    to_del.append(i)
+                    # outside
+                    if syn['end'] > end:
+                        logging.debug('first.half')
+                        self.exec_highlight(real_line, end, syn['end'], syn['highlight'])
+                elif syn['end'] > start and syn['end'] <= end:
+                    logging.debug('second')
+                    vim.command('syn clear ' + syn['name'])
+                    to_del.append(i)
+                    # outside
+                    if syn['start'] < start:
+                        logging.debug('second.half')
+                        self.exec_highlight(real_line, syn['start'], start - 1, syn['highlight'])
+
+        if len(to_del) > 0:
+            to_del.reverse()
+            for di in to_del:
+                del self.color_history[real_line][di]
 
         # if there are no new colors
         if len(self.color_changes) == 0:
@@ -387,6 +410,12 @@ class Conque:
         highlight = ''
         for attr in self.color_changes.keys():
             highlight = highlight + ' ' + attr + '=' + self.color_changes[attr]
+
+        # execute the highlight
+        self.exec_highlight(real_line, start, end, highlight)
+
+    def exec_highlight(self, real_line, start, end, highlight):
+        unique_key = str(self.proc.pid)
 
         syntax_name = 'EscapeSequenceAt_' + unique_key + '_' + str(self.l) + '_' + str(start) + '_' + str(len(self.color_history) + 1)
         syntax_region = 'syntax match ' + syntax_name + ' /\%' + str(real_line) + 'l\%>' + str(start - 1) + 'c.*\%<' + str(end + 1) + 'c/ contains=ALL oneline'
@@ -399,7 +428,7 @@ class Conque:
         if not self.color_history.has_key(real_line):
             self.color_history[real_line] = []
 
-        self.color_history[real_line].append(syntax_name)
+        self.color_history[real_line].append({'name':syntax_name, 'start':start, 'end':end, 'highlight':highlight})
 
     # }}}
 
@@ -504,8 +533,8 @@ class Conque:
         if csi['val'] == 2 or (csi['val'] == 0 and self.c == 1):
             real_line = self.screen.get_real_line(self.l)
             if self.color_history.has_key(real_line):
-                for syn_name in self.color_history[real_line]:
-                    vim.command('syn clear ' + syn_name)
+                for syn in self.color_history[real_line]:
+                    vim.command('syn clear ' + syn['name'])
 
         logging.debug(str(self.color_changes))
         logging.debug('new line: ' + self.screen[self.l])
@@ -588,8 +617,8 @@ class Conque:
             real_line = self.screen.get_real_line(self.l)
             for line in self.color_history.keys():
                 if line >= real_line:
-                    for syn_name in self.color_history[line]:
-                        vim.command('syn clear ' + syn_name)
+                    for syn in self.color_history[line]:
+                        vim.command('syn clear ' + syn['name'])
 
         self.color_changes = {}
         # }}}
@@ -796,8 +825,11 @@ class Conque:
         if full != '':
             vals = full.split(';')
             for val in vals:
+                logging.debug(val)
+                val = re.sub("\D", "", val)
+                logging.debug(val)
                 if val != '':
-                    attr['vals'].append(int(val.replace("^0*", "")))
+                    attr['vals'].append(int(val))
 
         if len(attr['vals']) == 1:
             attr['val'] = int(attr['vals'][0])
