@@ -93,6 +93,7 @@ command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-a
 "      - Vim 7.2 / Python 2.4 / CentOS 5.3 (no GUI)
 "      - Vim 7.1 / Python 2.3 / RHEL 4 (no GUI)
 "      - Vim 7.2 / Python 2.5 / Cygwin (Windows Vista 64b)
+"      - MacVim 7.2 / Python 2.3 / OS X 10.6.2
 " }}}
 
 " Known bugs {{{
@@ -235,7 +236,7 @@ function! conque_term#set_mappings() "{{{
     endfor
 
     " Special cases
-    "silent execute 'inoremap <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+    silent execute 'inoremap <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
     "silent execute 'inoremap <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
     silent execute 'inoremap <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
     silent execute 'inoremap <silent> <buffer> <CR> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000d")<CR>'
