@@ -53,13 +53,13 @@ command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-a
 " 
 "   :ConqueTerm bash
 "   :ConqueTerm mysql -h localhost -u joe_lunchbox Menu
-"   :ConqueTerm tail -f /var/log/httpd/error_log
+"   :ConqueTerm man top
 "
 " Keys pressed in insert mode will be sent to the shell, along with output from put commands.
 "
 " Press <F9> in any buffer to send a visual selection to the shell.
 "
-" Press the <Esc> key twice to send a single <Esc> to the shell. Pressing this key once will leave insert mode.
+" Press the <Esc> key twice to send a single <Esc> to the shell. Pressing this key once will leave insert mode like normal.
 "
 " }}}
 
@@ -70,18 +70,21 @@ command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-a
 "   " Enable colors. Setting this to 0 will make your terminal faster.
 "   let g:ConqueTerm_Color = 1
 "
-"   " Set your terminal type. I strong recommend leaving this as vt100, however more features wil be enabled with xterm
+"   " Set your terminal type. I strong recommend leaving this as vt100, however more features may be enabled with xterm.
 "   let g:ConqueTerm_TERM = 'vt100'
 "
 "   " Set buffer syntax. Conque has highlighting for MySQL, but not much else.
 "   let g:ConqueTerm_Syntax = 'conque'
+"
+"   " Continue updating shell when it's not the current, focused buffer
+"   let g:ConqueTerm_ReadUnfocused = 1
 "
 " }}}
 
 " Minimum Requirements {{{
 "   - Vim 7.1
 "   - Python 2.3
-"   - Supported operating systems: *nix, Mac, or Cygwin, anything with python pty module
+"   - Supported operating systems: *nix, Mac, or Cygwin, anything with python pty module (Not Windows)
 "
 "     Tested on:
 "      - Vim 7.2 / Python 2.6 / Ubuntu 9.10 (Gnome & GTK)
@@ -105,6 +108,27 @@ command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-a
 "
 " }}}
 
+" Todo {{{
+"
+"  * Polling unfucused conque buffers
+"  * Enable graphics character set
+"  * Consider supporting xterm escapes
+"  * Improve color logic
+"  * Find a graceful solution to UTF-8 input (impossible without mapping each key?)
+"  * Find a graceful solution to Meta key input
+"  * Find a graceful alternative to updatetime polling
+"  * Windows support (See PyConsole http://www.vim.org/scripts/script.php?script_id=1974)
+"
+" }}}
+
+" Contribute {{{
+"
+" Bugs, suggestions and patches are all welcome.
+"
+" Get the developement source code at http://conque.googlecode.com or email nicoraffo@gmail.com
+"
+" }}}
+
 " **********************************************************************************************************
 " **** CONFIG **********************************************************************************************
 " **********************************************************************************************************
@@ -122,6 +146,11 @@ endif " }}}
 " Syntax for your buffer {{{
 if !exists('g:ConqueTerm_Syntax')
     let g:ConqueTerm_Syntax = 'conque'
+endif " }}}
+
+" Read when unfocused {{{
+if !exists('g:ConqueTerm_ReadUnfocused')
+    let g:ConqueTerm_ReadUnfocused = 1
 endif " }}}
 
 " **********************************************************************************************************
@@ -184,7 +213,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal foldcolumn=0      " reasonable left margin
     setlocal nowrap            " default to no wrap (esp with MySQL)
     setlocal noswapfile        " don't bother creating a .swp file
-    setlocal updatetime=50     " trigger cursorhold event after 1s
+    setlocal updatetime=50     " trigger cursorhold event after 50ms / XXX - global
     setlocal scrolloff=0       " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     silent execute "setlocal syntax=" . g:ConqueTerm_Syntax
@@ -201,9 +230,18 @@ function! conque_term#set_mappings() "{{{
     " check for resized/scrolled buffer when entering buffer
     execute 'autocmd BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
 
+    " set/reset updatetime on entering/exiting buffer
+    autocmd BufEnter <buffer> set updatetime=50
+    autocmd BufLeave <buffer> set updatetime=1000
+
     " check for resized/scrolled buffer when entering insert mode
     " XXX - messed up since we enter insert mode at each updatetime
     "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
+
+    " read more output when this isn't the current buffer
+    if g:ConqueTerm_ReadUnfocused == 1
+        autocmd CursorHold * call conque_term#read_all()
+    endif
 
     " use F22 key to get more input
     inoremap <silent> <buffer> <expr> <F22> " \<BS>"
@@ -286,6 +324,13 @@ function! conque_term#send_selected(type) "{{{
 
     let @@ = reg_save
     startinsert!
+endfunction "}}}
+
+" read from all known conque buffers
+function! conque_term#read_all() "{{{
+    for i in range(1, g:ConqueTerm_Idx - 1)
+        execute 'python ConqueTerm_' . string(i) . '.read(1)'
+    endfor
 endfunction "}}}
 
 " util function to add enough \s to pass a string to python

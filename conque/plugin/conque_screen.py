@@ -78,6 +78,7 @@ class ConqueScreen(object):
         logging.debug('checking new line ' + str(len(self.buffer)) + ' against top ' + str(self.screen_top) + ' + height ' + str(self.screen_height) + ' - 1 = ' + str(self.screen_top + self.screen_height - 1))
         if len(self.buffer) > self.screen_top + self.screen_height - 1:
             self.screen_top += 1
+        if vim.current.buffer.number == self.buffer.number:
             vim.command('normal G')
     # }}}
 
