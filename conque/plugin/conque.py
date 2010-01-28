@@ -420,7 +420,8 @@ class Conque:
         unique_key = str(self.proc.pid)
 
         syntax_name = 'EscapeSequenceAt_' + unique_key + '_' + str(self.l) + '_' + str(start) + '_' + str(len(self.color_history) + 1)
-        syntax_region = 'syntax match ' + syntax_name + ' /\%' + str(real_line) + 'l\%>' + str(start - 1) + 'c.*\%<' + str(end + 1) + 'c/ contains=ALL oneline'
+        syntax_options = ' contains=ALLBUT,ConqueString,MySQLString,MySQLKeyword oneline'
+        syntax_region = 'syntax match ' + syntax_name + ' /\%' + str(real_line) + 'l\%>' + str(start - 1) + 'c.*\%<' + str(end + 1) + 'c/' + syntax_options
         syntax_highlight = 'highlight ' + syntax_name + highlight
 
         vim.command(syntax_region)

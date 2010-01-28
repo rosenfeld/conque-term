@@ -153,6 +153,11 @@ if !exists('g:ConqueTerm_ReadUnfocused')
     let g:ConqueTerm_ReadUnfocused = 1
 endif " }}}
 
+" Use this regular expression to highlight prompt {{{
+if !exists('g:ConqueTerm_PromptRegex')
+    let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
+endif " }}}
+
 " **********************************************************************************************************
 " **** VIM FUNCTIONS ***************************************************************************************
 " **********************************************************************************************************
@@ -305,7 +310,7 @@ function! conque_term#set_mappings() "{{{
     nnoremap <silent> <buffer> S :echo 'Change mode disabled in shell.'<CR>
 
     " help message about <Esc>
-    nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR>
+    "nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR><Esc>
 
 endfunction "}}}
 
@@ -328,6 +333,11 @@ endfunction "}}}
 
 " read from all known conque buffers
 function! conque_term#read_all() "{{{
+    " don't run this if we're in a conque buffer
+    if exists('b:ConqueTerm_Var')
+        return
+    endif
+
     for i in range(1, g:ConqueTerm_Idx - 1)
         execute 'python ConqueTerm_' . string(i) . '.read(1)'
     endfor
