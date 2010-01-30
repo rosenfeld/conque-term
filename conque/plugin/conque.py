@@ -323,7 +323,10 @@ class Conque:
     # for polling
     def auto_read(self): # {{{
         self.read(1)
-        vim.command('call feedkeys("\<F22>", "t")')
+        if self.c == 1:
+            vim.command('call feedkeys("\<F23>", "t")')
+        else:
+            vim.command('call feedkeys("\<F22>", "t")')
         self.screen.set_cursor(self.l, self.c)
     # }}}
 

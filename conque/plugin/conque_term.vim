@@ -251,7 +251,8 @@ function! conque_term#set_mappings() "{{{
     endif
 
     " use F22 key to get more input
-    inoremap <silent> <buffer> <F22> <Esc>a
+    inoremap <silent> <buffer> <expr> <F22> "\<left>\<right>"
+    inoremap <silent> <buffer> <expr> <F23> "\<right>\<left>"
     silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
 
     " map ASCII 1-31
