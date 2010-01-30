@@ -220,6 +220,8 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal noswapfile        " don't bother creating a .swp file
     setlocal updatetime=50     " trigger cursorhold event after 50ms / XXX - global
     setlocal scrolloff=0       " don't use buffer lines. it makes the 'clear' command not work as expected
+    setlocal sidescrolloff=0   " don't use buffer lines. it makes the 'clear' command not work as expected
+    setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     silent execute "setlocal syntax=" . g:ConqueTerm_Syntax
     setfiletype conque         " useful
