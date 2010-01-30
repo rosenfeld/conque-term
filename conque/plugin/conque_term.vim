@@ -251,7 +251,7 @@ function! conque_term#set_mappings() "{{{
     endif
 
     " use F22 key to get more input
-    inoremap <silent> <buffer> <expr> <F22> " \<BS>"
+    inoremap <silent> <buffer> <F22> <Esc>a
     silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
 
     " map ASCII 1-31
@@ -340,9 +340,13 @@ function! conque_term#read_all() "{{{
         return
     endif
 
-    for i in range(1, g:ConqueTerm_Idx - 1)
-        execute 'python ConqueTerm_' . string(i) . '.read(1)'
-    endfor
+    try
+        for i in range(1, g:ConqueTerm_Idx - 1)
+            execute 'python ConqueTerm_' . string(i) . '.read(1)'
+        endfor
+    catch
+        " probably a deleted buffer
+    endtry
 endfunction "}}}
 
 " util function to add enough \s to pass a string to python
