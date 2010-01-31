@@ -64,8 +64,8 @@ endif
 " *******************************************************************************************************************
 
 " Typical Prompt
-syn match ConquePromptLine '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$ .*$' contains=ConquePrompt,ConqueString oneline
-syn match ConquePrompt '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$ ' contained oneline
+silent execute "syn match ConquePromptLine '" . g:ConqueTerm_PromptRegex . ".*$' contains=ConquePrompt,ConqueString oneline"
+silent execute "syn match ConquePrompt '" . g:ConqueTerm_PromptRegex . "' contained oneline"
 hi def link ConquePrompt Identifier
 
 " Strings

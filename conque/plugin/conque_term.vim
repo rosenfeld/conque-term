@@ -110,7 +110,8 @@ command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-a
 
 " Todo {{{
 "
-"  * Polling unfucused conque buffers
+"  * Fix pasting from named registers
+"  * Polling unfucused conque buffers (Top explodes when window resizes)
 "  * Enable graphics character set
 "  * Consider supporting xterm escapes
 "  * Improve color logic
@@ -123,6 +124,21 @@ command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-a
 
 " Contribute {{{
 "
+" The two contributions most in need are improvements to Vim itself. I currently use hacks to simulate 
+" a key press event and repeating CursorHold event. The Vim todo.txt document lists proposed improvements to 
+" give users this behavior without hacks. Having a key press event should allow Conque to work with multi-byte
+" input. If you are a Vim developer, please consider prioritizing these two items:
+"
+"   * todo.txt (Autocommands, line ~3137)
+"       8   Add an event like CursorHold that is triggered repeatedly, not just once
+"           after typing something.
+"
+"   * todo.txt (Autocommands, proposed event list, line ~3189)
+"       InsertCharPre   - user typed character Insert mode, before inserting the
+"           char.  Pattern is matched with text before the cursor.
+"           Set v:char to the character, can be changed.
+"           (not triggered when 'paste' is set).
+" 
 " Bugs, suggestions and patches are all welcome.
 "
 " Get the developement source code at http://conque.googlecode.com or email nicoraffo@gmail.com
@@ -223,6 +239,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal sidescrolloff=0   " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
+    setlocal switchbuf=usetab  " switch tabs with the <f9> command
     silent execute "setlocal syntax=" . g:ConqueTerm_Syntax
     setfiletype conque         " useful
 
@@ -348,6 +365,10 @@ function! conque_term#read_all() "{{{
     catch
         " probably a deleted buffer
     endtry
+
+    " TODO - doesn't work
+    " restart updatetime
+    "call feedkeys("\x80\xFD\x35")
 endfunction "}}}
 
 " util function to add enough \s to pass a string to python
