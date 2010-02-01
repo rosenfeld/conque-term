@@ -27,21 +27,9 @@
 " THE SOFTWARE.
 " }}}
 
-" Startup {{{
-setlocal encoding=utf-8
-
 if exists('g:ConqueTerm_Loaded') || v:version < 700
     finish
 endif
-
-let g:ConqueTerm_Loaded = 1
-let g:ConqueTerm_Idx = 1
-
-command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
-command! -nargs=+ -complete=shellcmd ConqueTermSplit call conque_term#open(<q-args>, ['split'])
-command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-args>, ['vsplit'])
-
-" }}}
 
 " **********************************************************************************************************
 " **** DOCS ************************************************************************************************
@@ -173,4 +161,20 @@ endif " }}}
 if !exists('g:ConqueTerm_PromptRegex')
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
 endif " }}}
+
+" **********************************************************************************************************
+" **** Startup *********************************************************************************************
+" **********************************************************************************************************
+
+" Startup {{{
+setlocal encoding=utf-8
+
+let g:ConqueTerm_Loaded = 1
+let g:ConqueTerm_Idx = 1
+
+command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
+command! -nargs=+ -complete=shellcmd ConqueTermSplit call conque_term#open(<q-args>, ['split'])
+command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-args>, ['vsplit'])
+
+" }}}
 
