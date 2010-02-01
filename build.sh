@@ -1,13 +1,14 @@
 #!/bin/bash
 
-sed -i 's#^pyfile .*$##' conque_term.vim
-echo "python << EOF" >> conque_term.vim
-cat conque.py >> conque_term.vim
-cat conque_subprocess.py >> conque_term.vim
-cat conque_screen.py >> conque_term.vim
-echo "EOF" >> conque_term.vim
-echo "" >> conque_term.vim
+sed -i 's#^pyfile .*$##' autoload/conque_term.vim
+echo "python << EOF" >> autoload/conque_term.vim
+cat autoload/conque.py >> autoload/conque_term.vim
+cat autoload/conque_subprocess.py >> autoload/conque_term.vim
+cat autoload/conque_screen.py >> autoload/conque_term.vim
+echo "EOF" >> autoload/conque_term.vim
+echo "" >> autoload/conque_term.vim
 
-sed -i 's#^.*logging.*$##' conque_term.vim
-sed -i 's#^.*debug.*$##' conque_term.vim
+sed -i 's#^.*logging.*$##' autoload/conque_term.vim
+sed -i 's#^.*debug.*$##' autoload/conque_term.vim
+sed -i 's#^.*LOG_FILENAME.*$##' autoload/conque_term.vim
 
