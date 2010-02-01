@@ -83,6 +83,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     silent execute "edit " . g:Conque_BufName
 
     " buffer settings 
+    setlocal nocompatible      " conque won't work in compatible mode
     setlocal buftype=nofile    " this buffer is not a file, you can't save it
     setlocal nonumber          " hide line numbers
     setlocal foldcolumn=0      " reasonable left margin
