@@ -1,0 +1,35 @@
+
+Conque Changelog
+
+ - 0.6 / 2009-12-18
+    * Fix GVim errors with non-english locale
+    * No functional changes
+
+ - 0.5 / 2009-12-02
+    * Various performance enhancements and bugfixes. 
+    * Rewritten escape sequence processing
+
+ - 0.4 / 2009-10-30
+    * Improved history and tab completion
+    * Fix escape sequence formatting and improve highlighting
+    * Send selected text to shell from any buffer
+    * Add special handling of "vi" and "man" commands
+    * Improve error handling
+    * Add key mappings for <C-p> <C-n> <C-l> <C-j>
+    * Various bugfixes
+
+ - 0.3 / 2009-10-13
+    * Apply escape sequence coloring to output, e.g. ls --color
+    * Clean up syntax files for portability
+    * Fix several Vim 7.1 bugs
+    * Bugfixes for multiple shell buffers
+    * Add experimental shell folding option
+
+ - 0.2 / 2009-10-01
+    * Rewritten subprocess management module in python instead of c
+    * Added support for OS X, partial support for Windows
+    * Improved tab completion
+
+ - 0.1 / 2009-09-03
+    * Initial release
+
