@@ -136,11 +136,12 @@ CONQUE_FONT = {
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX      = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|[\u0007-\u000f])", re.UNICODE)
-CONQUE_SEQ_REGEX_CTL  = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
-CONQUE_SEQ_REGEX_CSI  = re.compile(ur"^\u001b\[", re.UNICODE)
-CONQUE_SEQ_REGEX_HASH = re.compile(ur"^\u001b#", re.UNICODE)
-CONQUE_SEQ_REGEX_ESC  = re.compile(ur"^\u001b", re.UNICODE)
+CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0007-\u000f])", re.UNICODE)
+CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
+CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
+CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
+CONQUE_SEQ_REGEX_HASH  = re.compile(ur"^\u001b#", re.UNICODE)
+CONQUE_SEQ_REGEX_ESC   = re.compile(ur"^\u001b", re.UNICODE)
 
 # match table output
 CONQUE_TABLE_OUTPUT   = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
@@ -291,6 +292,12 @@ class Conque:
                     else:
                         logging.debug('escape not found for ' + str(s))
                         pass
+                    # }}}
+        
+                # check for title match {{{
+                elif CONQUE_SEQ_REGEX_TITLE.match(s):
+                    logging.debug('title match')
+                    self.change_title(s[2], s[4:-1])
                     # }}}
         
                 # check for hash match {{{
@@ -781,6 +788,13 @@ class Conque:
 
     ###############################################################################################
     # Random stuff {{{
+
+    def change_title(self, key, val):
+        logging.debug(key)
+        logging.debug(val)
+        if key == '0' or key == '2':
+            logging.debug('setting title to ' + re.escape(val))
+            vim.command('setlocal statusline=' + re.escape(val))
 
     def paste(self):
         self.write(vim.eval('@@'))
