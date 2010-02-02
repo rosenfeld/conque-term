@@ -251,66 +251,72 @@ class Conque:
 
         chunks = CONQUE_SEQ_REGEX.split(output)
         logging.debug('ouput chunking took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
+        logging.debug(str(chunks))
 
         debug_profile_start = time.time()
-        for s in chunks:
-            if s == '':
-                continue
 
-            logging.debug(str(s) + '--------------------------------------------------------------')
-            logging.debug('chgs ' + str(self.color_changes))
-            logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
-            logging.debug('current: ' + self.screen[self.l])
+        # don't go through all the csi regex if length is one (no matches)
+        if len(chunks) == 1:
+            logging.debug('short circuit')
+            self.plain_text(chunks[0])
 
-            # Check for control character match {{{
-            if CONQUE_SEQ_REGEX_CTL.match(s[0]):
-                logging.debug('control match')
-                nr = ord(s[0])
-                if nr in CONQUE_CTL:
-                    getattr(self, 'ctl_' + CONQUE_CTL[nr])()
-                else:
-                    logging.debug('escape not found for ' + str(s))
-                    pass
-                # }}}
+        else:
+            for s in chunks:
+                if s == '':
+                    continue
 
-            # check for escape sequence match {{{
-            elif CONQUE_SEQ_REGEX_CSI.match(s):
-                logging.debug('csi match')
-                if s[-1] in CONQUE_ESCAPE:
-                    csi = self.parse_csi(s[2:])
-                    logging.debug(str(csi))
-                    getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
+                logging.debug(str(s) + '--------------------------------------------------------------')
+                logging.debug('chgs ' + str(self.color_changes))
+                logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
+                logging.debug('current: ' + self.screen[self.l])
+
+                # Check for control character match {{{
+                if CONQUE_SEQ_REGEX_CTL.match(s[0]):
+                    logging.debug('control match')
+                    nr = ord(s[0])
+                    if nr in CONQUE_CTL:
+                        getattr(self, 'ctl_' + CONQUE_CTL[nr])()
+                    else:
+                        logging.debug('escape not found for ' + str(s))
+                        pass
+                    # }}}
+
+                # check for escape sequence match {{{
+                elif CONQUE_SEQ_REGEX_CSI.match(s):
+                    logging.debug('csi match')
+                    if s[-1] in CONQUE_ESCAPE:
+                        csi = self.parse_csi(s[2:])
+                        logging.debug(str(csi))
+                        getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
+                    else:
+                        logging.debug('escape not found for ' + str(s))
+                        pass
+                    # }}}
+        
+                # check for hash match {{{
+                elif CONQUE_SEQ_REGEX_HASH.match(s):
+                    logging.debug('hash match')
+                    if s[-1] in CONQUE_ESCAPE_HASH:
+                        getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])()
+                    else:
+                        logging.debug('escape not found for ' + str(s))
+                        pass
+                    # }}}
+                
+                # check for other escape match {{{
+                elif CONQUE_SEQ_REGEX_ESC.match(s):
+                    logging.debug('escape match')
+                    if s[-1] in CONQUE_ESCAPE_PLAIN:
+                        getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])()
+                    else:
+                        logging.debug('escape not found for ' + str(s))
+                        pass
+                    # }}}
+                
+                # else process plain text {{{
                 else:
-                    logging.debug('escape not found for ' + str(s))
-                    pass
-                # }}}
-    
-            # check for hash match {{{
-            elif CONQUE_SEQ_REGEX_HASH.match(s):
-                logging.debug('hash match')
-                if s[-1] in CONQUE_ESCAPE_HASH:
-                    csi = self.parse_csi(s[2:])
-                    getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])(csi)
-                else:
-                    logging.debug('escape not found for ' + str(s))
-                    pass
-                # }}}
-            
-            # check for other escape match {{{
-            elif CONQUE_SEQ_REGEX_ESC.match(s):
-                logging.debug('escape match')
-                if s[-1] in CONQUE_ESCAPE_PLAIN:
-                    csi = self.parse_csi(s[1:])
-                    getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])(csi)
-                else:
-                    logging.debug('escape not found for ' + str(s))
-                    pass
-                # }}}
-            
-            # else process plain text {{{
-            else:
-                self.plain_text(s)
-                # }}}
+                    self.plain_text(s)
+                    # }}}
 
         # set cursor position
         self.screen.set_cursor(self.l, self.c)
@@ -732,24 +738,24 @@ class Conque:
     ###############################################################################################
     # ESC functions {{{
 
-    def esc_scroll_up(self, csi): # {{{
+    def esc_scroll_up(self): # {{{
         self.ctl_nl()
 
         self.color_changes = {}
         # }}}
 
-    def esc_next_line(self, csi): # {{{
+    def esc_next_line(self): # {{{
         self.ctl_nl()
         self.c = 1
         # }}}
 
-    def esc_set_tab(self, csi): # {{{
+    def esc_set_tab(self): # {{{
         logging.debug('set tab at ' + str(self.c))
         if self.c <= len(self.tabstops):
             self.tabstops[self.c - 1] = True
         # }}}
 
-    def esc_scroll_down(self, csi): # {{{
+    def esc_scroll_down(self): # {{{
         if self.l == self.top:
             del self.screen[self.bottom]
             self.screen.insert(self.top, '')
@@ -764,7 +770,7 @@ class Conque:
     ###############################################################################################
     # HASH functions {{{
 
-    def hash_screen_alignment_test(self, csi): # {{{
+    def hash_screen_alignment_test(self): # {{{
         self.csi_clear_screen(self.parse_csi('2J'))
         self.working_lines = self.lines
         for l in range(1, self.lines + 1):
