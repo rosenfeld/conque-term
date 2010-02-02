@@ -149,7 +149,7 @@ endif " }}}
 
 " Syntax for your buffer {{{
 if !exists('g:ConqueTerm_Syntax')
-    let g:ConqueTerm_Syntax = 'conque'
+    let g:ConqueTerm_Syntax = 'conque_term'
 endif " }}}
 
 " Read when unfocused {{{

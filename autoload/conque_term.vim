@@ -95,7 +95,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     setlocal switchbuf=usetab  " switch tabs with the <f9> command
-    setfiletype conque         " useful
+    setfiletype conque_term    " useful
     silent execute "setlocal syntax=" . g:ConqueTerm_Syntax
 
 endfunction " }}}
