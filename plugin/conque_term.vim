@@ -27,111 +27,11 @@
 " THE SOFTWARE.
 " }}}
 
+" See docs/conque_term.txt for help or type :help conque_term
+
 if exists('g:ConqueTerm_Loaded') || v:version < 700
     finish
 endif
-
-" **********************************************************************************************************
-" **** DOCS ************************************************************************************************
-" **********************************************************************************************************
-
-" Usage {{{
-"
-" Type :ConqueTerm <command> to launch an application in the current buffer. E.g.
-" 
-"   :ConqueTerm bash
-"   :ConqueTerm mysql -h localhost -u joe_lunchbox Menu
-"   :ConqueTerm man top
-"
-" Keys pressed in insert mode will be sent to the shell, along with output from put commands.
-"
-" Press <F9> in any buffer to send a visual selection to the shell.
-"
-" Press the <Esc> key twice to send a single <Esc> to the shell. Pressing this key once will leave insert mode like normal.
-"
-" }}}
-
-" Options {{{
-"
-" Set the following in your .vimrc (default values shown)
-"
-"   " Enable colors. Setting this to 0 will make your terminal faster.
-"   let g:ConqueTerm_Color = 1
-"
-"   " Set your terminal type. I strong recommend leaving this as vt100, however more features may be enabled with xterm.
-"   let g:ConqueTerm_TERM = 'vt100'
-"
-"   " Set buffer syntax. Conque has highlighting for MySQL, but not much else.
-"   let g:ConqueTerm_Syntax = 'conque'
-"
-"   " Continue updating shell when it's not the current, focused buffer
-"   let g:ConqueTerm_ReadUnfocused = 1
-"
-" }}}
-
-" Minimum Requirements {{{
-"   - Vim 7.1
-"   - Python 2.3
-"   - Supported operating systems: *nix, Mac, or Cygwin, anything with python pty module (Not Windows)
-"
-"     Tested on:
-"      - Vim 7.2 / Python 2.6 / Ubuntu 9.10 (Gnome & GTK)
-"      - Vim 7.2 / Python 2.6 / FreeBSD 8.0 (GTK)
-"      - Vim 7.1 / Python 2.6 / FreeBSD 8.0 (GTK)
-"      x Vim 7.0 / Python 2.6 / FreeBSD 8.0 (GTK)
-"          * feedkeys() doesn't restart updatetime
-"      - Vim 7.2 / Python 2.4 / OpenSolaris 2009.06 (Gnome)
-"      - Vim 7.2 / Python 2.4 / CentOS 5.3 (no GUI)
-"      - Vim 7.1 / Python 2.3 / RHEL 4 (no GUI)
-"      - Vim 7.2 / Python 2.5 / Cygwin (Windows Vista 64b)
-"      - MacVim 7.2 / Python 2.3 / OS X 10.6.2
-" }}}
-
-" Known bugs {{{
-"
-"  * Font/color highlighting is imperfect and slow. If you don't care about color in your shell, set g:ConqueTerm_Color = 0 in your .vimrc
-"  * Conque only supports the extended ASCII character set for input.
-"  * VT100 escape sequence support is not complete.
-"  * Alt/Meta key support in Vim isn't great in general, and conque is no exception. Pressing <Esc><Esc>x or <Esc><M-x> instead of <M-x> works in most cases.
-"
-" }}}
-
-" Todo {{{
-"
-"  * Fix pasting from named registers
-"  * Polling unfucused conque buffers (Top explodes when window resizes)
-"  * Enable graphics character set
-"  * Consider supporting xterm escapes
-"  * Improve color logic
-"  * Find a graceful solution to UTF-8 input (impossible without mapping each key?)
-"  * Find a graceful solution to Meta key input
-"  * Find a graceful alternative to updatetime polling
-"  * Windows support (See PyConsole http://www.vim.org/scripts/script.php?script_id=1974)
-"
-" }}}
-
-" Contribute {{{
-"
-" The two contributions most in need are improvements to Vim itself. I currently use hacks to simulate 
-" a key press event and repeating CursorHold event. The Vim todo.txt document lists proposed improvements to 
-" give users this behavior without hacks. Having a key press event should allow Conque to work with multi-byte
-" input. If you are a Vim developer, please consider prioritizing these two items:
-"
-"   * todo.txt (Autocommands, line ~3137)
-"       8   Add an event like CursorHold that is triggered repeatedly, not just once
-"           after typing something.
-"
-"   * todo.txt (Autocommands, proposed event list, line ~3189)
-"       InsertCharPre   - user typed character Insert mode, before inserting the
-"           char.  Pattern is matched with text before the cursor.
-"           Set v:char to the character, can be changed.
-"           (not triggered when 'paste' is set).
-" 
-" Bugs, suggestions and patches are all welcome.
-"
-" Get the developement source code at http://conque.googlecode.com or email nicoraffo@gmail.com
-"
-" }}}
 
 " **********************************************************************************************************
 " **** CONFIG **********************************************************************************************
