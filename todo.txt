@@ -1,0 +1,8 @@
+
+ * fix colors (see Issue)
+ * allow C-w in insert mode (see Issue)
+ * allow pausing mappings so user can edit screen
+ x check window size on window size 
+ * send entire buffer contents to conque instead of just visual selection
+ * add better error message if python is not installed
+

@@ -1,4 +1,5 @@
 " FILE:     plugin/conque_term.vim {{{
+                                                                                    
 " AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
@@ -67,7 +68,7 @@ function! conque_term#open(...) "{{{
     endtry
 
     " set buffer mappings and auto commands 
-    call conque_term#set_mappings()
+    call conque_term#set_mappings('add')
 
     startinsert!
     return 1
@@ -78,9 +79,9 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
 
     " optional hooks to execute, e.g. 'split'
     for h in a:pre_hooks
-        silent execute h
+        sil exe h
     endfor
-    silent execute "edit " . g:Conque_BufName
+    sil exe "edit " . g:Conque_BufName
 
     " buffer settings 
     setlocal nocompatible      " conque won't work in compatible mode
@@ -96,36 +97,58 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     setlocal switchbuf=usetab  " switch tabs with the <f9> command
     setfiletype conque_term    " useful
-    silent execute "setlocal syntax=" . g:ConqueTerm_Syntax
+    sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
 
 endfunction " }}}
 
 " set key mappings and auto commands
-function! conque_term#set_mappings() "{{{
+function! conque_term#set_mappings(action) "{{{
 
-    " handle unexpected closing of shell, passes HUP to parent and all child processes
-    execute 'autocmd BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
+    " if mappings are being removed, add 'un'
+    let map_modifier = 'nore'
+    if a:action == 'remove'
+        let map_modifier = 'un'
+    endif
 
-    " check for resized/scrolled buffer when entering buffer
-    execute 'autocmd BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
+    " remove all auto commands
+    if a:action == 'remove'
+        execute 'autocmd! ' . b:ConqueTerm_Var
 
-    " set/reset updatetime on entering/exiting buffer
-    autocmd BufEnter <buffer> set updatetime=50
-    autocmd BufLeave <buffer> set updatetime=1000
+    else
+	execute 'augroup ' . b:ConqueTerm_Var
 
-    " check for resized/scrolled buffer when entering insert mode
-    " XXX - messed up since we enter insert mode at each updatetime
-    "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
+        " handle unexpected closing of shell, passes HUP to parent and all child processes
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
 
-    " read more output when this isn't the current buffer
-    if g:ConqueTerm_ReadUnfocused == 1
-        autocmd CursorHold * call conque_term#read_all()
+        " check for resized/scrolled buffer when entering buffer
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' VimResized python ' . b:ConqueTerm_Var . '.update_window_size()'
+
+        " set/reset updatetime on entering/exiting buffer
+            autocmd BufEnter <buffer> set updatetime=50
+            autocmd BufLeave <buffer> set updatetime=1000
+
+        " check for resized/scrolled buffer when entering insert mode
+        " XXX - messed up since we enter insert mode at each updatetime
+        "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
+
+        " read more output when this isn't the current buffer
+        if g:ConqueTerm_ReadUnfocused == 1
+            execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHold * call conque_term#read_all()'
+        endif
+
+	" poll for more output
+    	sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
     endif
 
     " use F22 key to get more input
-    inoremap <silent> <buffer> <expr> <F22> "\<left>\<right>"
-    inoremap <silent> <buffer> <expr> <F23> "\<right>\<left>"
-    silent execute 'autocmd CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
+    if a:action == 'add'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F22> "\<left>\<right>"'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F23> "\<right>\<left>"'
+    else
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F22>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F23>'
+    endif
 
     " map ASCII 1-31
     for c in range(1, 31)
@@ -133,79 +156,137 @@ function! conque_term#set_mappings() "{{{
         if c == 27
             continue
         endif
-        silent execute 'inoremap <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
+        if a:action == 'add'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
+        else
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '>'
+        endif
     endfor
-    silent execute 'inoremap <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
-    silent execute 'nnoremap <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
+    if a:action == 'add'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
+    else
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c>'
+    endif
 
     " map ASCII 33-127
     for i in range(33, 127)
         " <Bar>
         if i == 124
-            silent execute "inoremap <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write(chr(124))<CR>"
+            if a:action == 'add'
+                sil exe "i" . map_modifier . "map <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write(chr(124))<CR>"
+            else
+                sil exe "i" . map_modifier . "map <silent> <buffer> <Bar>"
+            endif
             continue
         endif
-        silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
+        if a:action == 'add'
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
+        else
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
+        endif
     endfor
 
     " map ASCII 128-255
     for i in range(128, 255)
-        silent execute "inoremap <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . nr2char(i) . "')<CR>"
+        if a:action == 'add'
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . nr2char(i) . "')<CR>"
+        else
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
+        endif
     endfor
 
     " Special cases
-    silent execute 'inoremap <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
-    "silent execute 'inoremap <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
-    silent execute 'inoremap <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
-    silent execute 'inoremap <silent> <buffer> <CR> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000d")<CR>'
-    silent execute 'inoremap <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
-    silent execute 'inoremap <silent> <buffer> <Up> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
-    silent execute 'inoremap <silent> <buffer> <Down> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
-    silent execute 'inoremap <silent> <buffer> <Right> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
-    silent execute 'inoremap <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
+    if a:action == 'add'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
+        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
+        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <CR> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000d")<CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
+    else
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS>'
+        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <Tab>'
+        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <LF>'
+        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left>'
+    endif
 
     " meta characters 
     "for c in split(s:chars_meta, '\zs')
-    "    silent execute 'inoremap <silent> <buffer> <M-' . c . '> <Esc>:call conque_term#press_key("<C-v><Esc>' . c . '")<CR>a'
+    "    sil exe 'i' . map_modifier . 'map <silent> <buffer> <M-' . c . '> <Esc>:call conque_term#press_key("<C-v><Esc>' . c . '")<CR>a'
     "endfor
 
     " send selected text into conque
-	vnoremap <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>
+    if a:action == 'add'
+        sil exe 'v' . map_modifier . 'map <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>'
+    else
+        sil exe 'v' . map_modifier . 'map <silent> <F9>'
+    endif
 
     " remap paste keys
-    silent execute 'nnoremap <silent> <buffer> p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
-    silent execute 'nnoremap <silent> <buffer> P :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
-    silent execute 'nnoremap <silent> <buffer> ]p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
-    silent execute 'nnoremap <silent> <buffer> [p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
+    if a:action == 'add'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> P :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> ]p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> [p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
+    else
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> p'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> P'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> ]p'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> [p'
+    endif
     if has('gui_running')
-        silent execute 'inoremap <buffer> <S-Insert> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
+        if a:action == 'add'
+            sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
+        else
+            sil exe 'i' . map_modifier . 'map <buffer> <S-Insert>'
+        endif
     endif
 
     " disable other normal mode keys which insert text
-    nnoremap <silent> <buffer> r :echo 'Replace mode disabled in shell.'<CR>
-    nnoremap <silent> <buffer> R :echo 'Replace mode disabled in shell.'<CR>
-    nnoremap <silent> <buffer> c :echo 'Change mode disabled in shell.'<CR>
-    nnoremap <silent> <buffer> C :echo 'Change mode disabled in shell.'<CR>
-    nnoremap <silent> <buffer> s :echo 'Change mode disabled in shell.'<CR>
-    nnoremap <silent> <buffer> S :echo 'Change mode disabled in shell.'<CR>
+    if a:action == 'add'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> r :echo "Replace mode disabled in shell."<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> R :echo "Replace mode disabled in shell."<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> c :echo "Change mode disabled in shell."<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> C :echo "Change mode disabled in shell."<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> s :echo "Change mode disabled in shell."<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> S :echo "Change mode disabled in shell."<CR>'
+    else
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> r'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> R'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> c'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> C'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> s'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> S'
+    endif
 
     " help message about <Esc>
-    "nnoremap <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR><Esc>
+    "n' . map_modifier . 'map <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR><Esc>
 
-endfunction "}}}
+endfunction " }}}
+
 
 " send selected text from another buffer
 function! conque_term#send_selected(type) "{{{
     let reg_save = @@
 
     " yank current selection
-    silent execute "normal! `<" . a:type . "`>y"
+    sil exe "normal! `<" . a:type . "`>y"
 
     let @@ = substitute(@@, '^[\r\n]*', '', '')
     let @@ = substitute(@@, '[\r\n]*$', '', '')
 
-    silent execute ":sb " . g:Conque_BufName
-    silent execute 'python ' . g:ConqueTerm_Var . '.paste_selection()'
+    sil exe ":sb " . g:Conque_BufName
+    sil exe 'python ' . g:ConqueTerm_Var . '.paste_selection()'
 
     let @@ = reg_save
     startinsert!
