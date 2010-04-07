@@ -68,7 +68,7 @@ function! conque_term#open(...) "{{{
     endtry
 
     " set buffer mappings and auto commands 
-    call conque_term#set_mappings('add')
+    call conque_term#set_mappings('start')
 
     startinsert!
     return 1
@@ -104,14 +104,27 @@ endfunction " }}}
 " set key mappings and auto commands
 function! conque_term#set_mappings(action) "{{{
 
+    " set action
+    if a:action == 'toggle'
+        if exists('b:conque_on') && b:conque_on == 1
+            let l:action = 'stop'
+            echohl WarningMsg | echomsg "Terminal is paused" | echohl None
+        else
+            let l:action = 'start'
+            echohl WarningMsg | echomsg "Terminal is resumed" | echohl None
+        endif
+    else
+        let l:action = a:action
+    endif
+
     " if mappings are being removed, add 'un'
     let map_modifier = 'nore'
-    if a:action == 'remove'
+    if l:action == 'stop'
         let map_modifier = 'un'
     endif
 
     " remove all auto commands
-    if a:action == 'remove'
+    if l:action == 'stop'
         execute 'autocmd! ' . b:ConqueTerm_Var
 
     else
@@ -142,7 +155,7 @@ function! conque_term#set_mappings(action) "{{{
     endif
 
     " use F22 key to get more input
-    if a:action == 'add'
+    if l:action == 'start'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F22> "\<left>\<right>"'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F23> "\<right>\<left>"'
     else
@@ -156,13 +169,13 @@ function! conque_term#set_mappings(action) "{{{
         if c == 27
             continue
         endif
-        if a:action == 'add'
+        if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
         else
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '>'
         endif
     endfor
-    if a:action == 'add'
+    if l:action == 'start'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
     else
@@ -174,14 +187,14 @@ function! conque_term#set_mappings(action) "{{{
     for i in range(33, 127)
         " <Bar>
         if i == 124
-            if a:action == 'add'
+            if l:action == 'start'
                 sil exe "i" . map_modifier . "map <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write(chr(124))<CR>"
             else
                 sil exe "i" . map_modifier . "map <silent> <buffer> <Bar>"
             endif
             continue
         endif
-        if a:action == 'add'
+        if l:action == 'start'
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
         else
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
@@ -190,7 +203,7 @@ function! conque_term#set_mappings(action) "{{{
 
     " map ASCII 128-255
     for i in range(128, 255)
-        if a:action == 'add'
+        if l:action == 'start'
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write('" . nr2char(i) . "')<CR>"
         else
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
@@ -198,7 +211,7 @@ function! conque_term#set_mappings(action) "{{{
     endfor
 
     " Special cases
-    if a:action == 'add'
+    if l:action == 'start'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
         "sil exe 'i' . map_modifier . 'map <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
         "sil exe 'i' . map_modifier . 'map <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
@@ -226,14 +239,14 @@ function! conque_term#set_mappings(action) "{{{
     "endfor
 
     " send selected text into conque
-    if a:action == 'add'
+    if l:action == 'start'
         sil exe 'v' . map_modifier . 'map <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>'
     else
         sil exe 'v' . map_modifier . 'map <silent> <F9>'
     endif
 
     " remap paste keys
-    if a:action == 'add'
+    if l:action == 'start'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> P :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> ]p :python ' . b:ConqueTerm_Var . '.write(vim.eval("@@"))<CR>a'
@@ -245,7 +258,7 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'n' . map_modifier . 'map <silent> <buffer> [p'
     endif
     if has('gui_running')
-        if a:action == 'add'
+        if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
         else
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert>'
@@ -253,7 +266,7 @@ function! conque_term#set_mappings(action) "{{{
     endif
 
     " disable other normal mode keys which insert text
-    if a:action == 'add'
+    if l:action == 'start'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> r :echo "Replace mode disabled in shell."<CR>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> R :echo "Replace mode disabled in shell."<CR>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> c :echo "Change mode disabled in shell."<CR>'
@@ -271,6 +284,18 @@ function! conque_term#set_mappings(action) "{{{
 
     " help message about <Esc>
     "n' . map_modifier . 'map <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR><Esc>
+
+    " set conque as on or off
+    if l:action == 'start'
+        let b:conque_on = 1
+    else
+        let b:conque_on = 0
+    endif
+
+    " map command to start stop the shell
+    if a:action == 'start'
+        nnoremap <F5> :<C-u>call conque_term#set_mappings('toggle')<CR>
+    endif
 
 endfunction " }}}
 
