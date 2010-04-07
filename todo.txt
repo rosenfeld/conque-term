@@ -2,14 +2,14 @@
  -- Trivial --
 
  * fix colors (see Issue)
- * allow C-w in insert mode (see Issue)
- * allow pausing mappings so user can edit screen
+ x allow pausing mappings so user can edit screen
  x send SIGWNCH on window resize 
  * send entire buffer contents to conque instead of just visual selection
- * add better error message if python is not installed
+ x add better error message if python is not installed
  * check Bram's <f\e> suggestion for normal mode timer
 
  -- Impossible --
 
  * scroll unfocused buffer
+ * allow C-w in insert mode (see Issue)
 

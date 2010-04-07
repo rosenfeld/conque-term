@@ -39,6 +39,10 @@ function! conque_term#open(...) "{{{
     let hooks   = get(a:000, 1, [])
 
     " bare minimum validation
+    if has('python') != 1
+        echohl WarningMsg | echomsg "Conque requires the Python interface to be installed" | echohl None
+        return 0
+    endif
     if empty(command)
         echohl WarningMsg | echomsg "No command found" | echohl None
         return 0
