@@ -55,7 +55,7 @@ function! conque_term#open(...) "{{{
     endif
 
     " set buffer window options
-    let g:Conque_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
+    let g:ConqueTerm_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
     call conque_term#set_buffer_settings(command, hooks)
     let b:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
@@ -85,7 +85,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     for h in a:pre_hooks
         sil exe h
     endfor
-    sil exe "edit " . g:Conque_BufName
+    sil exe "edit " . g:ConqueTerm_BufName
 
     " buffer settings 
     setlocal nocompatible      " conque won't work in compatible mode
@@ -180,11 +180,28 @@ function! conque_term#set_mappings(action) "{{{
         endif
     endfor
     if l:action == 'start'
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
     else
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c>'
+    endif
+
+    " leave insert mode
+    if !exists('g:ConqueTerm_EscKey') || g:ConqueTerm_EscKey == '<Esc>'
+        " use <Esc><Esc> to send <Esc> to terminal
+        if l:action == 'start'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+        else
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc>'
+        endif
+    else
+        " use <Esc> to send <Esc> to terminal
+        if l:action == 'start'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . g:ConqueTerm_EscKey . ' <Esc>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+        else
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . g:ConqueTerm_EscKey
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc>'
+        endif
     endif
 
     " map ASCII 33-127
@@ -314,7 +331,7 @@ function! conque_term#send_selected(type) "{{{
     let @@ = substitute(@@, '^[\r\n]*', '', '')
     let @@ = substitute(@@, '[\r\n]*$', '', '')
 
-    sil exe ":sb " . g:Conque_BufName
+    sil exe ":sb " . g:ConqueTerm_BufName
     sil exe 'python ' . g:ConqueTerm_Var . '.paste_selection()'
 
     let @@ = reg_save

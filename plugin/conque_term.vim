@@ -37,6 +37,11 @@ endif
 " **** CONFIG **********************************************************************************************
 " **********************************************************************************************************
 
+" Choose key mapping to leave insert mode {{{
+if !exists('g:ConqueTerm_EscKey')
+    let g:ConqueTerm_EscKey = '<Esc>'
+endif " }}}
+
 " Enable color {{{
 if !exists('g:ConqueTerm_Color')
     let g:ConqueTerm_Color = 1
