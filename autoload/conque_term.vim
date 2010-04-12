@@ -132,7 +132,7 @@ function! conque_term#set_mappings(action) "{{{
         execute 'autocmd! ' . b:ConqueTerm_Var
 
     else
-	execute 'augroup ' . b:ConqueTerm_Var
+        execute 'augroup ' . b:ConqueTerm_Var
 
         " handle unexpected closing of shell, passes HUP to parent and all child processes
         execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
@@ -154,8 +154,8 @@ function! conque_term#set_mappings(action) "{{{
             execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHold * call conque_term#read_all()'
         endif
 
-	" poll for more output
-    	sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
+        " poll for more output
+        sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
     endif
 
     " use F22 key to get more input
