@@ -3,7 +3,7 @@ import vim, re, time, math
 
 import logging # DEBUG
 LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{
 
@@ -508,12 +508,12 @@ class Conque:
         # 256 xterm color foreground
         if len(csi['vals']) == 3 and csi['vals'][0] == 38 and csi['vals'][1] == 5:
             self.color_changes['ctermfg'] = str(csi['vals'][2])
-            self.color_changes['guifg'] = str(csi['vals'][2])
+            self.color_changes['guifg'] = '#' + self.xterm_to_rgb(csi['vals'][2])
 
         # 256 xterm color background
         elif len(csi['vals']) == 3 and csi['vals'][0] == 48 and csi['vals'][1] == 5:
             self.color_changes['ctermbg'] = str(csi['vals'][2])
-            self.color_changes['guibg'] = str(csi['vals'][2])
+            self.color_changes['guibg'] = '#' + self.xterm_to_rgb(csi['vals'][2])
 
         # 16 colors
         else:
@@ -884,6 +884,25 @@ class Conque:
             return min
 
         return val
+        # }}}
+
+    def xterm_to_rgb(self, color_code): # {{{
+        if color_code < 16:
+            ascii_colors = ['000000', 'CD0000', '00CD00', 'CDCD00', '0000EE', 'CD00CD', '00CDCD', 'E5E5E5', 
+                   '7F7F7F', 'FF0000', '00FF00', 'FFFF00', '5C5CFF', 'FF00FF', '00FFFF', 'FFFFFF']
+            return ascii_colors[color_code]
+
+        elif color_code < 232:
+            cc = int(color_code) - 16
+
+            p1 = "%02x" % (math.floor(cc / 36) * (255/5))
+            p2 = "%02x" % (math.floor((cc % 36) / 6) * (255/5))
+            p3 = "%02x" % (math.floor(cc % 6) * (255/5))
+
+            return p1 + p2 + p3
+        else:
+            grey_tone = "%02x" % math.floor((255/24) * (color_code - 232))
+            return grey_tone + grey_tone + grey_tone
         # }}}
 
     # }}}
