@@ -38,6 +38,8 @@ endif
 " **********************************************************************************************************
 
 " Choose key mapping to leave insert mode {{{
+" If you choose something other than '<Esc>', then <Esc> will be sent to terminal
+" Using a different key will usually fix Alt/Meta key issues
 if !exists('g:ConqueTerm_EscKey')
     let g:ConqueTerm_EscKey = '<Esc>'
 endif " }}}

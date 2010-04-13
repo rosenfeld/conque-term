@@ -3,7 +3,7 @@ import vim, re, time, math
 
 import logging # DEBUG
 LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{
 
@@ -505,25 +505,37 @@ class Conque:
         if len(csi['vals']) == 0:
             csi['vals'] = [0]
 
-        for val in csi['vals']:
-            if CONQUE_FONT.has_key(val):
-                logging.debug('color ' + str(CONQUE_FONT[val]))
-                # ignore starting normal colors
-                if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
-                    logging.debug('a')
-                    continue
-                # clear color changes
-                elif CONQUE_FONT[val]['normal']:
-                    logging.debug('b')
-                    self.color_changes = {}
-                # save these color attributes for next plain_text() call
-                else:
-                    logging.debug('c')
-                    for attr in CONQUE_FONT[val]['attributes'].keys():
-                        if self.color_changes.has_key(attr) and (attr == 'cterm' or attr == 'gui'):
-                            self.color_changes[attr] += ',' + CONQUE_FONT[val]['attributes'][attr]
-                        else:
-                            self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
+        # 256 xterm color foreground
+        if len(csi['vals']) == 3 and csi['vals'][0] == 38 and csi['vals'][1] == 5:
+            self.color_changes['ctermfg'] = str(csi['vals'][2])
+            self.color_changes['guifg'] = str(csi['vals'][2])
+
+        # 256 xterm color background
+        elif len(csi['vals']) == 3 and csi['vals'][0] == 48 and csi['vals'][1] == 5:
+            self.color_changes['ctermbg'] = str(csi['vals'][2])
+            self.color_changes['guibg'] = str(csi['vals'][2])
+
+        # 16 colors
+        else:
+            for val in csi['vals']:
+                if CONQUE_FONT.has_key(val):
+                    logging.debug('color ' + str(CONQUE_FONT[val]))
+                    # ignore starting normal colors
+                    if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
+                        logging.debug('a')
+                        continue
+                    # clear color changes
+                    elif CONQUE_FONT[val]['normal']:
+                        logging.debug('b')
+                        self.color_changes = {}
+                    # save these color attributes for next plain_text() call
+                    else:
+                        logging.debug('c')
+                        for attr in CONQUE_FONT[val]['attributes'].keys():
+                            if self.color_changes.has_key(attr) and (attr == 'cterm' or attr == 'gui'):
+                                self.color_changes[attr] += ',' + CONQUE_FONT[val]['attributes'][attr]
+                            else:
+                                self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
         # }}}
 
     def csi_clear_line(self, csi): # {{{
