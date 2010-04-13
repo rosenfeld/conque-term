@@ -49,7 +49,7 @@ function! conque_term#open(...) "{{{
     else
         let l:cargs = split(command, '\s')
         if !executable(l:cargs[0])
-            echohl WarningMsg | echomsg "Not an executable" | echohl None
+            echohl WarningMsg | echomsg "Not an executable: " . l:cargs[0] | echohl None
             return 0
         endif
     endif
