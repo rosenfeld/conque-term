@@ -154,7 +154,6 @@ class Conque:
     # CLASS PROPERTIES {{{ 
 
     # screen object
-    window          = None
     screen          = None
 
     # subprocess object
@@ -202,7 +201,6 @@ class Conque:
 
     # constructor
     def __init__(self): # {{{
-        self.window = vim.current.window
         self.screen = ConqueScreen()
         # }}}
 
@@ -210,11 +208,11 @@ class Conque:
     def open(self, command, options): # {{{
 
         # int vars
-        self.columns = self.window.width
-        self.lines = self.window.height
-        self.working_columns = self.window.width
-        self.working_lines = self.window.height
-        self.bottom = self.window.height
+        self.columns = vim.current.window.width
+        self.lines = vim.current.window.height
+        self.working_columns = vim.current.window.width
+        self.working_lines = vim.current.window.height
+        self.bottom = vim.current.window.height
 
         # init color
         self.enable_colors = options['color']
@@ -687,7 +685,7 @@ class Conque:
             new_end = csi['vals'][1]
         else:
             new_start = 1
-            new_end = self.window.height
+            new_end = vim.current.window.height
 
         self.top = new_start
         self.bottom = new_end
@@ -817,14 +815,14 @@ class Conque:
 
     def update_window_size(self):
         # resize if needed
-        if self.window.width != self.columns or self.window.height != self.lines:
+        if vim.current.window.width != self.columns or vim.current.window.height != self.lines:
 
             # reset all window size attributes to default
-            self.columns = self.window.width
-            self.lines = self.window.height
-            self.working_columns = self.window.width
-            self.working_lines = self.window.height
-            self.bottom = self.window.height
+            self.columns = vim.current.window.width
+            self.lines = vim.current.window.height
+            self.working_columns = vim.current.window.width
+            self.working_lines = vim.current.window.height
+            self.bottom = vim.current.window.height
 
             # reset screen object attributes
             self.l = self.screen.reset_size(self.l)

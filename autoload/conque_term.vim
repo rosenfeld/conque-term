@@ -89,6 +89,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
 
     " buffer settings 
     setlocal nocompatible      " conque won't work in compatible mode
+    setlocal nopaste           " conque won't work in paste mode
     setlocal buftype=nofile    " this buffer is not a file, you can't save it
     setlocal nonumber          " hide line numbers
     setlocal foldcolumn=0      " reasonable left margin
@@ -142,8 +143,8 @@ function! conque_term#set_mappings(action) "{{{
         execute 'autocmd ' . b:ConqueTerm_Var . ' VimResized python ' . b:ConqueTerm_Var . '.update_window_size()'
 
         " set/reset updatetime on entering/exiting buffer
-            autocmd BufEnter <buffer> set updatetime=50
-            autocmd BufLeave <buffer> set updatetime=1000
+        autocmd BufEnter <buffer> set updatetime=50
+        autocmd BufLeave <buffer> set updatetime=2000
 
         " check for resized/scrolled buffer when entering insert mode
         " XXX - messed up since we enter insert mode at each updatetime
@@ -202,6 +203,15 @@ function! conque_term#set_mappings(action) "{{{
             sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . g:ConqueTerm_EscKey
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc>'
         endif
+    endif
+
+    " Map <C-w> in insert mode
+    if exists('g:ConqueTerm_CWInsert') && g:ConqueTerm_CWInsert == 1
+      inoremap <silent> <buffer> <C-w>j <Esc><C-w>j
+      inoremap <silent> <buffer> <C-w>k <Esc><C-w>k
+      inoremap <silent> <buffer> <C-w>h <Esc><C-w>h
+      inoremap <silent> <buffer> <C-w>l <Esc><C-w>l
+      inoremap <silent> <buffer> <C-w>w <Esc><C-w>w
     endif
 
     " map ASCII 33-127

@@ -44,7 +44,8 @@ if !exists('g:ConqueTerm_EscKey')
     let g:ConqueTerm_EscKey = '<Esc>'
 endif " }}}
 
-" Enable color {{{
+" Enable color. {{{
+" If your apps use a lot of color it will slow down the shell.
 if !exists('g:ConqueTerm_Color')
     let g:ConqueTerm_Color = 1
 endif " }}}
@@ -59,14 +60,19 @@ if !exists('g:ConqueTerm_Syntax')
     let g:ConqueTerm_Syntax = 'conque_term'
 endif " }}}
 
-" Read when unfocused {{{
+" Keep on updating the shell window after you've switched to another buffer {{{
 if !exists('g:ConqueTerm_ReadUnfocused')
-    let g:ConqueTerm_ReadUnfocused = 1
+    let g:ConqueTerm_ReadUnfocused = 0
 endif " }}}
 
 " Use this regular expression to highlight prompt {{{
 if !exists('g:ConqueTerm_PromptRegex')
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
+endif " }}}
+
+" Allow user to use <C-w> keys to switch window in insert mode. {{{
+if !exists('g:ConqueTerm_CWInsert')
+    let g:ConqueTerm_CWInsert = 0
 endif " }}}
 
 " **********************************************************************************************************

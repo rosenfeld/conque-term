@@ -19,7 +19,6 @@ class ConqueScreen(object):
 
     # the buffer
     buffer          = None
-    window          = None
 
     # screen and scrolling regions
     screen_top      = 1
@@ -32,11 +31,10 @@ class ConqueScreen(object):
 
     def __init__(self): # {{{
         self.buffer = vim.current.buffer
-        self.window = vim.current.window
 
         self.screen_top = 1
-        self.screen_width = self.window.width
-        self.screen_height = self.window.height
+        self.screen_width = vim.current.window.width
+        self.screen_height = vim.current.window.height
     # }}}
 
     ###############################################################################################
@@ -130,22 +128,22 @@ class ConqueScreen(object):
             self.buffer[real_line - 1] = self.buffer[real_line - 1] + ' ' * (real_column - len(self.buffer[real_line - 1]))
 
         # XXX - Using python's version makes lots of super-fun segfaults
-        self.window.cursor = (real_line, real_column - 1)
+        vim.current.window.cursor = (real_line, real_column - 1)
         #vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
     # }}}
 
     def reset_size(self, line): # {{{
         logging.debug('buffer len is ' + str(len(self.buffer)))
-        logging.debug('buffer height ' + str(self.window.height))
+        logging.debug('buffer height ' + str(vim.current.window.height))
         logging.debug('old screen top was ' + str(self.screen_top))
 
         # save cursor line number
         real_line = self.screen_top + line
 
         # reset screen size
-        self.screen_width = self.window.width
-        self.screen_height = self.window.height
-        self.screen_top = len(self.buffer) - self.window.height + 1
+        self.screen_width = vim.current.window.width
+        self.screen_height = vim.current.window.height
+        self.screen_top = len(self.buffer) - vim.current.window.height + 1
         if self.screen_top < 1:
             self.screen_top = 1
         logging.debug('new screen top is  ' + str(self.screen_top))
@@ -158,7 +156,7 @@ class ConqueScreen(object):
     # }}}
 
     def scroll_to_bottom(self): # {{{
-        self.window.cursor = (len(self.buffer) - 1, 1)
+        vim.current.window.cursor = (len(self.buffer) - 1, 1)
     # }}}
         
     def align(self): # {{{
