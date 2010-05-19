@@ -335,17 +335,28 @@ endfunction " }}}
 function! conque_term#send_selected(type) "{{{
     let reg_save = @@
 
+    " save user's sb settings
+    let sb_save = &switchbuf
+    set switchbuf=usetab
+
     " yank current selection
     sil exe "normal! `<" . a:type . "`>y"
 
+    " format yanked text
     let @@ = substitute(@@, '^[\r\n]*', '', '')
     let @@ = substitute(@@, '[\r\n]*$', '', '')
 
+    " execute yanked text
     sil exe ":sb " . g:ConqueTerm_BufName
     sil exe 'python ' . g:ConqueTerm_Var . '.paste_selection()'
 
+    " reset original values
     let @@ = reg_save
+    sil exe 'set switchbuf=' . sb_save
+
+    " scroll buffer left
     startinsert!
+    normal 0zH
 endfunction "}}}
 
 " read from all known conque buffers
