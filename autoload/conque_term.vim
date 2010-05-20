@@ -1,5 +1,5 @@
 " FILE:     plugin/conque_term.vim {{{
-                                                                                    
+"
 " AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
@@ -207,11 +207,11 @@ function! conque_term#set_mappings(action) "{{{
 
     " Map <C-w> in insert mode
     if exists('g:ConqueTerm_CWInsert') && g:ConqueTerm_CWInsert == 1
-      inoremap <silent> <buffer> <C-w>j <Esc><C-w>j
-      inoremap <silent> <buffer> <C-w>k <Esc><C-w>k
-      inoremap <silent> <buffer> <C-w>h <Esc><C-w>h
-      inoremap <silent> <buffer> <C-w>l <Esc><C-w>l
-      inoremap <silent> <buffer> <C-w>w <Esc><C-w>w
+        inoremap <silent> <buffer> <C-w>j <Esc><C-w>j
+        inoremap <silent> <buffer> <C-w>k <Esc><C-w>k
+        inoremap <silent> <buffer> <C-w>h <Esc><C-w>h
+        inoremap <silent> <buffer> <C-w>l <Esc><C-w>l
+        inoremap <silent> <buffer> <C-w>w <Esc><C-w>w
     endif
 
     " map ASCII 33-127
@@ -244,9 +244,6 @@ function! conque_term#set_mappings(action) "{{{
     " Special cases
     if l:action == 'start'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
-        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <Tab> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0009")<CR>'
-        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <LF> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000a")<CR>'
-        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <CR> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u000d")<CR>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
@@ -254,20 +251,12 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
     else
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS>'
-        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <Tab>'
-        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <LF>'
-        "sil exe 'i' . map_modifier . 'map <silent> <buffer> <CR>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right>'
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left>'
     endif
-
-    " meta characters 
-    "for c in split(s:chars_meta, '\zs')
-    "    sil exe 'i' . map_modifier . 'map <silent> <buffer> <M-' . c . '> <Esc>:call conque_term#press_key("<C-v><Esc>' . c . '")<CR>a'
-    "endfor
 
     " send selected text into conque
     if l:action == 'start'
@@ -312,9 +301,6 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'n' . map_modifier . 'map <silent> <buffer> s'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> S'
     endif
-
-    " help message about <Esc>
-    "n' . map_modifier . 'map <silent> <buffer> <Esc> :echo 'To send an <E'.'sc> to the terminal, press <E'.'sc><E'.'sc> quickly in insert mode. Some programs, such as Vim, will also accept <Ctrl-c> as a substitute for <E'.'sc>'<CR><Esc>
 
     " set conque as on or off
     if l:action == 'start'
@@ -374,9 +360,8 @@ function! conque_term#read_all() "{{{
         " probably a deleted buffer
     endtry
 
-    " TODO - doesn't work
     " restart updatetime
-    "call feedkeys("\x80\xFD\x35")
+    call feedkeys("f\e")
 endfunction "}}}
 
 " util function to add enough \s to pass a string to python

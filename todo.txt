@@ -1,9 +1,7 @@
 
  -- Trivial --
 
- * check Bram's <f\e> suggestion for normal mode timer
  * send entire buffer contents to conque instead of just visual selection
- * temporarily set 'switchbuf' to useopen/tab on <f9>
 
  -- Non-Trivial --
 
@@ -18,10 +16,11 @@
 
  -- ************************************* --
 
-
  x fix colors (see Issue)
  x allow pausing mappings so user can edit screen
  x send SIGWNCH on window resize 
  x add better error message if python is not installed
  x allow C-w in insert mode (see Issue)
+ x check Bram's <f\e> suggestion for normal mode timer
+ x temporarily set 'switchbuf' to useopen/tab on <f9>
 
