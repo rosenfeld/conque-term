@@ -2,6 +2,8 @@
  -- Trivial --
 
  * send entire buffer contents to conque instead of just visual selection
+ * check for paste mode
+ * build shell script for automated performance profiling
 
  -- Non-Trivial --
 
