@@ -127,9 +127,11 @@ class ConqueScreen(object):
         if len(self.buffer[real_line - 1]) < real_column:
             self.buffer[real_line - 1] = self.buffer[real_line - 1] + ' ' * (real_column - len(self.buffer[real_line - 1]))
 
-        # XXX - Using python's version makes lots of super-fun segfaults
-        vim.current.window.cursor = (real_line, real_column - 1)
-        #vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
+        # python version is occasionally grumpy
+        try:
+            vim.current.window.cursor = (real_line, real_column - 1)
+        except:
+            vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
     # }}}
 
     def reset_size(self, line): # {{{
