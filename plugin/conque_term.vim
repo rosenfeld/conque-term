@@ -80,7 +80,6 @@ endif " }}}
 " **********************************************************************************************************
 
 " Startup {{{
-setlocal encoding=utf-8
 
 let g:ConqueTerm_Loaded = 1
 let g:ConqueTerm_Idx = 1
