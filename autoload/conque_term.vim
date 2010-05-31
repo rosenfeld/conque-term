@@ -378,7 +378,8 @@ endfunction "}}}
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
-pyfile ~/.vim/autoload/conque.py
-pyfile ~/.vim/autoload/conque_subprocess.py
-pyfile ~/.vim/autoload/conque_screen.py
+let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
+exec "pyfile " . conque_py_dir . "conque.py"
+exec "pyfile " . conque_py_dir . "conque_subprocess.py"
+exec "pyfile " . conque_py_dir . "conque_screen.py"
 
