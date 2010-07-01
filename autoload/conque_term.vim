@@ -95,7 +95,6 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal foldcolumn=0      " reasonable left margin
     setlocal nowrap            " default to no wrap (esp with MySQL)
     setlocal noswapfile        " don't bother creating a .swp file
-    setlocal updatetime=50     " trigger cursorhold event after 50ms / XXX - global
     setlocal scrolloff=0       " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal sidescrolloff=0   " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
@@ -103,6 +102,9 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal bufhidden=hide    " when buffer is no longer displayed, don't wipe it out
     setfiletype conque_term    " useful
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
+
+    " temporary global settings go in here
+    call conque_term#on_focus()
 
 endfunction " }}}
 
@@ -143,8 +145,8 @@ function! conque_term#set_mappings(action) "{{{
         execute 'autocmd ' . b:ConqueTerm_Var . ' VimResized python ' . b:ConqueTerm_Var . '.update_window_size()'
 
         " set/reset updatetime on entering/exiting buffer
-        autocmd BufEnter <buffer> set updatetime=50
-        autocmd BufLeave <buffer> set updatetime=2000
+        autocmd BufEnter <buffer> call conque_term#on_focus()
+        autocmd BufLeave <buffer> call conque_term#on_blur()
 
         " check for resized/scrolled buffer when entering insert mode
         " XXX - messed up since we enter insert mode at each updatetime
@@ -373,6 +375,36 @@ function! conque_term#python_escape(input) "{{{
     let l:cleaned = substitute(l:cleaned, "'", "\\\\'", 'g')
     return l:cleaned
 endfunction "}}}
+
+" gets called when user enters conque buffer.
+" Useful for making temp changes to global config
+function! conque_term#on_focus() " {{{
+    " Disable NeoComplCache. It has global hooks on CursorHold and CursorMoved :-/
+    let s:NeoComplCache_WasEnabled = exists(':NeoComplCacheDisable')
+    if s:NeoComplCache_WasEnabled == 2
+        NeoComplCacheDisable
+    endif
+ 
+    " set poll interval to 50ms   
+    let s:save_updatetime = &updatetime
+    set updatetime=50
+endfunction " }}}
+
+" gets called when user exits conque buffer.
+" Useful for resetting changes to global config
+function! conque_term#on_blur() " {{{
+    " re-enable NeoComplCache if needed
+    if exists('s:NeoComplCache_WasEnabled') && exists(':NeoComplCacheEnable') && s:NeoComplCache_WasEnabled == 2
+        NeoComplCacheEnable
+    endif
+ 
+    " reset poll interval to 2s   
+    if exists('s:save_updatetime')
+        exe 'set updatetime=' . s:save_updatetime
+    else
+        set updatetime=2000
+    endif
+endfunction " }}}
 
 " **********************************************************************************************************
 " **** PYTHON **********************************************************************************************
