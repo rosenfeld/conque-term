@@ -150,7 +150,7 @@ function! conque_term#set_mappings(action) "{{{
 
         " check for resized/scrolled buffer when entering insert mode
         " XXX - messed up since we enter insert mode at each updatetime
-        "execute 'autocmd InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.screen.align()'
+        "autocmd InsertEnter <buffer> echo reltime()
 
         " read more output when this isn't the current buffer
         if g:ConqueTerm_ReadUnfocused == 1
@@ -159,15 +159,6 @@ function! conque_term#set_mappings(action) "{{{
 
         " poll for more output
         sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
-    endif
-
-    " use F22 key to get more input
-    if l:action == 'start'
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F22> "\<left>\<right>"'
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F23> "\<right>\<left>"'
-    else
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F22>'
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <expr> <F23>'
     endif
 
     " map ASCII 1-31

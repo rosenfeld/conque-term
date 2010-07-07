@@ -197,6 +197,9 @@ class Conque:
     # wrap CUF/CUB around line breaks
     wrap_cursor = False
 
+    # do we need to move the cursor?
+    cursor_set = False
+
     # }}}
 
     # constructor
@@ -328,6 +331,7 @@ class Conque:
 
         # set cursor position
         self.screen.set_cursor(self.l, self.c)
+        self.cursor_set = False
 
         vim.command('redraw')
 
@@ -336,12 +340,22 @@ class Conque:
 
     # for polling
     def auto_read(self): # {{{
+        # read output
         self.read(1)
+
+        # reset timer
         if self.c == 1:
-            vim.command('call feedkeys("\<F23>", "t")')
+            vim.command('call feedkeys("\<right>\<left>", "n")')
         else:
-            vim.command('call feedkeys("\<F22>", "t")')
+            vim.command('call feedkeys("\<left>\<right>", "n")')
+
+        # stop here if cursor doesn't need to be moved
+        if self.cursor_set:
+            return
+        
+        # otherwise set cursor position
         self.screen.set_cursor(self.l, self.c)
+        self.cursor_set = True
     # }}}
 
     ###############################################################################################
