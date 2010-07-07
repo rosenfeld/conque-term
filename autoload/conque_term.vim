@@ -145,12 +145,11 @@ function! conque_term#set_mappings(action) "{{{
         execute 'autocmd ' . b:ConqueTerm_Var . ' VimResized python ' . b:ConqueTerm_Var . '.update_window_size()'
 
         " set/reset updatetime on entering/exiting buffer
-        autocmd BufEnter <buffer> call conque_term#on_focus()
-        autocmd BufLeave <buffer> call conque_term#on_blur()
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> call conque_term#on_focus()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufLeave <buffer> call conque_term#on_blur()'
 
-        " check for resized/scrolled buffer when entering insert mode
-        " XXX - messed up since we enter insert mode at each updatetime
-        "autocmd InsertEnter <buffer> echo reltime()
+        " reposition cursor when going into insert mode
+        execute 'autocmd ' . b:ConqueTerm_Var . ' InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.cursor_set = False'
 
         " read more output when this isn't the current buffer
         if g:ConqueTerm_ReadUnfocused == 1
