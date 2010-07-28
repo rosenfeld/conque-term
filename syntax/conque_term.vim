@@ -3,12 +3,17 @@
 " MySQL *************************************************************************************************************
 " *******************************************************************************************************************
 
+syn match MySQLTableBodyG "^\s*\w\+:\(.\+\)\=$" contains=MySQLTableHeadG,MySQLNullG,MySQLBool,MySQLNumberG,MySQLStorageClass oneline skipwhite skipnl
+syn match MySQLTableHeadG "^\s*\w\+:" contains=MySQLTableColon skipwhite contained
+syn match MySQLTableColon ":" contained
+
 syn match MySQLTableHead "^ *|.*| *$" nextgroup=MySQLTableDivide contains=MySQLTableBar oneline skipwhite skipnl
 syn match MySQLTableBody "^ *|.*| *$" nextgroup=MySQLTableBody,MySQLTableEnd contains=MySQLTableBar,MySQLNull,MySQLBool,MySQLNumber,MySQLStorageClass oneline skipwhite skipnl
 syn match MySQLTableEnd "^ *+[+=-]\++ *$" oneline 
 syn match MySQLTableDivide "^ *+[+=-]\++ *$" nextgroup=MySQLTableBody oneline skipwhite skipnl
 syn match MySQLTableStart "^ *+[+=-]\++ *$" nextgroup=MySQLTableHead oneline skipwhite skipnl
 syn match MySQLNull " NULL " contained contains=MySQLTableBar
+syn match MySQLNullG " NULL" contained contains=MySQLTableBar
 syn match MySQLStorageClass " PRI " contained
 syn match MySQLStorageClass " MUL " contained
 syn match MySQLStorageClass " UNI " contained
@@ -16,6 +21,7 @@ syn match MySQLStorageClass " CURRENT_TIMESTAMP " contained
 syn match MySQLStorageClass " auto_increment " contained
 syn match MySQLTableBar "|" contained
 syn match MySQLNumber "|\? *\d\+ *|" contained contains=MySQLTableBar
+syn match MySQLNumberG "\d\+" contained contains=MySQLTableBar
 syn match MySQLQueryStat "^\d\+ rows\? in set.*" oneline
 syn match MySQLPromptLine "^.\?mysql> .*$" contains=MySQLKeyword,MySQLPrompt,MySQLString oneline
 syn match MySQLPromptLine "^    -> .*$" contains=MySQLKeyword,MySQLPrompt,MySQLString oneline
@@ -28,6 +34,12 @@ syn case match
 syn region MySQLString start=+'+ end=+'+ skip=+\\'+ contained oneline
 syn region MySQLString start=+"+ end=+"+ skip=+\\"+ contained oneline
 syn region MySQLString start=+`+ end=+`+ skip=+\\`+ contained oneline
+
+
+hi def link MySQLTableBodyG MySQLTableBody
+hi def link MySQLTableHeadG MySQLTableHead
+hi def link MySQLTableColon MySQLTableBar
+hi def link MySQLNumberG Number
 
 hi def link MySQLPrompt Identifier
 hi def link MySQLTableHead Title
@@ -46,6 +58,7 @@ if &background == 'dark'
     hi MySQLTableStart term=NONE cterm=NONE gui=NONE ctermfg=238 guifg=#444444
     hi MySQLTableBar term=NONE cterm=NONE gui=NONE ctermfg=238 guifg=#444444
     hi MySQLNull term=NONE cterm=NONE gui=NONE ctermfg=238 guifg=#444444
+    hi MySQLNullG term=NONE cterm=NONE gui=NONE ctermfg=238 guifg=#444444
     hi MySQLQueryStat term=NONE cterm=NONE gui=NONE ctermfg=238 guifg=#444444
 elseif &background == 'light'
     hi MySQLTableEnd term=NONE cterm=NONE gui=NONE ctermfg=247 guifg=#9e9e9e
@@ -53,6 +66,7 @@ elseif &background == 'light'
     hi MySQLTableStart term=NONE cterm=NONE gui=NONE ctermfg=247 guifg=#9e9e9e
     hi MySQLTableBar term=NONE cterm=NONE gui=NONE ctermfg=247 guifg=#9e9e9e
     hi MySQLNull term=NONE cterm=NONE gui=NONE ctermfg=247 guifg=#9e9e9e
+    hi MySQLNullG term=NONE cterm=NONE gui=NONE ctermfg=247 guifg=#9e9e9e
     hi MySQLQueryStat term=NONE cterm=NONE gui=NONE ctermfg=247 guifg=#9e9e9e
 endif
 
