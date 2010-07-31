@@ -7,7 +7,7 @@ Sample Usage:
 
     sh = ConqueSoleSubprocess()
     sh.open("cmd.exe")
-    sh.write("dir\n")
+    sh.write("dir\r")
     output = sh.read()
     sh.close()
 
