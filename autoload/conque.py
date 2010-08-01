@@ -2,7 +2,7 @@
 import vim, re, time, math
 
 import logging # DEBUG
-LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
+LOG_FILENAME = 'pylog_conque.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{
@@ -224,7 +224,7 @@ class Conque:
         self.init_tabstops()
 
         # open command
-        self.proc = ConqueSubprocess()
+        self.proc = ConqueSoleSubprocessWrapper()
         self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
         # }}}
 

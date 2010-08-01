@@ -61,10 +61,10 @@ if __name__ == '__main__':
         exit()
 
     # maximum time this thing reads. 0 means no limit. Only for testing.
-    max_loops = 10000
+    max_loops = 0
 
     # read interval, in seconds
-    sleep_time = 0.05
+    sleep_time = 0.01
 
     # input and output strings, like stdin and stdout
     input_shm = create_shm(sys.argv[1], mmap.ACCESS_WRITE)
@@ -93,19 +93,22 @@ if __name__ == '__main__':
     loops = 0
 
     while True:
-        logging.debug('loop...')
+        #logging.debug('loop...')
 
         try:
             # check for commands
             cstr = read_shm(command_shm)
             if cstr == 'close':
-                proc.close()
+                try:
+                    proc.close()
+                except:
+                    pass
                 exit()
 
             # write input
             istr = read_shm(input_shm)
             if istr != '':
-                logging.debug('found input: ' + istr)
+                #logging.debug('found input: ' + istr)
                 # write it to subprocess
                 proc.write(istr)
                 # clear input when finished
@@ -114,12 +117,12 @@ if __name__ == '__main__':
             # get output from subproccess
             bucket += proc.read()
 
-            logging.debug("buckit: " + str(bucket))
+            #logging.debug("buckit: " + str(bucket))
 
             # if output shm is empty, add to it
             ostr = read_shm(output_shm)
             if ostr == '':
-                logging.debug('output appears empty, writing: ' + bucket[:SHM_SIZE])
+                #logging.debug('output appears empty, writing: ' + bucket[:SHM_SIZE])
                 write_shm(output_shm, bucket[:SHM_SIZE])
                 bucket = bucket[SHM_SIZE:]
 
@@ -127,10 +130,8 @@ if __name__ == '__main__':
             logging.debug('ERROR: %s' % e)
 
         # sleep between loops if moderation is requested
-        logging.debug('sleep')
         if sleep_time > 0:
             time.sleep(sleep_time)
-        logging.debug('over')
 
         # increment loops, and exit if max has been reached
         loops += 1

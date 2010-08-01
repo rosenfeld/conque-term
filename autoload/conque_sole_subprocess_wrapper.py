@@ -49,7 +49,7 @@ class ConqueSoleSubprocessWrapper():
     #########################################################################
     # run communicator process which will in turn run cmd
 
-    def open(self, cmd):
+    def open(self, cmd, options = {}):
 
         # create a shm key
         self.shm_key = md5.new(cmd + str(time.ctime())).hexdigest()[:8]
@@ -63,13 +63,13 @@ class ConqueSoleSubprocessWrapper():
         cmd_line = '%s "%s" %s_input %s_output %s_command %s' % (self.python_exe, self.communicator_py, self.shm_key, self.shm_key, self.shm_key, cmd)
         logging.debug('python command: ' + cmd_line)
 
-        # console attributes
+        # console window attributes
         flags = win32process.NORMAL_PRIORITY_CLASS
         si = win32process.STARTUPINFO()
         si.dwFlags |= win32con.STARTF_USESHOWWINDOW
-        # uncomment the following to allocated console visible
+        # showing minimized window is useful for debugging
         si.wShowWindow = win32con.SW_HIDE
-        # si.wShowWindow = win32con.SW_MINIMIZE
+        #si.wShowWindow = win32con.SW_MINIMIZE
 
         # start the stupid process already
         try:
@@ -122,7 +122,7 @@ class ConqueSoleSubprocessWrapper():
 
     def close(self):
         write_shm(self.command_shm, 'close')
-        time.sleep(1)
+        time.sleep(0.2)
         #win32api.TerminateProcess (self.handle, 0)
         #win32api.CloseHandle (self.handle)
 

@@ -36,14 +36,18 @@ class ConqueSoleSubprocess():
     stdout = None
 
     # max lines for the console buffer
-    console_lines = 0
-    console_width = 80
-    console_height = 24
+    console_lines = 1000
+    console_width = 168
+    console_height = 1000
 
     # keep track of read position
     current_line = 0
     current_line_text = ''
     lines_look_ahead = 10
+
+    # cursor position
+    cursor_line = 0
+    cursor_col = 0
 
     # ****************************************************************************
     # unused as of yet
@@ -70,8 +74,8 @@ class ConqueSoleSubprocess():
             win32console.SetConsoleTitle ('conquesole process')
 
             # set console size
-            # size = win32console.PyCOORDType (X=1000, Y=30)
-            # self.con_stdout.SetConsoleScreenBufferSize (size)
+            size = win32console.PyCOORDType (X=self.console_width, Y=self.console_height)
+            self.stdout.SetConsoleScreenBufferSize (size)
 
             # get console max lines
             buf_info = self.stdout.GetConsoleScreenBufferInfo()
@@ -101,47 +105,97 @@ class ConqueSoleSubprocess():
         # emulate timeout by sleeping timeout time
         if timeout > 0:
             read_timeout = float(timeout) / 1000
-            logging.debug("sleep " + str(read_timeout) + " seconds")
+            #logging.debug("sleep " + str(read_timeout) + " seconds")
             time.sleep(read_timeout)
 
+        # get cursor position
+        dct_info = self.stdout.GetConsoleScreenBufferInfo()
+        curs = dct_info['CursorPosition']
+
+        # check for insane cursor position
+        if curs.Y < self.current_line:
+            logging.debug('wtf cursor: ' + str(curs))
+            self.current_line = curs.Y
+
         # read new data
-        for i in range(self.current_line, self.current_line + self.lines_look_ahead + 1):
+        for i in range(self.current_line, curs.Y + 1):
             logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
             logging.debug("line " + str(i) + " is: " + t)
             read_lines[i] = t
 
-            # check if this read reveals new data
-            if (i == self.current_line and t != self.current_line_text) or (not t.isspace() and t != ''):
-                logging.debug("line " + str(i) + " is different")
-                changed_lines.append(i)
-
         # return now if no new data
-        if len(changed_lines) == 0:
+        if curs.Y == self.current_line and self.current_line_text == read_lines[self.current_line]:
             logging.debug("no new data found")
             return ''
 
-        # pull output from current line
-        if changed_lines[0] == self.current_line:
-            logging.debug("index of first line: " + str(len(self.current_line_text.rstrip())))
+        logging.debug('current line: ' + str(self.current_line_text))
+        logging.debug('output current line: ' + str(read_lines[self.current_line]))
+
+        # replace current line
+        # check for changes behind cursor
+        if self.current_line_text.rstrip() != read_lines[self.current_line][:len(self.current_line_text.rstrip())].rstrip():
+            logging.debug("a")
+            output = ur"\u001b[2K" + "\r" + read_lines[self.current_line].rstrip()
+        # otherwise append
+        else:
+            logging.debug("b")
             output = read_lines[self.current_line][len(self.current_line_text.rstrip()):].rstrip()
-            logging.debug("output from first line: " + output)
+        logging.debug("output from first line: " + output)
 
         # pull output from additional lines
-        if changed_lines[-1] != self.current_line:
-            for i in range(self.current_line + 1, changed_lines[-1] + 1):
-                output = output + "\n" + read_lines[i].rstrip()
+        if curs.Y > self.current_line:
+            for i in range(self.current_line + 1, curs.Y + 1):
+                output = output + "\r\n" + read_lines[i].rstrip()
                 logging.debug("output from next line: " + read_lines[i].rstrip())
 
         # reset current line
-        self.current_line = changed_lines[-1]
-        self.current_line_text = read_lines[changed_lines[-1]]
+        self.current_line = curs.Y
+        self.current_line_text = read_lines[curs.Y]
+        self.cursor_col = curs.X
+
+        # do we need to reset?
+        if self.current_line > self.console_lines - 10:
+            self.reset_console()
 
         logging.debug("full output: " + output)
 
         return output
         
+    # ****************************************************************************
+    # clear the console and set cursor at home position
+
+    def reset_console(self):
+
+        logging.debug('_______________________________________________________')
+        logging.debug('=======================================================')
+        logging.debug('-------------------------------------------------------')
+        logging.debug('cursor line is ' + str(self.cursor_line))
+        logging.debug('cursor col  is ' + str(self.cursor_col))
+        logging.debug('current line is ' + str(self.current_line))
+        logging.debug('current line text is ' + self.current_line_text)
+
+        # move cusor to home position
+        zero = win32console.PyCOORDType (X=0, Y=0)
+        self.stdout.SetConsoleCursorPosition (zero)
+
+        # calculate character length of buffer
+        dct_info = self.stdout.GetConsoleScreenBufferInfo()
+        size = dct_info['Size']
+        length = size.X * size.Y
+
+        # fill console with blank char
+        self.stdout.FillConsoleOutputCharacter (u' ', length, zero)
+        self.stdout.WriteConsole (self.current_line_text)
+
+        # reset current cursor position
+        current_pos = win32console.PyCOORDType (X=self.cursor_col, Y=0)
+        self.stdout.SetConsoleCursorPosition (current_pos)
+
+        # reset position attributes
+        self.cursor_line = 0
+        self.current_line = 0
 
     # ****************************************************************************
 

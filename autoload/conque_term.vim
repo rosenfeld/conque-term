@@ -138,7 +138,7 @@ function! conque_term#set_mappings(action) "{{{
         execute 'augroup ' . b:ConqueTerm_Var
 
         " handle unexpected closing of shell, passes HUP to parent and all child processes
-        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.signal(1)'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.close()'
 
         " check for resized/scrolled buffer when entering buffer
         execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
@@ -402,6 +402,6 @@ endfunction " }}}
 
 let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
 exec "pyfile " . conque_py_dir . "conque.py"
-exec "pyfile " . conque_py_dir . "conque_subprocess.py"
+exec "pyfile " . conque_py_dir . "conque_sole_subprocess_wrapper.py"
 exec "pyfile " . conque_py_dir . "conque_screen.py"
 
