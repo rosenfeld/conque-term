@@ -18,9 +18,10 @@ Requirements:
 
 """
 
-import time, ctypes, ctypes.wintypes, logging
-import win32process, win32console
+import time, ctypes, ctypes.wintypes
+import win32process, win32console, win32api
 
+import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
@@ -83,8 +84,11 @@ class ConqueSoleSubprocess():
             self.handle = res[0]
             self.pid = res[2]
 
+            return True
+
         except Exception, e:
             logging.debug('ERROR: %s' % e)
+            return False
 
     # ****************************************************************************
    
@@ -158,5 +162,12 @@ class ConqueSoleSubprocess():
 
         # write input array
         self.stdin.WriteConsoleInput (list_input)
+
+    # ****************************************************************************
+
+    def close(self):
+
+        win32api.TerminateProcess (self.handle, 0)
+        win32api.CloseHandle (self.handle)
 
 
