@@ -491,7 +491,7 @@ class Conque:
             self.c += -1
 
     def ctl_bel(self):
-        print 'BELL'
+        vim.command('call conque_term#bell()')
 
     def ctl_tab(self):
         # default tabstop location
