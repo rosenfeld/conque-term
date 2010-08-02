@@ -146,7 +146,11 @@ class ConqueSoleSubprocess():
         # return now if no new data
         if curs.Y == self.current_line and self.current_line_text == read_lines[self.current_line]:
             logging.debug("no new data found")
-            return ''
+            # always set cursor position
+            self.cursor_col = curs.X
+            left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
+            output += left_esc
+            return output
 
         logging.debug('current line: ' + str(self.current_line_text))
         logging.debug('output current line: ' + str(read_lines[self.current_line]))
@@ -182,6 +186,11 @@ class ConqueSoleSubprocess():
         if len(self.current_line_text_nice) < self.cursor_col:
             output += " " * (self.cursor_col - len(self.current_line_text_nice))
             self.current_line_text_nice += " " * (self.cursor_col - len(self.current_line_text_nice))
+
+        # always set cursor position
+        left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
+        logging.debug('left esc: ' + left_esc)
+        output += left_esc
 
         logging.debug("full output: " + output)
 
