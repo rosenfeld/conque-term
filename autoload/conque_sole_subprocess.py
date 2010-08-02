@@ -22,8 +22,8 @@ import time, re, ctypes, ctypes.wintypes
 import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
-LOG_FILENAME = 'pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+LOG_FILENAME = 'pylog_sub.log' # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 CONQUE_WINDOWS_VK = {
     '8'  : win32con.VK_BACK,
@@ -157,13 +157,13 @@ class ConqueSoleSubprocess():
 
         # replace current line
         # check for changes behind cursor
-        if self.current_line_text.rstrip() != read_lines[self.current_line][:len(self.current_line_text_nice)].rstrip():
+        if self.current_line_text_nice != read_lines[self.current_line][:len(self.current_line_text_nice)]:
             logging.debug("a")
             output = ur"\u001b[2K" + "\r" + read_lines[self.current_line].rstrip()
         # otherwise append
         else:
             logging.debug("b")
-            output = read_lines[self.current_line][len(self.current_line_text_nice):].rstrip()
+            output = read_lines[self.current_line][len(self.current_line_text_nice) - 1:].rstrip()
         logging.debug("output from first line: " + output)
 
         # pull output from additional lines
@@ -175,17 +175,12 @@ class ConqueSoleSubprocess():
         # reset current line
         self.current_line = curs.Y
         self.current_line_text = read_lines[curs.Y]
-        self.current_line_text_nice = read_lines[curs.Y].rstrip()
+        self.current_line_text_nice = read_lines[curs.Y][:curs.X + 1]
         self.cursor_col = curs.X
 
         # do we need to reset?
-        if self.current_line > self.console_lines - 10:
+        if self.current_line > self.console_lines - 100:
             self.reset_console()
-
-        # pad output with spaces to match cursor position
-        if len(self.current_line_text_nice) < self.cursor_col:
-            output += " " * (self.cursor_col - len(self.current_line_text_nice))
-            self.current_line_text_nice += " " * (self.cursor_col - len(self.current_line_text_nice))
 
         # always set cursor position
         left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"

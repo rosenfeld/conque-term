@@ -2,7 +2,7 @@
 import vim, re, time, math
 
 import logging # DEBUG
-LOG_FILENAME = 'pylog_conque.log' # DEBUG
+LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{

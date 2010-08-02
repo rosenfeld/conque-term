@@ -15,14 +15,14 @@ import conque_sole_subprocess, time, mmap, sys
 from conque_sole_subprocess import *
 
 import logging # DEBUG
-LOG_FILENAME = 'pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+LOG_FILENAME = 'pylog_sub.log' # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 ##############################################################
 # shared memory creation
 
 # size of shared memory
-SHM_SIZE = 255
+SHM_SIZE = 4096
 
 def create_shm (name, access):
     global SHM_SIZE
@@ -123,8 +123,12 @@ if __name__ == '__main__':
             ostr = read_shm(output_shm)
             if ostr == '':
                 #logging.debug('output appears empty, writing: ' + bucket[:SHM_SIZE])
-                write_shm(output_shm, bucket[:SHM_SIZE])
-                bucket = bucket[SHM_SIZE:]
+                cut_pos = SHM_SIZE
+                # don't cut inside an escape sequence
+                if bucket[SHM_SIZE-10:SHM_SIZE].count(chr(27)) > 0:
+                    cut_pos = len(bucket[:SHM_SIZE]) - (10 - bucket[SHM_SIZE-10:SHM_SIZE].index(chr(27)))
+                write_shm(output_shm, bucket[:cut_pos])
+                bucket = bucket[cut_pos:]
 
         except Exception, e:
             logging.debug('ERROR: %s' % e)

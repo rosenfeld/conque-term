@@ -15,11 +15,11 @@ user32 = ctypes.windll.user32
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 class ConqueSoleSubprocessWrapper():
 
-    SHM_SIZE = 255
+    SHM_SIZE = 4096
     shm_key = ''
 
     # process info
@@ -150,7 +150,7 @@ class ConqueSoleSubprocessWrapper():
 #############################################################################
 #############################################################################
 
-SHM_SIZE = 255
+SHM_SIZE = 4096
 
 def read_shm (shm):
     global SHM_SIZE
