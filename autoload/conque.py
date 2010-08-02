@@ -240,6 +240,18 @@ class Conque:
         self.read(1)
         # }}}
 
+    # write special key to windows console
+    def write_vk(self, input): # {{{
+        logging.debug('writing input ' + str(input))
+
+        # check if window size has changed
+        self.update_window_size()
+
+        # write and read
+        self.proc.write_vk(input)
+        self.read(1)
+        # }}}
+
     # read from pty, and update buffer
     def read(self, timeout = 1): # {{{
         # read from subprocess

@@ -118,6 +118,14 @@ class ConqueSoleSubprocessWrapper():
             self.bucket = self.bucket[self.SHM_SIZE:]
 
     #########################################################################
+    # write virtual key code to shared memory using proprietary escape seq
+
+    def write_vk(self, vk_code):
+
+        seq = ur"\u001b[" + str(vk_code) + "VK"
+        self.write(seq)
+
+    #########################################################################
     # shut it all down
 
     def close(self):

@@ -18,12 +18,29 @@ Requirements:
 
 """
 
-import time, ctypes, ctypes.wintypes
-import win32process, win32console, win32api
+import time, re, ctypes, ctypes.wintypes
+import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+
+CONQUE_WINDOWS_VK = {
+    '8'  : win32con.VK_BACK,
+    '3'  : win32con.VK_CANCEL,
+    '46' : win32con.VK_DELETE,
+    '40' : win32con.VK_DOWN,
+    '35' : win32con.VK_END,
+    '47' : win32con.VK_HELP,
+    '36' : win32con.VK_HOME,
+    '45' : win32con.VK_INSERT,
+    '37' : win32con.VK_LEFT,
+    '13' : win32con.VK_RETURN,
+    '39' : win32con.VK_RIGHT,
+    '38' : win32con.VK_UP
+}
+
+CONQUE_SEQ_REGEX_VK = re.compile(ur"(\u001b\[\d{1,3}VK)", re.UNICODE)
 
 class ConqueSoleSubprocess():
 
@@ -43,6 +60,7 @@ class ConqueSoleSubprocess():
     # keep track of read position
     current_line = 0
     current_line_text = ''
+    current_line_text_nice = ''
     lines_look_ahead = 10
 
     # cursor position
@@ -135,13 +153,13 @@ class ConqueSoleSubprocess():
 
         # replace current line
         # check for changes behind cursor
-        if self.current_line_text.rstrip() != read_lines[self.current_line][:len(self.current_line_text.rstrip())].rstrip():
+        if self.current_line_text.rstrip() != read_lines[self.current_line][:len(self.current_line_text_nice)].rstrip():
             logging.debug("a")
             output = ur"\u001b[2K" + "\r" + read_lines[self.current_line].rstrip()
         # otherwise append
         else:
             logging.debug("b")
-            output = read_lines[self.current_line][len(self.current_line_text.rstrip()):].rstrip()
+            output = read_lines[self.current_line][len(self.current_line_text_nice):].rstrip()
         logging.debug("output from first line: " + output)
 
         # pull output from additional lines
@@ -153,11 +171,17 @@ class ConqueSoleSubprocess():
         # reset current line
         self.current_line = curs.Y
         self.current_line_text = read_lines[curs.Y]
+        self.current_line_text_nice = read_lines[curs.Y].rstrip()
         self.cursor_col = curs.X
 
         # do we need to reset?
         if self.current_line > self.console_lines - 10:
             self.reset_console()
+
+        # pad output with spaces to match cursor position
+        if len(self.current_line_text_nice) < self.cursor_col:
+            output += " " * (self.cursor_col - len(self.current_line_text_nice))
+            self.current_line_text_nice += " " * (self.cursor_col - len(self.current_line_text_nice))
 
         logging.debug("full output: " + output)
 
@@ -198,8 +222,36 @@ class ConqueSoleSubprocess():
         self.current_line = 0
 
     # ****************************************************************************
+    # write text to console. this function just parses out special sequences for
+    # special key events and passes on the text to the plain or virtual key functions
 
     def write (self, text):
+
+        # split on VK codes
+        chunks = CONQUE_SEQ_REGEX_VK.split(text)
+
+        # if len() is one then no vks
+        if len(chunks) == 1:
+            self.write_plain(text)
+            return
+
+        logging.debug('split!: ' + str(chunks))
+
+        # loop over chunks and delegate
+        for t in chunks:
+
+            if t == '':
+                continue
+
+            if CONQUE_SEQ_REGEX_VK.match(t):
+                logging.debug('match!: ' + str(t[2:-2]))
+                self.write_vk(t[2:-2])
+            else:
+                self.write_plain(t)
+
+    # ****************************************************************************
+
+    def write_plain (self, text):
         list_input = []
         for c in text:
             # create keyboard input
@@ -213,6 +265,25 @@ class ConqueSoleSubprocess():
             #    input_key.ControlKeyState = control_key_state
 
             list_input.append (kc)
+
+        # write input array
+        self.stdin.WriteConsoleInput (list_input)
+
+    # ****************************************************************************
+
+    def write_vk (self, vk_code):
+        list_input = []
+
+        # create keyboard input
+        kc = win32console.PyINPUT_RECORDType (win32console.KEY_EVENT)
+        kc.VirtualKeyCode = CONQUE_WINDOWS_VK[vk_code]
+        kc.KeyDown = True
+        kc.RepeatCount = 1
+
+        #if control_key_state:
+        #    input_key.ControlKeyState = control_key_state
+
+        list_input.append (kc)
 
         # write input array
         self.stdin.WriteConsoleInput (list_input)
