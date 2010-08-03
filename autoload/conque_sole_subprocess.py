@@ -151,7 +151,9 @@ class ConqueSoleSubprocess():
         for i in range(self.current_line, curs.Y + 1):
             #logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
-            t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
+            t_raw = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
+            # TODO - handle non-ascii characters
+            t = t_raw.encode('ascii', 'ignore')
             #logging.debug("line " + str(i) + " is: " + t)
             read_lines[i] = t
 
@@ -165,8 +167,8 @@ class ConqueSoleSubprocess():
             return output
 
         logging.debug('-----------------------------------------------------------------------')
-        logging.debug('current line: ' + str(self.current_line_text))
-        logging.debug('output current line: ' + str(read_lines[self.current_line]))
+        logging.debug('current line: ' + self.current_line_text)
+        logging.debug('output current line: ' + read_lines[self.current_line])
 
         # replace current line
         # check for changes behind cursor
