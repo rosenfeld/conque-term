@@ -23,7 +23,7 @@ import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
 
@@ -163,7 +163,7 @@ class ConqueSoleSubprocess():
             # always set cursor position
             self.cursor_col = curs.X
             left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
-            output += left_esc
+            #output += left_esc
             return output
 
         logging.debug('-----------------------------------------------------------------------')
