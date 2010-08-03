@@ -13,13 +13,14 @@ import os, sys, time, mmap, struct, ctypes, ctypes.wintypes, logging, tempfile, 
 import win32api, win32con, win32event, win32process, win32console
 user32 = ctypes.windll.user32
 
+from conque_sole_common import *
+
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 class ConqueSoleSubprocessWrapper():
 
-    SHM_SIZE = 4096
     shm_key = ''
 
     # process info
@@ -114,8 +115,8 @@ class ConqueSoleSubprocessWrapper():
         istr = read_shm(self.input_shm)
         if istr == '':
             logging.debug('input shm is empty, writing')
-            write_shm(self.input_shm, self.bucket[:self.SHM_SIZE])
-            self.bucket = self.bucket[self.SHM_SIZE:]
+            write_shm(self.input_shm, self.bucket[:SHM_SIZE])
+            self.bucket = self.bucket[SHM_SIZE:]
 
     #########################################################################
     # write virtual key code to shared memory using proprietary escape seq
@@ -134,37 +135,23 @@ class ConqueSoleSubprocessWrapper():
         #win32api.TerminateProcess (self.handle, 0)
         #win32api.CloseHandle (self.handle)
 
+    #########################################################################
+    # create shared memory instance
+
+    def window_resize(self, lines, columns): # {{{
+        pass
+
+        # }}}
 
     #########################################################################
     # create shared memory instance
 
     def create_shm (self, name, access):
         name = "%s_%s_%s" % ('conque_sole', self.shm_key, name)
-        smo = mmap.mmap (0, self.SHM_SIZE, name, access)
+        smo = mmap.mmap (0, SHM_SIZE, name, access)
         if not smo:
             return None
         else:
             return smo
 
-
-#############################################################################
-#############################################################################
-
-SHM_SIZE = 4096
-
-def read_shm (shm):
-    global SHM_SIZE
-    shm.seek(0)
-    shm_str = str(shm.read(SHM_SIZE)).rstrip(chr(0))
-    return shm_str
-
-def clear_shm(shm):
-    global SHM_SIZE
-    shm.seek(0)
-    shm.write(chr(0) * SHM_SIZE)
-
-def write_shm(shm, text):
-    global SHM_SIZE
-    shm.seek(0)
-    shm.write(text + chr(0) * (SHM_SIZE - len(text)))
 
