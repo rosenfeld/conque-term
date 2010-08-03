@@ -23,7 +23,7 @@ import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
 
@@ -149,21 +149,22 @@ class ConqueSoleSubprocess():
 
         # read new data
         for i in range(self.current_line, curs.Y + 1):
-            logging.debug("reading line " + str(i))
+            #logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
-            logging.debug("line " + str(i) + " is: " + t)
+            #logging.debug("line " + str(i) + " is: " + t)
             read_lines[i] = t
 
         # return now if no new data
         if curs.Y == self.current_line and self.current_line_text == read_lines[self.current_line]:
-            logging.debug("no new data found")
+            #logging.debug("no new data found")
             # always set cursor position
             self.cursor_col = curs.X
             left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
             output += left_esc
             return output
 
+        logging.debug('-----------------------------------------------------------------------')
         logging.debug('current line: ' + str(self.current_line_text))
         logging.debug('output current line: ' + str(read_lines[self.current_line]))
 
@@ -175,7 +176,8 @@ class ConqueSoleSubprocess():
         # otherwise append
         else:
             logging.debug("b")
-            output = read_lines[self.current_line][len(self.current_line_text_nice) - 1:].rstrip()
+            cut = len(self.current_line_text_nice)
+            output = ur"\u001b[" + str(cut + 1) + "G" + read_lines[self.current_line][cut:].rstrip()
         logging.debug("output from first line: " + output)
 
         # pull output from additional lines
