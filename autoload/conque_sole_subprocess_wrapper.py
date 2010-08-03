@@ -1,4 +1,4 @@
-"""
+""" {{{
 
 ConqueSoleSubprocessWrapper
 
@@ -6,7 +6,7 @@ Subprocess wrapper to deal with Windows insanity. Launches console based python,
 which in turn launches originally requested command. Communicates with cosole
 python through shared memory objects.
 
-"""
+}}} """
 
 import md5, time, mmap 
 import os, sys, time, mmap, struct, ctypes, ctypes.wintypes, logging, tempfile, threading
@@ -20,6 +20,8 @@ LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 class ConqueSoleSubprocessWrapper():
+
+    # class properties {{{
 
     shm_key = ''
 
@@ -44,13 +46,20 @@ class ConqueSoleSubprocessWrapper():
     # path to communicator
     communicator_py = 'conque_sole_communicator.py'
 
-    def __init__(self):
+    # }}}
+
+    #########################################################################
+    # unused
+
+    def __init__(self): # {{{
         pass
+
+        # }}}
 
     #########################################################################
     # run communicator process which will in turn run cmd
 
-    def open(self, cmd, options = {}):
+    def open(self, cmd, options = {}): # {{{
 
         # create a shm key
         self.shm_key = md5.new(cmd + str(time.ctime())).hexdigest()[:8]
@@ -83,10 +92,12 @@ class ConqueSoleSubprocessWrapper():
         self.handle = tpl_result [0]
         self.pid = tpl_result [2]
 
+        # }}}
+
     #########################################################################
     # read output from shared memory
 
-    def read(self, timeout = 0):
+    def read(self, timeout = 0): # {{{
 
         # emulate timeout by sleeping timeout time
         if timeout > 0:
@@ -102,10 +113,12 @@ class ConqueSoleSubprocessWrapper():
 
         return output
 
+        # }}}
+
     #########################################################################
     # write input to shared memory
 
-    def write(self, text):
+    def write(self, text): # {{{
 
         self.bucket += text
 
@@ -118,22 +131,28 @@ class ConqueSoleSubprocessWrapper():
             write_shm(self.input_shm, self.bucket[:SHM_SIZE])
             self.bucket = self.bucket[SHM_SIZE:]
 
+        # }}}
+
     #########################################################################
     # write virtual key code to shared memory using proprietary escape seq
 
-    def write_vk(self, vk_code):
+    def write_vk(self, vk_code): # {{{
 
         seq = ur"\u001b[" + str(vk_code) + "VK"
         self.write(seq)
 
+        # }}}
+
     #########################################################################
     # shut it all down
 
-    def close(self):
+    def close(self): # {{{
         write_shm(self.command_shm, 'close')
         time.sleep(0.2)
         #win32api.TerminateProcess (self.handle, 0)
         #win32api.CloseHandle (self.handle)
+
+        # }}}
 
     #########################################################################
     # create shared memory instance
@@ -146,7 +165,7 @@ class ConqueSoleSubprocessWrapper():
     #########################################################################
     # create shared memory instance
 
-    def create_shm (self, name, access):
+    def create_shm (self, name, access): # {{{
         name = "%s_%s_%s" % ('conque_sole', self.shm_key, name)
         smo = mmap.mmap (0, SHM_SIZE, name, access)
         if not smo:
@@ -154,4 +173,5 @@ class ConqueSoleSubprocessWrapper():
         else:
             return smo
 
+        # }}}
 

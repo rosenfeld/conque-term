@@ -1,4 +1,4 @@
-"""
+""" {{{
 
 ConqueSoleCommunicator
 
@@ -9,7 +9,7 @@ not attached to any console. So a console version of python must be initiated
 for the subprocess. Communication is then done with the use of shared memory
 objects. Good times! 
 
-"""
+}}} """
 
 import time, mmap, sys
 from conque_sole_common import *
@@ -23,6 +23,8 @@ LOG_FILENAME = 'pylog_sub.log' # DEBUG
 # only run if this file was run directly
 
 if __name__ == '__main__':
+
+    # startup and config {{{
 
     # simple arg validation
     logging.debug(str(sys.argv))
@@ -46,14 +48,19 @@ if __name__ == '__main__':
     # the actual subprocess to run
     cmd = " ".join(sys.argv[4:])
 
+    # }}}
+
     ##############################################################
     # Create the subprocess
 
+    # {{{
     proc = ConqueSoleSubprocess()
     res = proc.open(cmd)
 
     if not res:
         exit()
+
+    # }}}
     
     ##############################################################
     # main loop!

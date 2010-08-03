@@ -1,4 +1,4 @@
-"""
+""" {{{
 ConqueSoleSubprocess
 
 Run and communicate with an interactive subprocess in Windows.
@@ -16,7 +16,7 @@ Requirements:
     * Python for Windows extensions. Available at http://sourceforge.net/projects/pywin32/
     * Must be run from process attached to an existing console.
 
-"""
+}}} """
 
 import time, re, ctypes, ctypes.wintypes
 import win32con, win32process, win32console, win32api
@@ -24,6 +24,8 @@ import win32con, win32process, win32console, win32api
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+
+# Globals {{{
 
 CONQUE_WINDOWS_VK = {
     '8'  : win32con.VK_BACK,
@@ -42,7 +44,11 @@ CONQUE_WINDOWS_VK = {
 
 CONQUE_SEQ_REGEX_VK = re.compile(ur"(\u001b\[\d{1,3}VK)", re.UNICODE)
 
+# }}}
+
 class ConqueSoleSubprocess():
+
+    # Class properties {{{
 
     #window = None
     handle = None
@@ -67,17 +73,21 @@ class ConqueSoleSubprocess():
     cursor_line = 0
     cursor_col = 0
 
+    # }}}
+
     # ****************************************************************************
     # unused as of yet
 
-    def __init__ (self):
+    def __init__ (self): # {{{
 
         pass
+
+    # }}}
 
     # ****************************************************************************
     # Create proccess cmd
 
-    def open(self, cmd):
+    def open(self, cmd): # {{{
 
         try:
             # initialize console
@@ -112,9 +122,11 @@ class ConqueSoleSubprocess():
             logging.debug('ERROR: %s' % e)
             return False
 
+    # }}}
+
     # ****************************************************************************
    
-    def read(self, timeout = 0):
+    def read(self, timeout = 0): # {{{
 
         output = ""
         read_lines = {}
@@ -191,10 +203,12 @@ class ConqueSoleSubprocess():
 
         return output
         
+    # }}}
+
     # ****************************************************************************
     # clear the console and set cursor at home position
 
-    def reset_console(self):
+    def reset_console(self): # {{{
 
         logging.debug('_______________________________________________________')
         logging.debug('=======================================================')
@@ -225,11 +239,13 @@ class ConqueSoleSubprocess():
         self.cursor_line = 0
         self.current_line = 0
 
+    # }}}
+
     # ****************************************************************************
     # write text to console. this function just parses out special sequences for
     # special key events and passes on the text to the plain or virtual key functions
 
-    def write (self, text):
+    def write (self, text): # {{{
 
         # split on VK codes
         chunks = CONQUE_SEQ_REGEX_VK.split(text)
@@ -253,9 +269,11 @@ class ConqueSoleSubprocess():
             else:
                 self.write_plain(t)
 
+    # }}}
+
     # ****************************************************************************
 
-    def write_plain (self, text):
+    def write_plain (self, text): # {{{
         list_input = []
         for c in text:
             # create keyboard input
@@ -273,9 +291,11 @@ class ConqueSoleSubprocess():
         # write input array
         self.stdin.WriteConsoleInput (list_input)
 
+    # }}}
+
     # ****************************************************************************
 
-    def write_vk (self, vk_code):
+    def write_vk (self, vk_code): # {{{
         list_input = []
 
         # create keyboard input
@@ -292,11 +312,15 @@ class ConqueSoleSubprocess():
         # write input array
         self.stdin.WriteConsoleInput (list_input)
 
+    # }}}
+
     # ****************************************************************************
 
-    def close(self):
+    def close(self): # {{{
 
         win32api.TerminateProcess (self.handle, 0)
         win32api.CloseHandle (self.handle)
+
+    # }}}
 
 
