@@ -38,5 +38,8 @@ def clear_shm(shm):
 def write_shm(shm, text):
     global SHM_SIZE
     shm.seek(0)
-    shm.write(text + chr(0))
+    if len(text) < SHM_SIZE:
+        shm.write(text + chr(0))
+    else:
+        shm.write(text)
 

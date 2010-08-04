@@ -11,7 +11,7 @@ objects. Good times!
 
 }}} """
 
-import time, mmap, sys
+import time, mmap, sys, re
 from conque_sole_common import *
 from conque_sole_subprocess import *
 
@@ -48,6 +48,9 @@ if __name__ == '__main__':
     # the actual subprocess to run
     cmd = " ".join(sys.argv[4:])
 
+    # cursor position regex
+    CONQUE_CURSOR_REGEX = re.compile(ur"^\u001b\[\d{1,4}G$", re.UNICODE)
+
     # }}}
 
     ##############################################################
@@ -66,11 +69,14 @@ if __name__ == '__main__':
     # main loop!
 
     bucket = ''
-    bucket_marker = 0
     loops = 0
 
     while True:
         #logging.debug('loop...')
+
+        # sleep between loops if moderation is requested
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
         try:
             # check for commands
@@ -92,7 +98,13 @@ if __name__ == '__main__':
                 clear_shm(input_shm)
 
             # get output from subproccess
-            bucket += proc.read()
+            new_output = proc.read()
+
+            # throw away output if it's just an identical cursor position sequence
+            if CONQUE_CURSOR_REGEX.match(new_output) and new_output == bucket:
+                pass
+            else:
+                bucket += new_output
 
             #logging.debug("buckit: " + str(bucket))
 
@@ -109,10 +121,6 @@ if __name__ == '__main__':
 
         except Exception, e:
             logging.debug('ERROR: %s' % e)
-
-        # sleep between loops if moderation is requested
-        if sleep_time > 0:
-            time.sleep(sleep_time)
 
         # increment loops, and exit if max has been reached
         loops += 1

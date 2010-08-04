@@ -23,23 +23,29 @@ import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
 
 CONQUE_WINDOWS_VK = {
-    '8'  : win32con.VK_BACK,
     '3'  : win32con.VK_CANCEL,
-    '46' : win32con.VK_DELETE,
-    '40' : win32con.VK_DOWN,
-    '35' : win32con.VK_END,
-    '47' : win32con.VK_HELP,
-    '36' : win32con.VK_HOME,
-    '45' : win32con.VK_INSERT,
-    '37' : win32con.VK_LEFT,
+    '8'  : win32con.VK_BACK,
+    '9'  : win32con.VK_TAB,
+    '12' : win32con.VK_CLEAR,
     '13' : win32con.VK_RETURN,
+    '17' : win32con.VK_CONTROL,
+    '20' : win32con.VK_CAPITAL,
+    '27' : win32con.VK_ESCAPE,
+    '28' : win32con.VK_CONVERT,
+    '35' : win32con.VK_END,
+    '36' : win32con.VK_HOME,
+    '37' : win32con.VK_LEFT,
+    '38' : win32con.VK_UP,
     '39' : win32con.VK_RIGHT,
-    '38' : win32con.VK_UP
+    '40' : win32con.VK_DOWN,
+    '45' : win32con.VK_INSERT,
+    '46' : win32con.VK_DELETE,
+    '47' : win32con.VK_HELP
 }
 
 CONQUE_SEQ_REGEX_VK = re.compile(ur"(\u001b\[\d{1,3}VK)", re.UNICODE)
@@ -163,7 +169,7 @@ class ConqueSoleSubprocess():
             # always set cursor position
             self.cursor_col = curs.X
             left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
-            #output += left_esc
+            output += left_esc
             return output
 
         logging.debug('-----------------------------------------------------------------------')
@@ -282,13 +288,21 @@ class ConqueSoleSubprocess():
         for c in text:
             # create keyboard input
             kc = win32console.PyINPUT_RECORDType (win32console.KEY_EVENT)
-            kc.Char = unicode(c)
-            kc.VirtualKeyCode = ctypes.windll.user32.VkKeyScanA(ord(c))
             kc.KeyDown = True
             kc.RepeatCount = 1
 
-            #if control_key_state:
-            #    input_key.ControlKeyState = control_key_state
+            cnum = ord(c)
+
+            if cnum > 31:
+                kc.Char = unicode(c)
+                kc.VirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum)
+            else:
+                kc.Char = unicode(c)
+                if str(cnum) in CONQUE_WINDOWS_VK:
+                    kc.VirtualKeyCode = CONQUE_WINDOWS_VK[str(cnum)]
+                else:
+                    kc.VirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum + 96)
+                    kc.ControlKeyState = win32con.LEFT_CTRL_PRESSED
 
             list_input.append (kc)
 
@@ -307,9 +321,6 @@ class ConqueSoleSubprocess():
         kc.VirtualKeyCode = CONQUE_WINDOWS_VK[vk_code]
         kc.KeyDown = True
         kc.RepeatCount = 1
-
-        #if control_key_state:
-        #    input_key.ControlKeyState = control_key_state
 
         list_input.append (kc)
 
