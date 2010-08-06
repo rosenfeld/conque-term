@@ -15,7 +15,7 @@ shell_output += foo.read(1000)
 foo.write("asdf\r")
 shell_output += foo.read(1000)
 # interactive process + tab completion
-foo.write("C:\\Python27\\py\t\r")
+foo.write("C:\\Python27\\pytho\t\r")
 foo.write("bar = ['baz', 1, True]\r")
 foo.write("str(bar)\r")
 shell_output += foo.read(1000)

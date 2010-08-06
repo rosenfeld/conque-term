@@ -17,7 +17,7 @@ from conque_sole_common import *
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 class ConqueSoleSubprocessWrapper():
 
@@ -74,12 +74,12 @@ class ConqueSoleSubprocessWrapper():
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
-        flags = win32process.NORMAL_PRIORITY_CLASS
+        flags = win32process.NORMAL_PRIORITY_CLASS | win32process.CREATE_NEW_PROCESS_GROUP | win32process.CREATE_UNICODE_ENVIRONMENT
         si = win32process.STARTUPINFO()
         si.dwFlags |= win32con.STARTF_USESHOWWINDOW
         # showing minimized window is useful for debugging
-        si.wShowWindow = win32con.SW_HIDE
-        #si.wShowWindow = win32con.SW_MINIMIZE
+        #si.wShowWindow = win32con.SW_HIDE
+        si.wShowWindow = win32con.SW_MINIMIZE
 
         # start the stupid process already
         try:
@@ -91,6 +91,8 @@ class ConqueSoleSubprocessWrapper():
         # handle
         self.handle = tpl_result [0]
         self.pid = tpl_result [2]
+        logging.debug(str(tpl_result))
+        logging.debug('python pid is ' + str(self.pid))
 
         # }}}
 
@@ -137,6 +139,11 @@ class ConqueSoleSubprocessWrapper():
     # write virtual key code to shared memory using proprietary escape seq
 
     def write_vk(self, vk_code): # {{{
+
+        #if vk_code == 3:
+        #    logging.debug('control c event happening now for pid ' + str(self.pid))
+        #    win32console.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, self.pid)
+        #    return
 
         seq = ur"\u001b[" + str(vk_code) + "VK"
         self.write(seq)

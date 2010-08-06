@@ -188,14 +188,9 @@ function! conque_term#open(...) "{{{
     let g:ConqueTerm_Idx += 1
 
     " open command
-    try
         let l:config = '{"color":' . string(g:ConqueTerm_Color) . ',"TERM":"' . g:ConqueTerm_TERM . '"}'
         execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
         execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
-    catch 
-        echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
-        return 0
-    endtry
 
     " set buffer mappings and auto commands 
     call conque_term#set_mappings('start')
@@ -302,13 +297,8 @@ function! conque_term#set_mappings(action) "{{{
     endfor
     " bonus mapping: send <C-c> in normal mode to terminal as well for panic interrupts
     if l:action == 'start'
-        if s:platform == 'nix'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
-            sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
-        else
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_CANCEL . ')<CR>'
-            sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_CANCEL . ')<CR>'
-        endif
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
     else
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c>'
@@ -557,6 +547,6 @@ endfunction " }}}
 
 let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
 exec "pyfile " . conque_py_dir . "conque.py"
-exec "pyfile " . conque_py_dir . "conque_sole_subprocess_wrapper.py"
+exec "pyfile " . conque_py_dir . "conque_sole_subprocess.py"
 exec "pyfile " . conque_py_dir . "conque_screen.py"
 
