@@ -18,8 +18,8 @@ Requirements:
 
 }}} """
 
-import os, signal, time, re, ctypes, ctypes.wintypes
-import win32con, win32process, win32console, win32api, win32security, win32gui
+import time, re, ctypes, ctypes.wintypes
+import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
@@ -93,58 +93,40 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
     # Create proccess cmd
 
-    def open(self, cmd, options = {}): # {{{
-    
+    def open(self, cmd): # {{{
+
         try:
+            # initialize console
             win32console.FreeConsole()
-        except:
-            pass
+            win32console.AllocConsole()
 
-        win32console.AllocConsole()
+            # get input / output handles
+            self.stdout = win32console.GetStdHandle (win32console.STD_OUTPUT_HANDLE)
+            self.stdin = win32console.GetStdHandle (win32console.STD_INPUT_HANDLE)
 
-        # hide the console
-        self.window = win32console.GetConsoleWindow()
-        win32gui.ShowWindow(self.window, win32con.SW_HIDE)
+            # set title
+            win32console.SetConsoleTitle ('conquesole process')
 
-        # get input / output handles
-        self.stdout = win32console.GetStdHandle (win32console.STD_OUTPUT_HANDLE)
-        self.stdin = win32console.GetStdHandle (win32console.STD_INPUT_HANDLE)
+            # set console size
+            size = win32console.PyCOORDType (X=self.console_width, Y=self.console_height)
+            self.stdout.SetConsoleScreenBufferSize (size)
 
-        si = win32process.STARTUPINFO()
-        si.dwFlags |= win32con.STARTF_USESHOWWINDOW
-        # showing minimized window is useful for debugging
-        #si.wShowWindow = win32con.SW_HIDE
-        si.wShowWindow = win32con.SW_MINIMIZE
-        sec = win32security.SECURITY_ATTRIBUTES()
-        sec.bInheritHandle = True;
+            # get console max lines
+            buf_info = self.stdout.GetConsoleScreenBufferInfo()
+            self.console_lines = buf_info['Size'].Y - 1
+            #self.window = win32console.GetConsoleWindow().handle
 
-        # finally, create the process!
-        flags = win32process.NORMAL_PRIORITY_CLASS
-        res = win32process.CreateProcess (None, cmd, sec, None, 0, flags, None, '.', si)
-        self.handle = res[0]
-        self.pid = res[2]
+            # finally, create the process!
+            flags = win32process.NORMAL_PRIORITY_CLASS
+            res = win32process.CreateProcess (None, cmd, None, None, 0, flags, None, '.', win32process.STARTUPINFO())
+            self.handle = res[0]
+            self.pid = res[2]
 
+            return True
 
-
-
-        # initialize console
-        #win32console.FreeConsole()
-        #win32console.AttachConsole(self.pid)
-
-        # set title
-        win32console.SetConsoleTitle ('conquesole process')
-
-        # set console size
-        size = win32console.PyCOORDType (X=self.console_width, Y=self.console_height)
-        self.stdout.SetConsoleScreenBufferSize (size)
-
-        # get console max lines
-        buf_info = self.stdout.GetConsoleScreenBufferInfo()
-        self.console_lines = buf_info['Size'].Y - 1
-        #self.window = win32console.GetConsoleWindow().handle
-
-        return True
-
+        except Exception, e:
+            logging.debug('ERROR: %s' % e)
+            return False
 
     # }}}
 
@@ -275,6 +257,33 @@ class ConqueSoleSubprocess():
 
     def write (self, text): # {{{
 
+        # split on VK codes
+        chunks = CONQUE_SEQ_REGEX_VK.split(text)
+
+        # if len() is one then no vks
+        if len(chunks) == 1:
+            self.write_plain(text)
+            return
+
+        logging.debug('split!: ' + str(chunks))
+
+        # loop over chunks and delegate
+        for t in chunks:
+
+            if t == '':
+                continue
+
+            if CONQUE_SEQ_REGEX_VK.match(t):
+                logging.debug('match!: ' + str(t[2:-2]))
+                self.write_vk(t[2:-2])
+            else:
+                self.write_plain(t)
+
+    # }}}
+
+    # ****************************************************************************
+
+    def write_plain (self, text): # {{{
         list_input = []
         for c in text:
             # create keyboard input
@@ -287,12 +296,6 @@ class ConqueSoleSubprocess():
             if cnum > 31:
                 kc.Char = unicode(c)
                 kc.VirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum)
-            elif cnum == 3:
-                pid_list = win32console.GetConsoleProcessList()
-                logging.debug('my pid: ' + str(self.pid))
-                logging.debug('process list: ' + str(win32console.GetConsoleProcessList()))
-                win32console.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
-                continue
             else:
                 kc.Char = unicode(c)
                 if str(cnum) in CONQUE_WINDOWS_VK:
@@ -307,9 +310,6 @@ class ConqueSoleSubprocess():
         self.stdin.WriteConsoleInput (list_input)
 
     # }}}
-
-    # ****************************************************************************
-
 
     # ****************************************************************************
 

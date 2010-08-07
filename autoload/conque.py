@@ -224,7 +224,7 @@ class Conque:
         self.init_tabstops()
 
         # open command
-        self.proc = ConqueSoleSubprocess()
+        self.proc = ConqueSoleSubprocessWrapper()
         self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
         # }}}
 
@@ -373,8 +373,7 @@ class Conque:
     ###############################################################################################
     # Plain text # {{{
 
-    def plain_text(self, input_unicode):
-        input = input_unicode.encode('utf8')
+    def plain_text(self, input):
         logging.debug('plain -- ' + str(self.color_changes))
         current_line = self.screen[self.l]
 
