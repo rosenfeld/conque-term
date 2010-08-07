@@ -96,9 +96,36 @@ class ConqueSoleSubprocess():
     def open(self, cmd): # {{{
 
         try:
+
             # initialize console
-            win32console.FreeConsole()
-            win32console.AllocConsole()
+            #try:
+            #    win32console.FreeConsole()
+            #except:
+            #    pass
+            #win32console.AllocConsole()
+
+
+            si = win32process.STARTUPINFO()
+            si.dwFlags |= win32con.STARTF_USESHOWWINDOW
+            # showing minimized window is useful for debugging
+            si.wShowWindow = win32con.SW_HIDE
+            #si.wShowWindow = win32con.SW_MINIMIZE
+
+            # finally, create the process!
+            flags = win32process.NORMAL_PRIORITY_CLASS | win32process.CREATE_NEW_PROCESS_GROUP | win32process.CREATE_UNICODE_ENVIRONMENT | win32process.CREATE_NEW_CONSOLE
+            res = win32process.CreateProcess (None, cmd, None, None, 0, flags, None, '.', si)
+            self.handle = res[0]
+            self.pid = res[2]
+
+            # console is not immediately available
+            for i in range(10):
+                time.sleep(1)
+                logging.debug('attempt ' + str(i))
+                try:
+                    win32console.AttachConsole(self.pid)
+                    break
+                except:
+                    pass
 
             # get input / output handles
             self.stdout = win32console.GetStdHandle (win32console.STD_OUTPUT_HANDLE)
@@ -115,12 +142,6 @@ class ConqueSoleSubprocess():
             buf_info = self.stdout.GetConsoleScreenBufferInfo()
             self.console_lines = buf_info['Size'].Y - 1
             #self.window = win32console.GetConsoleWindow().handle
-
-            # finally, create the process!
-            flags = win32process.NORMAL_PRIORITY_CLASS
-            res = win32process.CreateProcess (None, cmd, None, None, 0, flags, None, '.', win32process.STARTUPINFO())
-            self.handle = res[0]
-            self.pid = res[2]
 
             return True
 
@@ -296,6 +317,12 @@ class ConqueSoleSubprocess():
             if cnum > 31:
                 kc.Char = unicode(c)
                 kc.VirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum)
+            elif cnum == 3:
+                pid_list = win32console.GetConsoleProcessList()
+                logging.debug(str(self.pid))
+                logging.debug(str(pid_list))
+                win32console.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, self.pid)
+                continue
             else:
                 kc.Char = unicode(c)
                 if str(cnum) in CONQUE_WINDOWS_VK:

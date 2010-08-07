@@ -74,12 +74,12 @@ class ConqueSoleSubprocessWrapper():
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
-        flags = win32process.NORMAL_PRIORITY_CLASS
+        flags = win32process.NORMAL_PRIORITY_CLASS | win32process.DETACHED_PROCESS
         si = win32process.STARTUPINFO()
         si.dwFlags |= win32con.STARTF_USESHOWWINDOW
         # showing minimized window is useful for debugging
-        si.wShowWindow = win32con.SW_HIDE
-        #si.wShowWindow = win32con.SW_MINIMIZE
+        #si.wShowWindow = win32con.SW_HIDE
+        si.wShowWindow = win32con.SW_MINIMIZE
 
         # start the stupid process already
         try:
