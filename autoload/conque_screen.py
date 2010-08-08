@@ -66,9 +66,9 @@ class ConqueScreen(object):
         if real_line == len(self.buffer):
             self.buffer.append(value)
         else:
-            logging.debug('type of vim line is ' + str(type(self.buffer[ real_line ])))
-            logging.debug('type of value is ' + str(type(value)))
-            logging.debug('value is ' + str(value))
+            #logging.debug('type of vim line is ' + str(type(self.buffer[ real_line ])))
+            #logging.debug('type of value is ' + str(type(value)))
+            #logging.debug('value is ' + str(value))
             self.buffer[ real_line ] = str(value)
     # }}}
 

@@ -18,7 +18,7 @@ Requirements:
 
 }}} """
 
-import time, re, ctypes, ctypes.wintypes
+import time, re, os, ctypes, ctypes.wintypes
 import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
@@ -352,10 +352,37 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
 
     def close(self): # {{{
+  
+        current_pid = os.getpid()
+ 
+        logging.debug('closing down!')
+        pid_list = win32console.GetConsoleProcessList()
+        logging.debug(str(self.pid))
+        logging.debug(str(pid_list))
 
-        win32api.TerminateProcess (self.handle, 0)
-        win32api.CloseHandle (self.handle)
+        # kill subprocess pids
+        for pid in pid_list:        
+            # kill current pid last
+            if pid == current_pid:
+                continue
+            try:
+                self.close_pid(pid)
+            except Exception, e:
+                logging.debug('Error closing pid: %s' % e)
+                pass
+
+        # kill this process
+        try:
+            self.close_pid(current_pid)
+        except Exception, e:
+            logging.debug('Error closing pid: %s' % e)
+            pass
+
+    def close_pid (self, pid) :
+        logging.debug('killing pid ' + str(pid))
+        handle = win32api.OpenProcess(win32con.PROCESS_TERMINATE, 0, pid)
+        win32api.TerminateProcess(handle, -1) 
+        win32api.CloseHandle(handle)
 
     # }}}
-
 

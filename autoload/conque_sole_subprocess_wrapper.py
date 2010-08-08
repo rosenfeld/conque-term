@@ -105,12 +105,12 @@ class ConqueSoleSubprocessWrapper():
         # emulate timeout by sleeping timeout time
         if timeout > 0:
             read_timeout = float(timeout) / 1000
-            logging.debug("sleep " + str(read_timeout) + " seconds")
+            #logging.debug("sleep " + str(read_timeout) + " seconds")
             time.sleep(read_timeout)
 
         # get output
         output = read_shm(self.output_shm)
-        logging.debug("output type is " + str(type(output)))
+        #logging.debug("output type is " + str(type(output)))
 
         # clear output shm
         clear_shm(self.output_shm)

@@ -35,8 +35,6 @@ def read_shm (shm):
     else:
       shm_str = unicode(shm.read(nul_pos), 'utf-8')
 
-    logging.debug(type(shm_str))
-    logging.debug(shm_str)
     return shm_str
 
 def clear_shm(shm):
