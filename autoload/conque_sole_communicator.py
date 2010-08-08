@@ -11,13 +11,13 @@ objects. Good times!
 
 }}} """
 
-import time, mmap, sys, re
+import time, mmap, sys, re, traceback
 from conque_sole_common import *
 from conque_sole_subprocess import *
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 ##############################################################
 # only run if this file was run directly
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                 bucket = bucket[cut_pos:]
 
         except Exception, e:
-            logging.debug('ERROR: %s' % e)
+            logging.debug('ERROR in communicator: %s' % traceback.format_exc())
 
         # increment loops, and exit if max has been reached
         loops += 1

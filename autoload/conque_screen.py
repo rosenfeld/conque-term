@@ -11,6 +11,10 @@
 #   s[5] = 'Since previous append() command scrolled the terminal down, this is a different line than first cb[5] call'
 #
 
+import logging # DEBUG
+LOG_FILENAME = 'pylog_sub.log' # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+
 import vim
 
 class ConqueScreen(object):
@@ -57,11 +61,15 @@ class ConqueScreen(object):
     def __setitem__(self, key, value): # {{{
         real_line = self.get_real_idx(key)
 
+
         # if line is past end of screen, append
         if real_line == len(self.buffer):
             self.buffer.append(value)
         else:
-            self.buffer[ real_line ] = value
+            logging.debug('type of vim line is ' + str(type(self.buffer[ real_line ])))
+            logging.debug('type of value is ' + str(type(value)))
+            logging.debug('value is ' + str(value))
+            self.buffer[ real_line ] = str(value)
     # }}}
 
     def __delitem__(self, key): # {{{

@@ -30,7 +30,7 @@ class ConqueSoleSubprocessWrapper():
     pid = None
 
     # queue input in this bucket
-    bucket = ''
+    bucket = None
 
     # shared memory objects
     input_shm = None
@@ -92,6 +92,9 @@ class ConqueSoleSubprocessWrapper():
         self.handle = tpl_result [0]
         self.pid = tpl_result [2]
 
+        # initialize output as utf-8 object
+        self.bucket = unicode(' ', 'utf-8')
+
         # }}}
 
     #########################################################################
@@ -107,6 +110,7 @@ class ConqueSoleSubprocessWrapper():
 
         # get output
         output = read_shm(self.output_shm)
+        logging.debug("output type is " + str(type(output)))
 
         # clear output shm
         clear_shm(self.output_shm)
@@ -120,10 +124,12 @@ class ConqueSoleSubprocessWrapper():
 
     def write(self, text): # {{{
 
+        logging.debug('ord is ' + str(ord(text[0])))
+        logging.debug('asdf ' + str(type(text)))
         self.bucket += text
 
-        logging.debug('writing input: ' + text)
-        logging.debug('bucket is now: ' + text)
+        #logging.debug('writing input: ' + str(text))
+        #logging.debug('bucket is now: ' + str(text))
 
         istr = read_shm(self.input_shm)
         if istr == '':

@@ -229,8 +229,8 @@ class Conque:
         # }}}
 
     # write to pty
-    def write(self, input): # {{{
-        logging.debug('writing input ' + str(input))
+    def write(self, input, foo = 'x'): # {{{
+        #logging.debug('writing input ' + str(input) + ' --- ' + foo)
 
         # check if window size has changed
         self.update_window_size()
@@ -255,7 +255,7 @@ class Conque:
     # read from pty, and update buffer
     def read(self, timeout = 1): # {{{
         # read from subprocess
-        output = self.proc.read(timeout)
+        output = self.proc.read(timeout).encode('utf-8')
         # and strip null chars
         output = output.replace(chr(0), '')
 

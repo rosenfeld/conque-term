@@ -1,4 +1,8 @@
 
+import logging # DEBUG
+LOG_FILENAME = 'pylog_sub.log' # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+
 import mmap
 
 ##############################################################
@@ -21,13 +25,18 @@ def create_shm (name, access):
 def read_shm (shm):
     global SHM_SIZE
     shm.seek(0)
+
     nul_pos = shm.find(chr(0))
     if nul_pos == 0:
         return ''
+
     elif nul_pos == -1:
-      shm_str = shm.read(SHM_SIZE).encode('ascii', 'ignore')
+      shm_str = unicode(shm.read(SHM_SIZE), 'utf-8')
     else:
-      shm_str = shm.read(nul_pos).encode('ascii', 'ignore')
+      shm_str = unicode(shm.read(nul_pos), 'utf-8')
+
+    logging.debug(type(shm_str))
+    logging.debug(shm_str)
     return shm_str
 
 def clear_shm(shm):
@@ -39,7 +48,8 @@ def write_shm(shm, text):
     global SHM_SIZE
     shm.seek(0)
     if len(text) < SHM_SIZE:
-        shm.write(text + chr(0))
+        shm.write(text.encode('utf-8') + chr(0))
     else:
-        shm.write(text)
+        shm.write(text.encode('utf-8'))
+
 
