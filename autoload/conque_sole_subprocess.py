@@ -23,7 +23,7 @@ import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
 
@@ -99,9 +99,8 @@ class ConqueSoleSubprocess():
             # console window options
             si = win32process.STARTUPINFO()
             si.dwFlags |= win32con.STARTF_USESHOWWINDOW
-            # showing minimized window is useful for debugging
-            #si.wShowWindow = win32con.SW_HIDE
-            si.wShowWindow = win32con.SW_MINIMIZE
+            si.wShowWindow = win32con.SW_HIDE
+            #si.wShowWindow = win32con.SW_MINIMIZE
     
             # process options
             flags = win32process.NORMAL_PRIORITY_CLASS | win32process.CREATE_NEW_PROCESS_GROUP | win32process.CREATE_UNICODE_ENVIRONMENT | win32process.CREATE_NEW_CONSOLE

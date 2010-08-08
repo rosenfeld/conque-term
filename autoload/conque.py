@@ -229,8 +229,7 @@ class Conque:
         # }}}
 
     # write to pty
-    def write(self, input, foo = 'x'): # {{{
-        #logging.debug('writing input ' + str(input) + ' --- ' + foo)
+    def write(self, input): # {{{
 
         # check if window size has changed
         self.update_window_size()
