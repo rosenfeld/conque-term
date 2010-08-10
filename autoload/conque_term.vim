@@ -370,9 +370,9 @@ endfunction "}}}
 " Useful for making temp changes to global config
 function! conque_term#on_focus() " {{{
     " Disable NeoComplCache. It has global hooks on CursorHold and CursorMoved :-/
-    let s:NeoComplCache_WasEnabled = exists(':NeoComplCacheDisable')
+    let s:NeoComplCache_WasEnabled = exists(':NeoComplCacheLock')
     if s:NeoComplCache_WasEnabled == 2
-        NeoComplCacheDisable
+        NeoComplCacheLock
     endif
  
     " set poll interval to 50ms   
@@ -384,8 +384,8 @@ endfunction " }}}
 " Useful for resetting changes to global config
 function! conque_term#on_blur() " {{{
     " re-enable NeoComplCache if needed
-    if exists('s:NeoComplCache_WasEnabled') && exists(':NeoComplCacheEnable') && s:NeoComplCache_WasEnabled == 2
-        NeoComplCacheEnable
+    if exists('s:NeoComplCache_WasEnabled') && exists(':NeoComplCacheUnlock') && s:NeoComplCache_WasEnabled == 2
+        NeoComplCacheUnlock
     endif
  
     " reset poll interval to 2s   
