@@ -23,7 +23,7 @@ import win32con, win32process, win32console, win32api
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
 
@@ -49,6 +49,48 @@ CONQUE_WINDOWS_VK = {
 }
 
 CONQUE_SEQ_REGEX_VK = re.compile(ur"(\u001b\[\d{1,3}VK)", re.UNICODE)
+
+CONQUE_ATTRIBUTE_BITS = [ 'fg-blue', 'fg-green', 'fg-red', 'fg-bold', 'bg-blue', 'bg-green', 'bg-red', 'bg-bold' ]
+
+CONQUE_ATTRIBUTE_FOREGROUND = {
+    '0000' : '30',
+    '0001' : '34',
+    '0010' : '32',
+    '0011' : '36',
+    '0100' : '31',
+    '0101' : '35',
+    '0110' : '33',
+    '0111' : '37',
+
+    '1000' : '1;90',
+    '1001' : '1;94',
+    '1010' : '1;92',
+    '1011' : '1;96',
+    '1100' : '1;91',
+    '1101' : '1;95',
+    '1110' : '1;93',
+    '1111' : '1;97'
+}
+
+CONQUE_ATTRIBUTE_BACKGROUND = {
+    '0000' : '40',
+    '0001' : '44',
+    '0010' : '42',
+    '0011' : '46',
+    '0100' : '41',
+    '0101' : '45',
+    '0110' : '43',
+    '0111' : '47',
+
+    '1000' : '1:100',
+    '1001' : '1;104',
+    '1010' : '1;102',
+    '1011' : '1;106',
+    '1100' : '1;101',
+    '1101' : '1;105',
+    '1110' : '1;103',
+    '1111' : '1;107'
+}
 
 # }}}
 
@@ -79,6 +121,9 @@ class ConqueSoleSubprocess():
     cursor_line = 0
     cursor_col = 0
 
+    # color stuff
+    last_attribute = None
+
     # }}}
 
     # ****************************************************************************
@@ -99,8 +144,8 @@ class ConqueSoleSubprocess():
             # console window options
             si = win32process.STARTUPINFO()
             si.dwFlags |= win32con.STARTF_USESHOWWINDOW
-            si.wShowWindow = win32con.SW_HIDE
-            #si.wShowWindow = win32con.SW_MINIMIZE
+            #si.wShowWindow = win32con.SW_HIDE
+            si.wShowWindow = win32con.SW_MINIMIZE
     
             # process options
             flags = win32process.NORMAL_PRIORITY_CLASS | win32process.CREATE_NEW_PROCESS_GROUP | win32process.CREATE_UNICODE_ENVIRONMENT | win32process.CREATE_NEW_CONSOLE
@@ -152,6 +197,7 @@ class ConqueSoleSubprocess():
 
         output = ""
         read_lines = {}
+        text_attributes = {}
         changed_lines = []
 
         # emulate timeout by sleeping timeout time
@@ -174,8 +220,10 @@ class ConqueSoleSubprocess():
             #logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
+            a = self.stdout.ReadConsoleOutputAttribute (Length=self.console_width, ReadCoord=coord)
             #logging.debug("line " + str(i) + " is: " + t)
             read_lines[i] = t
+            text_attributes[i] = a
 
         # return now if no new data
         if curs.Y == self.current_line and self.current_line_text == read_lines[self.current_line]:
@@ -189,24 +237,28 @@ class ConqueSoleSubprocess():
         logging.debug('-----------------------------------------------------------------------')
         logging.debug('current line: ' + self.current_line_text)
         logging.debug('output current line: ' + read_lines[self.current_line])
+        logging.debug('output attributes: ' + str(text_attributes[self.current_line]))
 
         # replace current line
         # check for changes behind cursor
         if self.current_line_text_nice != read_lines[self.current_line][:len(self.current_line_text_nice)]:
             logging.debug("a")
-            output = ur"\u001b[2K" + "\r" + read_lines[self.current_line].rstrip()
+            output = ur"\u001b[2K" + "\r" + ur"\u001b[0m" + self.add_color(read_lines[self.current_line].rstrip(), text_attributes[self.current_line])
         # otherwise append
         else:
             logging.debug("b")
             cut = len(self.current_line_text_nice)
-            output = ur"\u001b[" + str(cut + 1) + "G" + read_lines[self.current_line][cut:].rstrip()
+            output = ur"\u001b[" + str(cut + 1) + "G" + self.add_color(read_lines[self.current_line][cut:].rstrip(), text_attributes[self.current_line][cut:])
         logging.debug("output from first line: " + output)
+        self.last_attribute = None
 
         # pull output from additional lines
         if curs.Y > self.current_line:
             for i in range(self.current_line + 1, curs.Y + 1):
-                output = output + "\r\n" + read_lines[i].rstrip()
+                output = output + "\r\n" + self.add_color(read_lines[i].rstrip(), text_attributes[i])
+                self.last_attribute = None
                 logging.debug("output from next line: " + read_lines[i].rstrip())
+                logging.debug("attributes from next line: " + str(text_attributes[i]))
 
         # reset current line
         self.current_line = curs.Y
@@ -385,4 +437,61 @@ class ConqueSoleSubprocess():
         win32api.CloseHandle(handle)
 
     # }}}
+
+    # ****************************************************************************
+    # add color escape sequences to output
+
+    def add_color(self, text, attributes, start = 0): # {{{
+
+        final_output = ''
+
+        for i in range(start, len(text)):
+            final_output += self.attribute_to_escape(attributes[i]) + text[i]
+
+        return final_output
+
+        # }}}
+
+    # ****************************************************************************
+    # convert a console attribute integer into an ansi escape sequence
+
+    def attribute_to_escape(self, attr_num): # {{{
+
+        # no change
+        if attr_num == self.last_attribute:
+            return ''
+
+        self.last_attribute = attr_num
+
+        # if plain white text, use ^[[m
+        #if attr_num == 7:
+        #    return ur"\u001b[m"
+
+        seq = []
+
+        # convert attribute integer to bit string
+        bit_str = bin(attr_num)
+        bit_str = bit_str.replace('0b', '')
+
+        # slice foreground and background portions of bit string
+        fg = bit_str[-4:].rjust(4, '0')
+        bg = bit_str[-8:-4].rjust(4, '0')
+
+        # set escape equivs
+        if fg != '' and fg != '0000':
+            seq.append(CONQUE_ATTRIBUTE_FOREGROUND[fg])
+        if bg != '' and bg != '0000':
+            seq.append(CONQUE_ATTRIBUTE_BACKGROUND[bg])
+
+        # clean up
+        if len(seq) > 0:
+            return ur"\u001b[" + ";".join(seq)  + "m"
+
+        else:
+            return ''
+
+        # }}}
+
+
+    # ****************************************************************************
 
