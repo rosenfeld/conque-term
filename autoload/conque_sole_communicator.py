@@ -11,13 +11,12 @@ objects. Good times!
 
 }}} """
 
-import time, mmap, sys, re, traceback
-from conque_sole_common import *
-from conque_sole_subprocess import *
+import time, sys
+from ConqueSole import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 ##############################################################
 # only run if this file was run directly
@@ -28,28 +27,22 @@ if __name__ == '__main__':
 
     # simple arg validation
     logging.debug(str(sys.argv))
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 3:
         logging.debug('Arg validation failed!')
         exit()
 
     # maximum time this thing reads. 0 means no limit. Only for testing.
-    max_loops = 0
+    max_loops = 100
 
     # read interval, in seconds
-    sleep_time = 0.01
-
-    # input and output strings, like stdin and stdout
-    input_shm = create_shm(sys.argv[1], mmap.ACCESS_WRITE)
-    output_shm = create_shm(sys.argv[2], mmap.ACCESS_WRITE)
-
-    # special command string, mostly for sending kill commands
-    command_shm = create_shm(sys.argv[3], mmap.ACCESS_WRITE)
+    sleep_time = 0.15
 
     # the actual subprocess to run
-    cmd = " ".join(sys.argv[4:])
+    cmd = " ".join(sys.argv[2:])
+    logging.debug('opening command: ' + cmd)
 
-    # cursor position regex
-    CONQUE_CURSOR_REGEX = re.compile(ur"^\u001b\[\d{1,4}G$", re.UNICODE)
+    # width and height
+    options = { 'LINES' : 40, 'COLUMNS' : 150 }
 
     # }}}
 
@@ -57,10 +50,11 @@ if __name__ == '__main__':
     # Create the subprocess
 
     # {{{
-    proc = ConqueSoleSubprocess()
-    res = proc.open(cmd)
+    proc = ConqueSole()
+    res = proc.open(cmd, sys.argv[1], options)
 
     if not res:
+        logging.debug('process failed to open')
         exit()
 
     # }}}
@@ -68,7 +62,6 @@ if __name__ == '__main__':
     ##############################################################
     # main loop!
 
-    bucket = ''
     loops = 0
 
     while True:
@@ -78,54 +71,21 @@ if __name__ == '__main__':
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-        try:
-            # check for commands
-            cstr = read_shm(command_shm)
-            if cstr == 'close':
-                try:
-                    proc.close()
-                except:
-                    pass
-                exit()
-
-            # write input
-            istr = read_shm(input_shm)
-            if istr != '':
-                #logging.debug('found input: ' + istr)
-                # write it to subprocess
-                proc.write(istr)
-                # clear input when finished
-                clear_shm(input_shm)
-
-            # get output from subproccess
-            new_output = proc.read()
-
-            # throw away output if it's just an identical cursor position sequence
-            if CONQUE_CURSOR_REGEX.match(new_output) and new_output == bucket:
-                pass
-            else:
-                bucket += new_output
-
-            #logging.debug("buckit: " + str(bucket))
-
-            # if output shm is empty, add to it
-            ostr = read_shm(output_shm)
-            if ostr == '':
-                #logging.debug('output appears empty, writing: ' + bucket[:SHM_SIZE])
-                cut_pos = SHM_SIZE
-                # don't cut inside an escape sequence
-                if bucket[SHM_SIZE-10:SHM_SIZE].count(chr(27)) > 0:
-                    cut_pos = len(bucket[:SHM_SIZE]) - (10 - bucket[SHM_SIZE-10:SHM_SIZE].index(chr(27)))
-                write_shm(output_shm, bucket[:cut_pos])
-                bucket = bucket[cut_pos:]
-
-        except Exception, e:
-            logging.debug('ERROR in communicator: %s' % traceback.format_exc())
+        # write, read, etc
+        proc.write()
+        proc.read()
 
         # increment loops, and exit if max has been reached
         loops += 1
         if max_loops and loops >= max_loops:
             logging.debug('max loops reached')
-            exit()
+            break
+
+    ##############################################################
+    # all done!
+
+    logging.debug(proc.get_screen_text())
+
+    proc.close()
 
 

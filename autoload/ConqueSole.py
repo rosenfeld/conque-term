@@ -20,7 +20,7 @@ Requirements:
 
 import time, re, os, ctypes, ctypes.wintypes
 import win32con, win32process, win32console, win32api
-from conque_sole_common import * # DEBUG
+from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
@@ -139,7 +139,7 @@ class ConqueSole():
     # ****************************************************************************
     # initialize class instance
 
-    def __init__ (self, mem_key, width, height): # {{{
+    def __init__ (self): # {{{
 
         pass
 
@@ -148,9 +148,14 @@ class ConqueSole():
     # ****************************************************************************
     # Create proccess cmd
 
-    def open(self, cmd, options = {}): # {{{
+    def open(self, cmd, mem_key, options = {}): # {{{
 
         try:
+            try:
+                win32console.FreeConsole()
+            except:
+                pass
+
             # set width and height properties
             if 'LINES' in options and 'COLUMNS' in options:
                 self.console_width  = options['COLUMNS']
@@ -185,36 +190,61 @@ class ConqueSole():
             # get input / output handles
             self.stdout = win32console.GetStdHandle (win32console.STD_OUTPUT_HANDLE)
             self.stdin = win32console.GetStdHandle (win32console.STD_INPUT_HANDLE)
+            self.stdout = win32console.CreateConsoleScreenBuffer()
+            self.stdout.SetConsoleActiveScreenBuffer()
 
             # set title
             win32console.SetConsoleTitle ('conquesole process')
+
+            # set size
+            #logging.debug(str(window_size))
+            self.console_width  = 160
+            self.console_height = 48
 
             # set buffer size
             size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines)
             self.stdout.SetConsoleScreenBufferSize (size)
 
             # set window size
-            window_size = win32console.PySMALL_RECTType (Right=self.console_width, Bottom=self.console_height) 
-            self.stdout.SetConsoleWindowInfo (Absolute=False, ConsoleWindow=window_size)
+            window_size = self.stdout.GetConsoleScreenBufferInfo()['Window']
+            logging.debug('window size: ' + str(window_size))
+            window_size.Top = 0
+            window_size.Left = 0
+            window_size.Right = 159
+            window_size.Bottom = 48
+            logging.debug('window size: ' + str(window_size))
+            self.stdout.SetConsoleWindowInfo (True, window_size)
 
             # get console max lines
             buf_info = self.stdout.GetConsoleScreenBufferInfo()
             self.buffer_lines = buf_info['Size'].Y
             self.buffer_cols = buf_info['Size'].X
 
+            logging.debug('buffer size: ' + str(buf_info))
+
             #self.window = win32console.GetConsoleWindow().handle
+
+            # sanity check
+            if self.buffer_lines * self.buffer_cols > 1000000 or self.buffer_lines * self.buffer_cols < 100:
+                print "Error: screen size appears excessive. (" + str(self.buffer_lines) + " x " + str(self.buffer_cols) + ")"
+                self.close()
+                return false
+
+            # init shared memory
+            self.init_shared_memeory(mem_key)
+
+            return True
 
         except Exception, e:
             logging.debug('ERROR: %s' % e)
             return False
 
-        # if that went well, create the shared memory instances
+    # }}}
 
-        # sanity check
-        if self.buffer_lines * self.buffer_cols > 1000000 or self.buffer_lines * self.buffer_cols < 100:
-            print "Error: screen size appears excessive. (" + str(self.buffer_lines) + " x " + str(self.buffer_cols) + ")"
-            self.close()
-            return false
+    # ****************************************************************************
+    # create shared memory objects
+   
+    def init_shared_memeory(self, mem_key): # {{{
 
         self.shm_input = ConqueSoleSharedMemory(1000, 'input', mem_key)
         self.shm_input.create('write')
@@ -237,6 +267,7 @@ class ConqueSole():
     # }}}
 
     # ****************************************************************************
+    # read from windows console and update output buffer
    
     def read(self, timeout = 0): # {{{
 
@@ -263,8 +294,14 @@ class ConqueSole():
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
             a = self.stdout.ReadConsoleOutputAttribute (Length=self.console_width, ReadCoord=coord)
             #logging.debug("line " + str(i) + " is: " + t)
-            self.data[i] = t
-            self.attributes[i] = a
+
+            # add data
+            if i >= len(self.data): self.data.append(t)
+            else:                   self.data[i] = t
+
+            # and character attributes
+            if i >= len(self.attributes): self.attributes.append(a)
+            else:                         self.attributes[i] = a
 
         # write new output to shared memory
         self.shm_output.write(text = ''.join(self.data[self.top : curs_line + 1]), start = self.top * self.buffer_cols)
@@ -274,8 +311,10 @@ class ConqueSole():
 
         # adjust screen position
         self.top = curs_line - self.console_height
+        if self.top < 0:
+            self.top = 0
 
-        logging.debug("full output: " + ''.join(self.data[self.top : curs_line + 1]))
+        #logging.debug("full output: " + ''.join(self.data[self.top : curs_line + 1]))
 
         return None
         
@@ -320,7 +359,14 @@ class ConqueSole():
     # write text to console. this function just parses out special sequences for
     # special key events and passes on the text to the plain or virtual key functions
 
-    def write (self, text): # {{{
+    def write (self): # {{{
+
+        # get input from shared mem
+        text = self.shm_input.read()
+
+        # nothing to do here
+        if text == '':
+            return
 
         # split on VK codes
         chunks = CONQUE_SEQ_REGEX_VK.split(text)
@@ -491,6 +537,12 @@ class ConqueSole():
 
         # }}}
 
-
     # ****************************************************************************
+    # return screen data as string
+
+    def get_screen_text(self):
+        logging.debug('here')
+        logging.debug(str(len(self.data)))
+        return "\n".join(self.data)
+
 

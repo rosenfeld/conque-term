@@ -73,16 +73,16 @@ class ConqueSoleSharedMemory():
     def read (self, chars = 1, start = 0): # {{{
 
         # invalid reads
-        if length == 0 or start + chars > self.mem_size:
+        if chars == 0 or start + chars > self.mem_size:
             return ''
-
-        if not self.fixed_length:
-            chars = self.shm.find(chr(0))
 
         # go to start position
         self.shm.seek(start)
 
-        shm_str = encode(self.shm.read(chars), 'ascii', '?')
+        if not self.fixed_length:
+            chars = self.shm.find(chr(0))
+
+        shm_str = self.shm.read(chars).encode('ascii', '?')
 
         return shm_str
 
