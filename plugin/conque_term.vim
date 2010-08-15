@@ -39,7 +39,7 @@ endif
 
 " automatically go into insert mode when entering buffer {{{
 if !exists('g:ConqueTerm_InsertOnEnter')
-    let g:ConqueTerm_InsertOnEnter = 1
+    let g:ConqueTerm_InsertOnEnter = 0
 endif " }}}
 
 " Allow user to use <C-w> keys to switch window in insert mode. {{{
