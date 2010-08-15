@@ -3,9 +3,10 @@
 " MySQL *************************************************************************************************************
 " *******************************************************************************************************************
 
-syn match MySQLTableBodyG "^\s*\w\+:\(.\+\)\=$" contains=MySQLTableHeadG,MySQLNullG,MySQLBool,MySQLNumberG,MySQLStorageClass oneline skipwhite skipnl
-syn match MySQLTableHeadG "^\s*\w\+:" contains=MySQLTableColon skipwhite contained
-syn match MySQLTableColon ":" contained
+" TODO Move these to syntax which is only executed for mysql
+"syn match MySQLTableBodyG "^\s*\w\+:\(.\+\)\=$" contains=MySQLTableHeadG,MySQLNullG,MySQLBool,MySQLNumberG,MySQLStorageClass oneline skipwhite skipnl
+"syn match MySQLTableHeadG "^\s*\w\+:" contains=MySQLTableColon skipwhite contained
+"syn match MySQLTableColon ":" contained
 
 syn match MySQLTableHead "^ *|.*| *$" nextgroup=MySQLTableDivide contains=MySQLTableBar oneline skipwhite skipnl
 syn match MySQLTableBody "^ *|.*| *$" nextgroup=MySQLTableBody,MySQLTableEnd contains=MySQLTableBar,MySQLNull,MySQLBool,MySQLNumber,MySQLStorageClass oneline skipwhite skipnl
