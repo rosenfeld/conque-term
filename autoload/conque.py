@@ -241,7 +241,7 @@ class Conque:
         # }}}
 
     # read from pty, and update buffer
-    def read(self, timeout = 1): # {{{
+    def read(self, timeout = 1, set_cursor = True): # {{{
         # read from subprocess
         output = self.proc.read(timeout)
         # and strip null chars
@@ -329,6 +329,10 @@ class Conque:
                     self.plain_text(s)
                     # }}}
 
+        # check window size
+        if set_cursor:
+          self.screen.set_cursor(self.l, self.c)
+        
         # we need to set the cursor position
         self.cursor_set = False
 

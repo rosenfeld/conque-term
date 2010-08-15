@@ -345,7 +345,7 @@ function! conque_term#read_all() "{{{
 
     try
         for i in range(1, g:ConqueTerm_Idx - 1)
-            execute 'python ConqueTerm_' . string(i) . '.read(1)'
+            execute 'python ConqueTerm_' . string(i) . '.read(1, False)'
         endfor
     catch
         " probably a deleted buffer
@@ -387,8 +387,10 @@ function! conque_term#on_blur() " {{{
         NeoComplCacheUnlock
     endif
  
-    " reset poll interval to 2s   
-    if exists('s:save_updatetime')
+    " reset poll interval
+    if g:ConqueTerm_ReadUnfocused == 1
+        set updatetime=1000
+    elseif exists('s:save_updatetime')
         exe 'set updatetime=' . s:save_updatetime
     else
         set updatetime=2000
