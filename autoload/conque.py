@@ -8,6 +8,8 @@ LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
 # CONFIG CONSTANTS  {{{
 
 CONQUE_CTL = {
+     1:'soh', # start of heading
+     2:'stx', # start of text
      7:'bel', # bell
      8:'bs',  # backspace
      9:'tab', # tab
@@ -136,8 +138,8 @@ CONQUE_FONT = {
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0007-\u000f])", re.UNICODE)
-CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
+CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0001-\u000f])", re.UNICODE)
+CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0001-\u000f]$", re.UNICODE)
 CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
 CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
 CONQUE_SEQ_REGEX_HASH  = re.compile(ur"^\u001b#", re.UNICODE)
@@ -492,6 +494,12 @@ class Conque:
     def ctl_bs(self):
         if self.c > 1:
             self.c += -1
+
+    def ctl_soh(self):
+        pass
+
+    def ctl_stx(self):
+        pass
 
     def ctl_bel(self):
         vim.command('call conque_term#bell()')
