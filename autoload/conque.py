@@ -329,7 +329,7 @@ class Conque:
                     self.plain_text(s)
                     # }}}
 
-        # set cursor position
+        # we need to set the cursor position
         self.cursor_set = False
 
         vim.command('redraw')
@@ -850,6 +850,15 @@ class Conque:
 
             # signal process that screen size has changed
             self.proc.window_resize(self.lines, self.columns)
+
+    def insert_enter(self):
+
+        # check window size
+        self.update_window_size()
+        
+        # we need to set the cursor position
+        self.cursor_set = False
+
 
     def init_tabstops(self):
         for i in range(0, self.columns + 1):

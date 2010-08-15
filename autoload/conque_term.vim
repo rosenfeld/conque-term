@@ -149,7 +149,7 @@ function! conque_term#set_mappings(action) "{{{
         execute 'autocmd ' . b:ConqueTerm_Var . ' BufLeave <buffer> call conque_term#on_blur()'
 
         " reposition cursor when going into insert mode
-        execute 'autocmd ' . b:ConqueTerm_Var . ' InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.cursor_set = False'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.insert_enter()'
 
         " read more output when this isn't the current buffer
         if g:ConqueTerm_ReadUnfocused == 1
