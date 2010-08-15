@@ -1,7 +1,23 @@
+"""
+
+ConqueSubprocess
+
+Create and interact with a subprocess through a pty.
+
+Usage:
+
+    p = ConqueSubprocess()
+    p.open('bash', {'TERM':'vt100'})
+    output = p.read()
+    p.write('cd ~/vim' + "\r")
+    p.write('ls -lha' + "\r")
+    output += p.read(timeout = 500)
+    p.close()
+
+"""
 
 import os, signal, pty, tty, select, fcntl, termios, struct
 
-###################################################################################################
 class ConqueSubprocess:
 
     # process id
@@ -15,18 +31,21 @@ class ConqueSubprocess:
         self.pid = 0
         # }}}
 
-    # create the pty or whatever (whatever == windows)
+    # create pty + subprocess
     def open(self, command, env = {}): # {{{
+
+        # parse command
         command_arr  = command.split()
         executable   = command_arr[0]
         args         = command_arr
 
+        # try to fork a new pty
         try:
             self.pid, self.fd = pty.fork()
             logging.debug(self.pid)
         except:
-            pass
             logging.debug("pty.fork() failed. Did you mean pty.spork() ???")
+            return False
 
         # child proc, replace with command after altering terminal attributes
         if self.pid == 0:
@@ -46,8 +65,10 @@ class ConqueSubprocess:
                 attrs[6][tty.VTIME] = 0
                 tty.tcsetattr(1, tty.TCSANOW, attrs)
             except:
+                logging.debug('attribute setting failed')
                 pass
 
+            # replace this process with the subprocess
             os.execvp(executable, args)
 
         # else master, do nothing
@@ -64,7 +85,7 @@ class ConqueSubprocess:
         read_timeout = float(timeout) / 1000
 
         try:
-            # what, no do/while?
+            # read from fd until no more output
             while 1:
                 s_read, s_write, s_error = select.select( [ self.fd ], [], [], read_timeout)
 
@@ -100,8 +121,13 @@ class ConqueSubprocess:
             pass
         # }}}
 
+    # close process
+    def close(self): # {{{
+        self.signal(15)
+        # }}}
+
     # get process status
-    def get_status(self): #{{{
+    def is_alive(self): #{{{
 
         p_status = True
 
