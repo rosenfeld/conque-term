@@ -37,11 +37,26 @@ endif
 " **** CONFIG **********************************************************************************************
 " **********************************************************************************************************
 
+" automatically go into insert mode when entering buffer {{{
+if !exists('g:ConqueTerm_InsertOnEnter')
+    let g:ConqueTerm_InsertOnEnter = 0
+endif " }}}
+
+" Allow user to use <C-w> keys to switch window in insert mode. {{{
+if !exists('g:ConqueTerm_CWInsert')
+    let g:ConqueTerm_CWInsert = 0
+endif " }}}
+
 " Choose key mapping to leave insert mode {{{
 " If you choose something other than '<Esc>', then <Esc> will be sent to terminal
 " Using a different key will usually fix Alt/Meta key issues
 if !exists('g:ConqueTerm_EscKey')
     let g:ConqueTerm_EscKey = '<Esc>'
+endif " }}}
+
+" Use this key to send selected text to conque. {{{
+if !exists('g:ConqueTerm_SendVisKey')
+    let g:ConqueTerm_SendVisKey = '<F9>'
 endif " }}}
 
 " Enable color. {{{
@@ -62,17 +77,12 @@ endif " }}}
 
 " Keep on updating the shell window after you've switched to another buffer {{{
 if !exists('g:ConqueTerm_ReadUnfocused')
-    let g:ConqueTerm_ReadUnfocused = 0
+    let g:ConqueTerm_ReadUnfocused = 1
 endif " }}}
 
 " Use this regular expression to highlight prompt {{{
 if !exists('g:ConqueTerm_PromptRegex')
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
-endif " }}}
-
-" Allow user to use <C-w> keys to switch window in insert mode. {{{
-if !exists('g:ConqueTerm_CWInsert')
-    let g:ConqueTerm_CWInsert = 0
 endif " }}}
 
 " **********************************************************************************************************

@@ -8,6 +8,8 @@ LOG_FILENAME = 'pylog.log' # DEBUG
 # CONFIG CONSTANTS  {{{
 
 CONQUE_CTL = {
+     1:'soh', # start of heading
+     2:'stx', # start of text
      7:'bel', # bell
      8:'bs',  # backspace
      9:'tab', # tab
@@ -140,8 +142,8 @@ CONQUE_FONT = {
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0007-\u000f])", re.UNICODE)
-CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0007-\u000f]$", re.UNICODE)
+CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0001-\u000f])", re.UNICODE)
+CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0001-\u000f]$", re.UNICODE)
 CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
 CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
 CONQUE_SEQ_REGEX_HASH  = re.compile(ur"^\u001b#", re.UNICODE)
@@ -256,7 +258,7 @@ class Conque:
         # }}}
 
     # read from pty, and update buffer
-    def read(self, timeout = 1): # {{{
+    def read(self, timeout = 1, set_cursor = True): # {{{
         # read from subprocess
         output = self.proc.read(timeout).encode('utf-8')
         # and strip null chars
@@ -344,8 +346,11 @@ class Conque:
                     self.plain_text(s)
                     # }}}
 
-        # set cursor position
-        self.screen.set_cursor(self.l, self.c)
+        # check window size
+        if set_cursor:
+          self.screen.set_cursor(self.l, self.c)
+        
+        # we need to set the cursor position
         self.cursor_set = False
 
         vim.command('redraw')
@@ -505,8 +510,14 @@ class Conque:
         if self.c > 1:
             self.c += -1
 
+    def ctl_soh(self):
+        pass
+
+    def ctl_stx(self):
+        pass
+
     def ctl_bel(self):
-        print 'BELL'
+        vim.command('call conque_term#bell()')
 
     def ctl_tab(self):
         # default tabstop location
@@ -866,6 +877,15 @@ class Conque:
 
             # signal process that screen size has changed
             self.proc.window_resize(self.lines, self.columns)
+
+    def insert_enter(self):
+
+        # check window size
+        self.update_window_size()
+        
+        # we need to set the cursor position
+        self.cursor_set = False
+
 
     def init_tabstops(self):
         for i in range(0, self.columns + 1):
