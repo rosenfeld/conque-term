@@ -377,6 +377,12 @@ function! conque_term#on_focus() " {{{
     " set poll interval to 50ms   
     let s:save_updatetime = &updatetime
     set updatetime=50
+
+    " if configured, go into insert mode
+    if g:ConqueTerm_InsertOnEnter == 1
+        startinsert!
+    endif
+
 endfunction " }}}
 
 " gets called when user exits conque buffer.
