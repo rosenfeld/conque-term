@@ -252,9 +252,9 @@ function! conque_term#set_mappings(action) "{{{
 
     " send selected text into conque
     if l:action == 'start'
-        sil exe 'v' . map_modifier . 'map <silent> <F9> :<C-u>call conque_term#send_selected(visualmode())<CR>'
+        sil exe 'v' . map_modifier . 'map <silent> ' . g:ConqueTerm_SendVisKey . ' :<C-u>call conque_term#send_selected(visualmode())<CR>'
     else
-        sil exe 'v' . map_modifier . 'map <silent> <F9>'
+        sil exe 'v' . map_modifier . 'map <silent> ' . g:ConqueTerm_SendVisKey
     endif
 
     " remap paste keys
@@ -307,7 +307,6 @@ function! conque_term#set_mappings(action) "{{{
     endif
 
 endfunction " }}}
-
 
 " send selected text from another buffer
 function! conque_term#send_selected(type) "{{{

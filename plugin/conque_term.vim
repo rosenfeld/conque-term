@@ -44,6 +44,11 @@ if !exists('g:ConqueTerm_EscKey')
     let g:ConqueTerm_EscKey = '<Esc>'
 endif " }}}
 
+" Use this key to send selected text to conque. {{{
+if !exists('g:ConqueTerm_SendVisKey')
+    let g:ConqueTerm_SendVisKey = '<F9>'
+endif " }}}
+
 " Enable color. {{{
 " If your apps use a lot of color it will slow down the shell.
 if !exists('g:ConqueTerm_Color')
@@ -62,7 +67,7 @@ endif " }}}
 
 " Keep on updating the shell window after you've switched to another buffer {{{
 if !exists('g:ConqueTerm_ReadUnfocused')
-    let g:ConqueTerm_ReadUnfocused = 0
+    let g:ConqueTerm_ReadUnfocused = 1
 endif " }}}
 
 " Use this regular expression to highlight prompt {{{

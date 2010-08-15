@@ -330,7 +330,6 @@ class Conque:
                     # }}}
 
         # set cursor position
-        self.screen.set_cursor(self.l, self.c)
         self.cursor_set = False
 
         vim.command('redraw')
