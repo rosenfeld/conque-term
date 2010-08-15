@@ -20,6 +20,7 @@ Requirements:
 
 import time, re, os, ctypes, ctypes.wintypes
 import win32con, win32process, win32console, win32api
+from conque_sole_common import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
@@ -94,7 +95,7 @@ CONQUE_ATTRIBUTE_BACKGROUND = {
 
 # }}}
 
-class ConqueSoleSubprocess():
+class ConqueSole():
 
     # Class properties {{{
 
@@ -107,29 +108,38 @@ class ConqueSoleSubprocess():
     stdout = None
 
     # max lines for the console buffer
-    console_lines = 1000
     console_width = 168
-    console_height = 1000
+    console_height = 400
 
-    # keep track of read position
-    current_line = 0
-    current_line_text = ''
-    current_line_text_nice = ''
-    lines_look_ahead = 10
+    buffer_cols = 168
+    buffer_lines = 1000
+
+    # keep track of the buffer number at the top of the window
+    top = 0
 
     # cursor position
     cursor_line = 0
     cursor_col = 0
 
-    # color stuff
-    last_attribute = None
+    # console data, array of lines
+    data = []
+
+    # console attribute data, array of array of int
+    attributes = []
+
+    # shared memory objects
+    shm_input   = None
+    shm_output  = None
+    shm_attributes = None
+    shm_cursor  = None
+    shm_command = None
 
     # }}}
 
     # ****************************************************************************
-    # unused as of yet
+    # initialize class instance
 
-    def __init__ (self): # {{{
+    def __init__ (self, mem_key, width, height): # {{{
 
         pass
 
@@ -138,9 +148,14 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
     # Create proccess cmd
 
-    def open(self, cmd): # {{{
+    def open(self, cmd, options = {}): # {{{
 
         try:
+            # set width and height properties
+            if 'LINES' in options and 'COLUMNS' in options:
+                self.console_width  = options['COLUMNS']
+                self.console_height = options['LINES']
+
             # console window options
             si = win32process.STARTUPINFO()
             si.dwFlags |= win32con.STARTF_USESHOWWINDOW
@@ -174,31 +189,56 @@ class ConqueSoleSubprocess():
             # set title
             win32console.SetConsoleTitle ('conquesole process')
 
-            # set console size
-            size = win32console.PyCOORDType (X=self.console_width, Y=self.console_height)
+            # set buffer size
+            size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines)
             self.stdout.SetConsoleScreenBufferSize (size)
+
+            # set window size
+            window_size = win32console.PySMALL_RECTType (Right=self.console_width, Bottom=self.console_height) 
+            self.stdout.SetConsoleWindowInfo (Absolute=False, ConsoleWindow=window_size)
 
             # get console max lines
             buf_info = self.stdout.GetConsoleScreenBufferInfo()
-            self.console_lines = buf_info['Size'].Y - 1
-            #self.window = win32console.GetConsoleWindow().handle
+            self.buffer_lines = buf_info['Size'].Y
+            self.buffer_cols = buf_info['Size'].X
 
-            return True
+            #self.window = win32console.GetConsoleWindow().handle
 
         except Exception, e:
             logging.debug('ERROR: %s' % e)
             return False
+
+        # if that went well, create the shared memory instances
+
+        # sanity check
+        if self.buffer_lines * self.buffer_cols > 1000000 or self.buffer_lines * self.buffer_cols < 100:
+            print "Error: screen size appears excessive. (" + str(self.buffer_lines) + " x " + str(self.buffer_cols) + ")"
+            self.close()
+            return false
+
+        self.shm_input = ConqueSoleSharedMemory(1000, 'input', mem_key)
+        self.shm_input.create('write')
+        self.shm_input.clear()
+
+        self.shm_output = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols, 'output', mem_key, True)
+        self.shm_output.create('write')
+        self.shm_output.clear()
+
+        self.shm_cursor = ConqueSoleSharedMemory(31, 'cursor', mem_key)
+        self.shm_cursor.create('write')
+        self.shm_cursor.clear()
+
+        self.shm_command = ConqueSoleSharedMemory(255, 'command', mem_key)
+        self.shm_command.create('write')
+        self.shm_command.clear()
+
+        return True
 
     # }}}
 
     # ****************************************************************************
    
     def read(self, timeout = 0): # {{{
-
-        output = ""
-        read_lines = {}
-        text_attributes = {}
-        changed_lines = []
 
         # emulate timeout by sleeping timeout time
         if timeout > 0:
@@ -207,77 +247,37 @@ class ConqueSoleSubprocess():
             time.sleep(read_timeout)
 
         # get cursor position
-        dct_info = self.stdout.GetConsoleScreenBufferInfo()
-        curs = dct_info['CursorPosition']
+        buf_info = self.stdout.GetConsoleScreenBufferInfo()
+        curs_line = buf_info['CursorPosition'].Y
+        curs_col = buf_info['CursorPosition'].X
 
         # check for insane cursor position
-        if curs.Y < self.current_line:
-            logging.debug('wtf cursor: ' + str(curs))
-            self.current_line = curs.Y
+        if curs_line < self.top:
+            logging.debug('wtf cursor: ' + str(buf_info))
+            curs_line = self.top
 
         # read new data
-        for i in range(self.current_line, curs.Y + 1):
+        for i in range(self.top, curs_line + 1):
             #logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
             a = self.stdout.ReadConsoleOutputAttribute (Length=self.console_width, ReadCoord=coord)
             #logging.debug("line " + str(i) + " is: " + t)
-            read_lines[i] = t
-            text_attributes[i] = a
+            self.data[i] = t
+            self.attributes[i] = a
 
-        # return now if no new data
-        if curs.Y == self.current_line and self.current_line_text == read_lines[self.current_line]:
-            #logging.debug("no new data found")
-            # always set cursor position
-            self.cursor_col = curs.X
-            left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
-            output += left_esc
-            return output
+        # write new output to shared memory
+        self.shm_output.write(text = ''.join(self.data[self.top : curs_line + 1]), start = self.top * self.buffer_cols)
 
-        logging.debug('-----------------------------------------------------------------------')
-        logging.debug('current line: ' + self.current_line_text)
-        logging.debug('output current line: ' + read_lines[self.current_line])
-        logging.debug('output attributes: ' + str(text_attributes[self.current_line]))
+        # write cursor position to shared memory
+        self.shm_cursor.write(str(curs_line) + ',' + str(curs_col))
 
-        # replace current line
-        # check for changes behind cursor
-        if self.current_line_text_nice != read_lines[self.current_line][:len(self.current_line_text_nice)]:
-            logging.debug("a")
-            output = ur"\u001b[2K" + "\r" + ur"\u001b[0m" + self.add_color(read_lines[self.current_line].rstrip(), text_attributes[self.current_line])
-        # otherwise append
-        else:
-            logging.debug("b")
-            cut = len(self.current_line_text_nice)
-            output = ur"\u001b[" + str(cut + 1) + "G" + self.add_color(read_lines[self.current_line][cut:].rstrip(), text_attributes[self.current_line][cut:])
-        logging.debug("output from first line: " + output)
-        self.last_attribute = None
+        # adjust screen position
+        self.top = curs_line - self.console_height
 
-        # pull output from additional lines
-        if curs.Y > self.current_line:
-            for i in range(self.current_line + 1, curs.Y + 1):
-                output = output + "\r\n" + self.add_color(read_lines[i].rstrip(), text_attributes[i])
-                self.last_attribute = None
-                logging.debug("output from next line: " + read_lines[i].rstrip())
-                logging.debug("attributes from next line: " + str(text_attributes[i]))
+        logging.debug("full output: " + ''.join(self.data[self.top : curs_line + 1]))
 
-        # reset current line
-        self.current_line = curs.Y
-        self.current_line_text = read_lines[curs.Y]
-        self.current_line_text_nice = read_lines[curs.Y][:curs.X + 1]
-        self.cursor_col = curs.X
-
-        # do we need to reset?
-        if self.current_line > self.console_lines - 100:
-            self.reset_console()
-
-        # always set cursor position
-        left_esc = ur"\u001b[" + str(self.cursor_col + 1) + "G"
-        logging.debug('left esc: ' + left_esc)
-        output += left_esc
-
-        logging.debug("full output: " + output)
-
-        return output
+        return None
         
     # }}}
 
@@ -299,8 +299,8 @@ class ConqueSoleSubprocess():
         self.stdout.SetConsoleCursorPosition (zero)
 
         # calculate character length of buffer
-        dct_info = self.stdout.GetConsoleScreenBufferInfo()
-        size = dct_info['Size']
+        buf_info = self.stdout.GetConsoleScreenBufferInfo()
+        size = buf_info['Size']
         length = size.X * size.Y
 
         # fill console with blank char
@@ -312,8 +312,7 @@ class ConqueSoleSubprocess():
         self.stdout.SetConsoleCursorPosition (current_pos)
 
         # reset position attributes
-        self.cursor_line = 0
-        self.current_line = 0
+        self.top = 0
 
     # }}}
 

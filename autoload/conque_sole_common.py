@@ -8,46 +8,112 @@ import mmap
 ##############################################################
 # shared memory creation
 
-# XXX - assumes user will never write a nul char to input
+# XXX - not interested in learning Python reserved words, so everything is mem_
 
-# size of shared memory
-SHM_SIZE = 4096
+class ConqueSoleSharedMemory():
 
-def create_shm (name, access):
-    global SHM_SIZE
-    name = "%s_%s" % ('conque_sole', name)
-    smo = mmap.mmap (0, SHM_SIZE, name, access)
-    if not smo:
-        exit()
-    else:
-        return smo
+    # ****************************************************************************
+    # class properties
 
-def read_shm (shm):
-    global SHM_SIZE
-    shm.seek(0)
+    # {{{
 
-    nul_pos = shm.find(chr(0))
-    if nul_pos == 0:
-        return ''
+    # is the data being stored not fixed length
+    fixed_length = False
 
-    elif nul_pos == -1:
-      shm_str = unicode(shm.read(SHM_SIZE), 'utf-8')
-    else:
-      shm_str = unicode(shm.read(nul_pos), 'utf-8')
+    # size of shared memory, in bytes / chars
+    mem_size = None
 
-    return shm_str
+    # size of shared memory, in bytes / chars
+    mem_type = None
 
-def clear_shm(shm):
-    global SHM_SIZE
-    shm.seek(0)
-    shm.write(chr(0))
+    # unique key, so multiple console instances are possible
+    mem_key = None
 
-def write_shm(shm, text):
-    global SHM_SIZE
-    shm.seek(0)
-    if len(text) < SHM_SIZE:
-        shm.write(text.encode('utf-8') + chr(0))
-    else:
-        shm.write(text.encode('utf-8'))
+    # mmap instance
+    shm = None
+
+    # }}}
+
+    # ****************************************************************************
+    # constructor I guess
+
+    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False): # {{{
+
+        self.mem_size = mem_size
+        self.mem_type = mem_type
+        self.mem_key  = mem_key
+        self.fixed_length = fixed_length
+
+    # }}}
+
+    # ****************************************************************************
+    # create memory block
+
+    def create (self, access = 'write'): # {{{
+
+        if access == 'write':
+            mmap_access = mmap.ACCESS_WRITE
+        else:
+            mmap_access = mmap.ACCESS_READ
+
+        name = "conque_%s_%s" % (self.mem_type, self.mem_key)
+
+        self.shm = mmap.mmap (0, self.mem_size, name, mmap_access)
+
+        if not self.shm:
+            return False
+        else:
+            return True
+
+        # }}}
+
+    # ****************************************************************************
+    # read data
+
+    def read (self, chars = 1, start = 0): # {{{
+
+        # invalid reads
+        if length == 0 or start + chars > self.mem_size:
+            return ''
+
+        if not self.fixed_length:
+            chars = self.shm.find(chr(0))
+
+        # go to start position
+        self.shm.seek(start)
+
+        shm_str = encode(self.shm.read(chars), 'ascii', '?')
+
+        return shm_str
+
+        # }}}
+
+    # ****************************************************************************
+    # write data
+
+    def write(self, text, start = 0): # {{{
+
+        self.shm.seek(start)
+
+        if self.fixed_length:
+            self.shm.write(text)
+        else:
+            self.shm.write(text + chr(0))
+
+        # }}}
+
+    # ****************************************************************************
+    # clear
+
+    def clear(self, start = 0): # {{{
+
+        self.shm.seek(start)
+
+        if self.fixed_length:
+            self.shm.write(' ' * self.mem_size)
+        else:
+            self.shm.write(chr(0))
+
+        # }}}
 
 
