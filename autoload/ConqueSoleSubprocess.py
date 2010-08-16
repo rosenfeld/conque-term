@@ -121,6 +121,13 @@ class ConqueSoleSubprocess():
         for i in range(self.line_offset + start_line, self.line_offset + start_line + num_lines + 1):
             output.append(self.shm_output.read(self.columns, i * self.columns))
 
+        # get stats
+        stats_str = self.shm_stats.read()
+        if stats_str != '':
+            self.stats = pickle.loads(stats_str)
+
+        logging.debug('stats is now: ' + str(self.stats))
+
         return output
 
         # }}}

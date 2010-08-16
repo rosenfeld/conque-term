@@ -12,11 +12,15 @@ foo.open('cmd.exe', { 'LINES' : 48, 'COLUMNS' : 160 })
 shell_output += foo.read(0, 10, 5000)
 
 foo.write("dir\r")
+shell_output += foo.read(0, 50, 1000)
 foo.write("dir\r")
+shell_output += foo.read(0, 50, 1000)
 foo.write("dir\r")
+shell_output += foo.read(0, 50, 1000)
 foo.write("dir\r")
+shell_output += foo.read(0, 50, 1000)
 foo.write("dir\r")
-shell_output += foo.read(0, 50, 5000)
+shell_output += foo.read(0, 50, 1000)
 
 foo.close()
 

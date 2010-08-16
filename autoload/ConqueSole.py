@@ -19,7 +19,7 @@ Requirements:
 }}} """
 
 import time, re, os, ctypes, ctypes.wintypes, pickle
-import win32con, win32process, win32console, win32api
+import win32con, win32process, win32console, win32api, win32gui
 from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
@@ -195,6 +195,10 @@ class ConqueSole():
                     logging.debug('ERROR attach: %s' % e)
                     pass
 
+            # get window handle
+            self.window = win32console.GetConsoleWindow()
+            #win32gui.SetWindowPos(self.window, None, 0, 0, self.console_width, self.console_height, None)
+
             # get input / output handles
             self.stdout = win32console.GetStdHandle (win32console.STD_OUTPUT_HANDLE)
             self.stdin = win32console.GetStdHandle (win32console.STD_INPUT_HANDLE)
@@ -222,7 +226,6 @@ class ConqueSole():
             self.buffer_cols = buf_info['Size'].X
             logging.debug('buffer size: ' + str(buf_info))
 
-            #self.window = win32console.GetConsoleWindow().handle
 
             # sanity check
             if self.buffer_lines * self.buffer_cols > 1000000 or self.buffer_lines * self.buffer_cols < 100:
@@ -288,12 +291,8 @@ class ConqueSole():
         curs_line = buf_info['CursorPosition'].Y
         curs_col = buf_info['CursorPosition'].X
 
-        # check for insane cursor position
-        if curs_line < self.top:
-            curs_line = self.top
-
         # read new data
-        for i in range(self.top, curs_line + 1):
+        for i in range(self.top, buf_info['Window'].Bottom + 1):
             #logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
@@ -312,13 +311,12 @@ class ConqueSole():
         self.shm_output.write(text = ''.join(self.data[self.top : curs_line + 1]), start = self.top * self.buffer_cols)
 
         # write cursor position to shared memory
-        self.shm_stats.write(str(curs_line) + ',' + str(curs_col))
-        logging.debug('wtf cursor: ' + str(buf_info))
+        stats = { 'top_offset' : buf_info['Window'].Top, 'cursor_x' : curs_col, 'cursor_y' : curs_line }
+        self.shm_stats.write(pickle.dumps(stats, 0))
+        #logging.debug('wtf cursor: ' + str(buf_info))
 
         # adjust screen position
-        self.top = curs_line - self.console_height
-        if self.top < 0:
-            self.top = 0
+        self.top = buf_info['Window'].Top
 
         #logging.debug("full output: " + ''.join(self.data[self.top : curs_line + 1]))
 
