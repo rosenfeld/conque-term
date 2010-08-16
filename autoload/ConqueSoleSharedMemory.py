@@ -60,6 +60,9 @@ class ConqueSoleSharedMemory():
 
         self.shm = mmap.mmap (0, self.mem_size, name, mmap_access)
 
+        if access == 'write':
+            self.clear()
+    
         if not self.shm:
             return False
         else:
@@ -73,7 +76,8 @@ class ConqueSoleSharedMemory():
     def read (self, chars = 1, start = 0): # {{{
 
         # invalid reads
-        if chars == 0 or start + chars > self.mem_size:
+        if self.fixed_length and (chars == 0 or start + chars > self.mem_size):
+            logging.debug('fail')
             return ''
 
         # go to start position

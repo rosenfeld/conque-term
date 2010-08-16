@@ -1,34 +1,22 @@
 
-import conque_sole_subprocess_wrapper
-from conque_sole_subprocess_wrapper import *
+from ConqueSoleSubprocess import *
 
 import logging
 LOG_FILENAME = 'pylog.log' # DEBUG
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
-shell_output = ''
+shell_output = []
 
-foo = ConqueSoleSubprocessWrapper()
-foo.open('cmd.exe')
-shell_output += foo.read(500)
-shell_output += foo.read(500)
+foo = ConqueSoleSubprocess()
+foo.open('cmd.exe', { 'LINES' : 48, 'COLUMNS' : 160 })
+shell_output += foo.read(0, 10, 5000)
 
 foo.write("dir\r")
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
-shell_output += foo.read(500)
+shell_output += foo.read(0, 50, 5000)
 
 foo.close()
 
 logging.debug("==================================================================")
-logging.debug(shell_output)
+logging.debug("\n".join(shell_output))
 logging.debug("==================================================================")
 

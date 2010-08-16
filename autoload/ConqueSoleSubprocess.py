@@ -8,18 +8,16 @@ python through shared memory objects.
 
 }}} """
 
-import md5, time, mmap 
-import os, sys, time, mmap, struct, ctypes, ctypes.wintypes, logging, tempfile, threading
-import win32api, win32con, win32event, win32process, win32console
-user32 = ctypes.windll.user32
+import md5, time
+import win32api, win32con, win32process
 
-from conque_sole_common import *
+from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
-class ConqueSoleSubprocessWrapper():
+class ConqueSoleSubprocess():
 
     # class properties {{{
 
@@ -30,12 +28,22 @@ class ConqueSoleSubprocessWrapper():
     pid = None
 
     # queue input in this bucket
-    bucket = None
+    bucket = ''
+
+    # console size
+    # NOTE: columns should never change after open() is called
+    lines = 24
+    columns = 80
+
+    # line offset, since real console has limited scrollback
+    line_offset = 0
 
     # shared memory objects
-    input_shm = None
-    output_shm = None
-    command_shm = None
+    shm_input   = None
+    shm_output  = None
+    shm_attributes = None
+    shm_stats   = None
+    shm_command = None
 
     # console python process
     proc = None
@@ -61,25 +69,19 @@ class ConqueSoleSubprocessWrapper():
 
     def open(self, cmd, options = {}): # {{{
 
+        self.lines = options['LINES']
+        self.columns = options['COLUMNS']
+
         # create a shm key
         self.shm_key = md5.new(cmd + str(time.ctime())).hexdigest()[:8]
 
-        # create shared memory instances
-        self.input_shm = self.create_shm('input', mmap.ACCESS_WRITE)
-        self.output_shm = self.create_shm('output', mmap.ACCESS_WRITE)
-        self.command_shm = self.create_shm('command', mmap.ACCESS_WRITE)
-
         # python command
-        cmd_line = '%s "%s" %s_input %s_output %s_command %s' % (self.python_exe, self.communicator_py, self.shm_key, self.shm_key, self.shm_key, cmd)
+        cmd_line = '%s "%s" %s %d %d %s' % (self.python_exe, self.communicator_py, self.shm_key, self.columns, self.lines, cmd)
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
         flags = win32process.NORMAL_PRIORITY_CLASS | win32process.DETACHED_PROCESS
         si = win32process.STARTUPINFO()
-        si.dwFlags |= win32con.STARTF_USESHOWWINDOW
-        # showing minimized window is useful for debugging
-        #si.wShowWindow = win32con.SW_HIDE
-        si.wShowWindow = win32con.SW_MINIMIZE
 
         # start the stupid process already
         try:
@@ -92,15 +94,17 @@ class ConqueSoleSubprocessWrapper():
         self.handle = tpl_result [0]
         self.pid = tpl_result [2]
 
-        # initialize output as utf-8 object
-        self.bucket = unicode(' ', 'utf-8')
+        logging.debug('communicator pid: ' + str(self.pid))
+
+        # init shared memory objects
+        self.init_shared_memory(self.shm_key)
 
         # }}}
 
     #########################################################################
     # read output from shared memory
 
-    def read(self, timeout = 0): # {{{
+    def read(self, start_line, num_lines, timeout = 0): # {{{
 
         # emulate timeout by sleeping timeout time
         if timeout > 0:
@@ -108,12 +112,14 @@ class ConqueSoleSubprocessWrapper():
             #logging.debug("sleep " + str(read_timeout) + " seconds")
             time.sleep(read_timeout)
 
-        # get output
-        output = read_shm(self.output_shm)
-        #logging.debug("output type is " + str(type(output)))
+        # factor in line offset to start position
+        real_start = self.line_offset + start_line
 
-        # clear output shm
-        clear_shm(self.output_shm)
+        output = []
+
+        # get output
+        for i in range(self.line_offset + start_line, self.line_offset + start_line + num_lines + 1):
+            output.append(self.shm_output.read(self.columns, i * self.columns))
 
         return output
 
@@ -124,18 +130,16 @@ class ConqueSoleSubprocessWrapper():
 
     def write(self, text): # {{{
 
-        logging.debug('ord is ' + str(ord(text[0])))
-        logging.debug('asdf ' + str(type(text)))
         self.bucket += text
 
-        #logging.debug('writing input: ' + str(text))
-        #logging.debug('bucket is now: ' + str(text))
+        logging.debug('bucket is ' + self.bucket)
 
-        istr = read_shm(self.input_shm)
+        istr = self.shm_input.read()
+
         if istr == '':
             logging.debug('input shm is empty, writing')
-            write_shm(self.input_shm, self.bucket[:SHM_SIZE])
-            self.bucket = self.bucket[SHM_SIZE:]
+            self.shm_input.write(self.bucket[:500])
+            self.bucket = self.bucket[500:]
 
         # }}}
 
@@ -153,10 +157,8 @@ class ConqueSoleSubprocessWrapper():
     # shut it all down
 
     def close(self): # {{{
-        write_shm(self.command_shm, 'close')
+        self.shm_command.write('close')
         time.sleep(0.2)
-        #win32api.TerminateProcess (self.handle, 0)
-        #win32api.CloseHandle (self.handle)
 
         # }}}
 
@@ -168,16 +170,26 @@ class ConqueSoleSubprocessWrapper():
 
         # }}}
 
-    #########################################################################
-    # create shared memory instance
+    # ****************************************************************************
+    # create shared memory objects
+   
+    def init_shared_memory(self, mem_key): # {{{
 
-    def create_shm (self, name, access): # {{{
-        name = "%s_%s_%s" % ('conque_sole', self.shm_key, name)
-        smo = mmap.mmap (0, SHM_SIZE, name, access)
-        if not smo:
-            return None
-        else:
-            return smo
+        self.shm_input = ConqueSoleSharedMemory(1000, 'input', mem_key)
+        self.shm_input.create('write')
+        self.shm_input.clear()
 
-        # }}}
+        self.shm_output = ConqueSoleSharedMemory(1000 * self.columns, 'output', mem_key, True)
+        self.shm_output.create('write')
+        self.shm_output.clear()
+
+        self.shm_stats = ConqueSoleSharedMemory(1000, 'stats', mem_key)
+        self.shm_stats.create('write')
+        self.shm_stats.clear()
+
+        self.shm_command = ConqueSoleSharedMemory(255, 'command', mem_key)
+        self.shm_command.create('write')
+        self.shm_command.clear()
+
+        return True
 

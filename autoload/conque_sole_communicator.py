@@ -27,22 +27,30 @@ if __name__ == '__main__':
 
     # simple arg validation
     logging.debug(str(sys.argv))
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 5:
         logging.debug('Arg validation failed!')
         exit()
 
     # maximum time this thing reads. 0 means no limit. Only for testing.
-    max_loops = 100
+    max_loops = 0
 
     # read interval, in seconds
     sleep_time = 0.15
 
+    # console width
+    console_width = int(sys.argv[2])
+
+    # console height
+    console_height = int(sys.argv[3])
+
     # the actual subprocess to run
-    cmd = " ".join(sys.argv[2:])
+    cmd = " ".join(sys.argv[4:])
     logging.debug('opening command: ' + cmd)
 
     # width and height
-    options = { 'LINES' : 40, 'COLUMNS' : 150 }
+    options = { 'LINES' : console_height, 'COLUMNS' : console_width }
+
+    logging.debug('with options: ' + str(options))
 
     # }}}
 
@@ -65,7 +73,6 @@ if __name__ == '__main__':
     loops = 0
 
     while True:
-        #logging.debug('loop...')
 
         # sleep between loops if moderation is requested
         if sleep_time > 0:

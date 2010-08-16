@@ -108,10 +108,10 @@ class ConqueSole():
     stdout = None
 
     # max lines for the console buffer
-    console_width = 168
-    console_height = 400
+    console_width = 160
+    console_height = 40
 
-    buffer_cols = 168
+    buffer_cols = 160
     buffer_lines = 1000
 
     # keep track of the buffer number at the top of the window
@@ -131,7 +131,7 @@ class ConqueSole():
     shm_input   = None
     shm_output  = None
     shm_attributes = None
-    shm_cursor  = None
+    shm_stats   = None
     shm_command = None
 
     # }}}
@@ -151,6 +151,7 @@ class ConqueSole():
     def open(self, cmd, mem_key, options = {}): # {{{
 
         try:
+            # if we're already attached to a console, then unattach
             try:
                 win32console.FreeConsole()
             except:
@@ -163,9 +164,16 @@ class ConqueSole():
 
             # console window options
             si = win32process.STARTUPINFO()
+
+            # hide window
             si.dwFlags |= win32con.STARTF_USESHOWWINDOW
             #si.wShowWindow = win32con.SW_HIDE
             si.wShowWindow = win32con.SW_MINIMIZE
+
+            # window size
+            si.dwFlags |= win32con.STARTF_USECOUNTCHARS
+            si.dwXCountChars = self.console_width
+            si.dwYCountChars = self.console_height
     
             # process options
             flags = win32process.NORMAL_PRIORITY_CLASS | win32process.CREATE_NEW_PROCESS_GROUP | win32process.CREATE_UNICODE_ENVIRONMENT | win32process.CREATE_NEW_CONSOLE
@@ -184,22 +192,15 @@ class ConqueSole():
                     win32console.AttachConsole(self.pid)
                     break
                 except Exception, e:
-                    logging.debug('ERROR: %s' % e)
+                    logging.debug('ERROR attach: %s' % e)
                     pass
 
             # get input / output handles
             self.stdout = win32console.GetStdHandle (win32console.STD_OUTPUT_HANDLE)
             self.stdin = win32console.GetStdHandle (win32console.STD_INPUT_HANDLE)
-            self.stdout = win32console.CreateConsoleScreenBuffer()
-            self.stdout.SetConsoleActiveScreenBuffer()
 
             # set title
             win32console.SetConsoleTitle ('conquesole process')
-
-            # set size
-            #logging.debug(str(window_size))
-            self.console_width  = 160
-            self.console_height = 48
 
             # set buffer size
             size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines)
@@ -210,16 +211,15 @@ class ConqueSole():
             logging.debug('window size: ' + str(window_size))
             window_size.Top = 0
             window_size.Left = 0
-            window_size.Right = 159
-            window_size.Bottom = 48
+            window_size.Right = self.console_width - 1
+            window_size.Bottom = self.console_height
             logging.debug('window size: ' + str(window_size))
             self.stdout.SetConsoleWindowInfo (True, window_size)
 
-            # get console max lines
+            # reread buffer info to get final console max lines
             buf_info = self.stdout.GetConsoleScreenBufferInfo()
             self.buffer_lines = buf_info['Size'].Y
             self.buffer_cols = buf_info['Size'].X
-
             logging.debug('buffer size: ' + str(buf_info))
 
             #self.window = win32console.GetConsoleWindow().handle
@@ -231,12 +231,12 @@ class ConqueSole():
                 return false
 
             # init shared memory
-            self.init_shared_memeory(mem_key)
+            self.init_shared_memory(mem_key)
 
             return True
 
         except Exception, e:
-            logging.debug('ERROR: %s' % e)
+            logging.debug('ERROR open: %s' % e)
             return False
 
     # }}}
@@ -244,7 +244,7 @@ class ConqueSole():
     # ****************************************************************************
     # create shared memory objects
    
-    def init_shared_memeory(self, mem_key): # {{{
+    def init_shared_memory(self, mem_key): # {{{
 
         self.shm_input = ConqueSoleSharedMemory(1000, 'input', mem_key)
         self.shm_input.create('write')
@@ -254,9 +254,9 @@ class ConqueSole():
         self.shm_output.create('write')
         self.shm_output.clear()
 
-        self.shm_cursor = ConqueSoleSharedMemory(31, 'cursor', mem_key)
-        self.shm_cursor.create('write')
-        self.shm_cursor.clear()
+        self.shm_stats = ConqueSoleSharedMemory(1000, 'stats', mem_key)
+        self.shm_stats.create('write')
+        self.shm_stats.clear()
 
         self.shm_command = ConqueSoleSharedMemory(255, 'command', mem_key)
         self.shm_command.create('write')
@@ -270,6 +270,12 @@ class ConqueSole():
     # read from windows console and update output buffer
    
     def read(self, timeout = 0): # {{{
+
+        # check for commands
+        cmd = self.shm_command.read()
+        if cmd == 'close':
+            self.close()
+            return
 
         # emulate timeout by sleeping timeout time
         if timeout > 0:
@@ -307,7 +313,7 @@ class ConqueSole():
         self.shm_output.write(text = ''.join(self.data[self.top : curs_line + 1]), start = self.top * self.buffer_cols)
 
         # write cursor position to shared memory
-        self.shm_cursor.write(str(curs_line) + ',' + str(curs_col))
+        self.shm_stats.write(str(curs_line) + ',' + str(curs_col))
 
         # adjust screen position
         self.top = curs_line - self.console_height
@@ -367,6 +373,11 @@ class ConqueSole():
         # nothing to do here
         if text == '':
             return
+
+        logging.debug('writing: ' + text)
+
+        # clear input queue
+        self.shm_input.clear()
 
         # split on VK codes
         chunks = CONQUE_SEQ_REGEX_VK.split(text)
