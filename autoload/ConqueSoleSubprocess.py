@@ -8,7 +8,7 @@ python through shared memory objects.
 
 }}} """
 
-import md5, time
+import md5, time, pickle
 import win32api, win32con, win32process
 
 from ConqueSoleSharedMemory import * # DEBUG

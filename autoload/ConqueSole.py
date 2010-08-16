@@ -18,7 +18,7 @@ Requirements:
 
 }}} """
 
-import time, re, os, ctypes, ctypes.wintypes
+import time, re, os, ctypes, ctypes.wintypes, pickle
 import win32con, win32process, win32console, win32api
 from ConqueSoleSharedMemory import * # DEBUG
 
@@ -290,7 +290,6 @@ class ConqueSole():
 
         # check for insane cursor position
         if curs_line < self.top:
-            logging.debug('wtf cursor: ' + str(buf_info))
             curs_line = self.top
 
         # read new data
@@ -314,6 +313,7 @@ class ConqueSole():
 
         # write cursor position to shared memory
         self.shm_stats.write(str(curs_line) + ',' + str(curs_col))
+        logging.debug('wtf cursor: ' + str(buf_info))
 
         # adjust screen position
         self.top = curs_line - self.console_height
