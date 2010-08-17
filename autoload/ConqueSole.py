@@ -1,6 +1,6 @@
 
 import vim, time, random
-from ConqueSoleSubprocess import * # DEBUG
+from ConqueSoleWrapper import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
@@ -49,7 +49,7 @@ class ConqueSole(Conque):
             return
 
         # multi-line changes: go mad!
-        if stats['cursor_y'] != self.l or stats['top_offset'] != self.window_top or random.randint(0,9) == 0:
+        if stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0,9) == 0:
             update_top = self.window_top
             update_bottom = stats['top_offset'] + self.lines
             lines = self.proc.read(update_top, update_bottom - update_top)
@@ -63,9 +63,9 @@ class ConqueSole(Conque):
 
         # otherwise just update this line
         else:
-            lines = self.proc.read(self.l, 1)
-            if lines[0] != self.buffer[self.l]:
-                self.buffer[self.l] = lines[0].rstrip()
+            lines = self.proc.read(stats['cursor_y'], 1)
+            if lines[0] != self.buffer[stats['cursor_y']]:
+                self.buffer[stats['cursor_y']] = lines[0].rstrip()
 
         # reset current position
         self.window_top = stats['top_offset']

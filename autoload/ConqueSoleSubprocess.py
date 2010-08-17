@@ -311,7 +311,7 @@ class ConqueSoleSubprocess():
             else:                         self.attributes[i] = a
 
         # write new output to shared memory
-        self.shm_output.write(text = ''.join(self.data[self.top : curs_line + 1]), start = self.top * self.buffer_cols)
+        self.shm_output.write(text = ''.join(self.data[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
 
         # write cursor position to shared memory
         stats = { 'top_offset' : buf_info['Window'].Top, 'cursor_x' : curs_col, 'cursor_y' : curs_line }

@@ -12,7 +12,7 @@ objects. Good times!
 }}} """
 
 import time, sys
-from ConqueSole import * # DEBUG
+from ConqueSoleSubprocess import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
