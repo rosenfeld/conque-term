@@ -17,7 +17,7 @@ import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
-class ConqueSoleSubprocess():
+class ConqueSoleWrapper():
 
     # class properties {{{
 
@@ -76,7 +76,7 @@ class ConqueSoleSubprocess():
         self.shm_key = md5.new(cmd + str(time.ctime())).hexdigest()[:8]
 
         # python command
-        cmd_line = '%s "%s" %s %d %d %s' % (self.python_exe, self.communicator_py, self.shm_key, self.columns, self.lines, cmd)
+        cmd_line = '%s "%s" %s %d %d %s' % (self.python_exe, self.communicator_py, self.shm_key, int(self.columns), int(self.lines), cmd)
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
@@ -113,22 +113,36 @@ class ConqueSoleSubprocess():
             time.sleep(read_timeout)
 
         # factor in line offset to start position
-        real_start = self.line_offset + start_line
+        real_start = start_line - self.line_offset
 
         output = []
 
         # get output
-        for i in range(self.line_offset + start_line, self.line_offset + start_line + num_lines + 1):
+        for i in range(real_start, real_start + num_lines + 1):
             output.append(self.shm_output.read(self.columns, i * self.columns))
 
-        # get stats
-        stats_str = self.shm_stats.read()
-        if stats_str != '':
-            self.stats = pickle.loads(stats_str)
-
-        logging.debug('stats is now: ' + str(self.stats))
-
         return output
+
+        # }}}
+
+    #########################################################################
+    # get current cursor/scroll position
+
+    def get_stats(self): # {{{
+
+        try:
+            stats_str = self.shm_stats.read()
+            if stats_str != '':
+                self.stats = pickle.loads(stats_str)
+            else:
+                return False
+        except:
+            return False
+
+        # add our own offset so it comes out the full scrollback position
+        self.stats['top_offset'] += self.line_offset
+
+        return self.stats
 
         # }}}
 
@@ -199,4 +213,6 @@ class ConqueSoleSubprocess():
         self.shm_command.clear()
 
         return True
+
+        # }}}
 

@@ -95,7 +95,7 @@ CONQUE_ATTRIBUTE_BACKGROUND = {
 
 # }}}
 
-class ConqueSole():
+class ConqueSoleSubprocess():
 
     # Class properties {{{
 
@@ -209,6 +209,9 @@ class ConqueSole():
             # set buffer size
             size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines)
             self.stdout.SetConsoleScreenBufferSize (size)
+
+            # prev set size call needs to process
+            time.sleep(0.2)
 
             # set window size
             window_size = self.stdout.GetConsoleScreenBufferInfo()['Window']

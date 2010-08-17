@@ -35,7 +35,7 @@ if __name__ == '__main__':
     max_loops = 0
 
     # read interval, in seconds
-    sleep_time = 0.15
+    sleep_time = 0.01
 
     # console width
     console_width = int(sys.argv[2])
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # Create the subprocess
 
     # {{{
-    proc = ConqueSole()
+    proc = ConqueSoleSubprocess()
     res = proc.open(cmd, sys.argv[1], options)
 
     if not res:

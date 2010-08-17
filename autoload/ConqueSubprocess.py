@@ -16,7 +16,8 @@ Usage:
 
 """
 
-import os, signal, pty, tty, select, fcntl, termios, struct
+if CONQUE_PLATFORM == 'nix':
+    import os, signal, pty, tty, select, fcntl, termios, struct
 
 class ConqueSubprocess:
 

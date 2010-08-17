@@ -188,14 +188,9 @@ function! conque_term#open(...) "{{{
     let g:ConqueTerm_Idx += 1
 
     " open command
-    try
         let l:config = '{"color":' . string(g:ConqueTerm_Color) . ',"TERM":"' . g:ConqueTerm_TERM . '"}'
-        execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
+        execute 'python ' . b:ConqueTerm_Var . ' = ConqueSole()'
         execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
-    catch 
-        echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
-        return 0
-    endtry
 
     " set buffer mappings and auto commands 
     call conque_term#set_mappings('start')
@@ -561,8 +556,15 @@ endfunction " }}}
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
+if has('unix')
+    python CONQUE_PLATFORM = 'nix'
+else
+    python CONQUE_PLATFORM = 'dos'
+endif
+
 let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
 exec "pyfile " . conque_py_dir . "Conque.py"
-exec "pyfile " . conque_py_dir . "ConqueSubprocess.py"
 exec "pyfile " . conque_py_dir . "ConqueScreen.py"
+exec "pyfile " . conque_py_dir . "ConqueSubprocess.py"
+exec "pyfile " . conque_py_dir . "conque_sole.py"
 
