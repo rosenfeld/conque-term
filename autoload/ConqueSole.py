@@ -1,10 +1,15 @@
 
 import vim, time, random
-from ConqueSoleWrapper import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+
+# shared constants
+CONQUE_SOLE_BUFFER_LENGTH = 100
+CONQUE_SOLE_INPUT_SIZE = 1000
+CONQUE_SOLE_STATS_SIZE = 1000
+CONQUE_SOLE_COMMANDS_SIZE = 255
 
 ###################################################################################################
 

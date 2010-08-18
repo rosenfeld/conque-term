@@ -576,4 +576,5 @@ exec "pyfile " . conque_py_dir . "Conque.py"
 exec "pyfile " . conque_py_dir . "ConqueScreen.py"
 exec "pyfile " . conque_py_dir . "ConqueSubprocess.py"
 exec "pyfile " . conque_py_dir . "ConqueSole.py"
+exec "pyfile " . conque_py_dir . "ConqueSoleWrapper.py"
 

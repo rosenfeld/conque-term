@@ -77,7 +77,6 @@ class ConqueSoleSharedMemory():
 
         # invalid reads
         if self.fixed_length and (chars == 0 or start + chars > self.mem_size):
-            logging.debug('fail')
             return ''
 
         # go to start position
@@ -119,5 +118,12 @@ class ConqueSoleSharedMemory():
             self.shm.write(chr(0))
 
         # }}}
+
+    # ****************************************************************************
+    # close
+
+    def close(self):
+
+        self.shm.close()
 
 

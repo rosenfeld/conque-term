@@ -131,6 +131,23 @@ class ConqueSoleWrapper():
     def get_stats(self): # {{{
 
         try:
+            cmd_str = self.shm_command.read()
+            if cmd_str != '' and cmd_str != None:
+                logging.debug('cmd found')
+                cmd = pickle.loads(cmd_str)
+                logging.debug(str(cmd))
+                if cmd['cmd'] == 'new_output':
+                    logging.debug('new output')
+                    self.shm_command.clear()
+
+                    # close down old memory
+                    self.shm_output.close()
+                    self.shm_output = None
+
+                    # reallocate memory
+                    self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * cmd['data']['blocks'], 'output', cmd['data']['mem_key'], True)
+                    self.shm_output.create('read')
+
             stats_str = self.shm_stats.read()
             if stats_str != '':
                 self.stats = pickle.loads(stats_str)
@@ -178,7 +195,7 @@ class ConqueSoleWrapper():
     # shut it all down
 
     def close(self): # {{{
-        self.shm_command.write('close')
+        self.shm_command.write(pickle.dumps({'cmd' : 'close', 'data' : {} }))
         time.sleep(0.2)
 
         # }}}
@@ -196,22 +213,21 @@ class ConqueSoleWrapper():
    
     def init_shared_memory(self, mem_key): # {{{
 
-        self.shm_input = ConqueSoleSharedMemory(1000, 'input', mem_key)
+        self.shm_input = ConqueSoleSharedMemory(CONQUE_SOLE_INPUT_SIZE, 'input', mem_key)
         self.shm_input.create('write')
         self.shm_input.clear()
 
-        self.shm_output = ConqueSoleSharedMemory(1000 * self.columns, 'output', mem_key, True)
+        self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'output', mem_key, True)
         self.shm_output.create('write')
         self.shm_output.clear()
 
-        self.shm_stats = ConqueSoleSharedMemory(1000, 'stats', mem_key)
+        self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key)
         self.shm_stats.create('write')
         self.shm_stats.clear()
 
-        self.shm_command = ConqueSoleSharedMemory(255, 'command', mem_key)
+        self.shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key)
         self.shm_command.create('write')
         self.shm_command.clear()
-
         return True
 
         # }}}
