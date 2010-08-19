@@ -10,6 +10,11 @@ CONQUE_SOLE_BUFFER_LENGTH = 100
 CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
+CONQUE_SOLE_RESCROLL_SIZE = 255
+
+# interval of full buffer redraw
+# larger number means less frequent
+CONQUE_SOLE_BUFFER_REDRAW = 50
 
 ###################################################################################################
 
@@ -53,8 +58,19 @@ class ConqueSole(Conque):
         if not stats:
             return
 
+        # full buffer redraw, our favorite!
+        if random.randint(0, CONQUE_SOLE_BUFFER_REDRAW) == 0:
+            update_bottom = stats['top_offset'] + self.lines
+            lines = self.proc.read(0, update_bottom)
+            for i in range(0, update_bottom + 1):
+                #logging.debug('setting line ' + str(i) + ' to: ' + lines[i - update_top])
+                if i == len(self.buffer):
+                    self.buffer.append(lines[i].rstrip())
+                else:
+                    self.buffer[i] = lines[i].rstrip()
+
         # multi-line changes: go mad!
-        if stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0,9) == 0:
+        elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0,9) == 0:
             update_top = self.window_top
             update_bottom = stats['top_offset'] + self.lines
             lines = self.proc.read(update_top, update_bottom - update_top)

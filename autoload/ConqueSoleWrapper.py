@@ -44,6 +44,7 @@ class ConqueSoleWrapper():
     shm_attributes = None
     shm_stats   = None
     shm_command = None
+    shm_rescroll = None
 
     # console python process
     proc = None
@@ -131,29 +132,30 @@ class ConqueSoleWrapper():
     def get_stats(self): # {{{
 
         try:
-            cmd_str = self.shm_command.read()
-            if cmd_str != '' and cmd_str != None:
+            rescroll_str = self.shm_rescroll.read()
+            if rescroll_str != '' and rescroll_str != None:
                 logging.debug('cmd found')
-                cmd = pickle.loads(cmd_str)
-                logging.debug(str(cmd))
-                if cmd['cmd'] == 'new_output':
-                    logging.debug('new output')
-                    self.shm_command.clear()
+                rescroll = pickle.loads(rescroll_str)
+                logging.debug(str(rescroll))
 
-                    # close down old memory
-                    self.shm_output.close()
-                    self.shm_output = None
+                self.shm_rescroll.clear()
 
-                    # reallocate memory
-                    self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * cmd['data']['blocks'], 'output', cmd['data']['mem_key'], True)
-                    self.shm_output.create('read')
+                # close down old memory
+                self.shm_output.close()
+                self.shm_output = None
+
+                # reallocate memory
+                logging.debug('new output size: ' + str(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks']) + ' = ' + rescroll['data']['mem_key'])
+                self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks'], 'output', rescroll['data']['mem_key'], True)
+                self.shm_output.create('write')
 
             stats_str = self.shm_stats.read()
             if stats_str != '':
                 self.stats = pickle.loads(stats_str)
             else:
                 return False
-        except:
+        except Exception, e:
+            logging.debug('Error closing pid: %s' % e)
             return False
 
         # add our own offset so it comes out the full scrollback position
@@ -228,6 +230,11 @@ class ConqueSoleWrapper():
         self.shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key)
         self.shm_command.create('write')
         self.shm_command.clear()
+
+        self.shm_rescroll = ConqueSoleSharedMemory(CONQUE_SOLE_RESCROLL_SIZE, 'rescroll', mem_key)
+        self.shm_rescroll.create('write')
+        self.shm_rescroll.clear()
+
         return True
 
         # }}}
