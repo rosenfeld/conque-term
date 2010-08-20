@@ -3,18 +3,22 @@ import vim, time, random
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # shared constants
-CONQUE_SOLE_BUFFER_LENGTH = 100
+CONQUE_SOLE_BUFFER_LENGTH = 1000
 CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
 CONQUE_SOLE_RESCROLL_SIZE = 255
 
+# interval of screen redraw
+# larger number means less frequent
+CONQUE_SOLE_SCREEN_REDRAW = 10
+
 # interval of full buffer redraw
 # larger number means less frequent
-CONQUE_SOLE_BUFFER_REDRAW = 50
+CONQUE_SOLE_BUFFER_REDRAW = 500
 
 ###################################################################################################
 
@@ -69,8 +73,8 @@ class ConqueSole(Conque):
                 else:
                     self.buffer[i] = lines[i].rstrip()
 
-        # multi-line changes: go mad!
-        elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0,9) == 0:
+        # full screen redraw
+        elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
             update_top = self.window_top
             update_bottom = stats['top_offset'] + self.lines
             lines = self.proc.read(update_top, update_bottom - update_top)
@@ -82,7 +86,7 @@ class ConqueSole(Conque):
                     self.buffer[i] = lines[i - update_top].rstrip()
             
 
-        # otherwise just update this line
+        # single line redraw
         else:
             lines = self.proc.read(stats['cursor_y'], 1)
             if lines[0] != self.buffer[stats['cursor_y']]:

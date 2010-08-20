@@ -20,16 +20,17 @@ Requirements:
 
 import time, re, os, ctypes, ctypes.wintypes, pickle, md5, random
 import win32con, win32process, win32console, win32api, win32gui
+import traceback # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
 
 # memory block sizes in characters
-CONQUE_SOLE_BUFFER_LENGTH = 100
+CONQUE_SOLE_BUFFER_LENGTH = 1000
 CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
@@ -37,7 +38,7 @@ CONQUE_SOLE_RESCROLL_SIZE = 255
 
 # interval of full output bucket replacement
 # larger number means less frequent
-CONQUE_SOLE_MEM_REDRAW = 100
+CONQUE_SOLE_MEM_REDRAW = 1000
 
 CONQUE_WINDOWS_VK = {
     '3'  : win32con.VK_CANCEL,
@@ -236,7 +237,7 @@ class ConqueSoleSubprocess():
             window_size.Top = 0
             window_size.Left = 0
             window_size.Right = self.console_width - 1
-            window_size.Bottom = self.console_height
+            window_size.Bottom = self.console_height - 1
             logging.debug('window size: ' + str(window_size))
             self.stdout.SetConsoleWindowInfo (True, window_size)
 
@@ -260,6 +261,7 @@ class ConqueSoleSubprocess():
 
         except Exception, e:
             logging.debug('ERROR open: %s' % e)
+            logging.debug(traceback.format_exc())
             return False
 
     # }}}
@@ -400,7 +402,7 @@ class ConqueSoleSubprocess():
         self.shm_output.write(''.join(self.data))
 
         # notify wrapper of new output block
-        self.shm_rescroll.write (pickle.dumps({'cmd' : 'new_output', 'data' : {'blocks' : self.output_blocks, 'mem_key' : mem_key } }))
+        self.shm_rescroll.write (pickle.dumps({ 'cmd' : 'new_output', 'data' : {'blocks' : self.output_blocks, 'mem_key' : mem_key } }))
 
         # set buffer size
         size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines * self.output_blocks)
