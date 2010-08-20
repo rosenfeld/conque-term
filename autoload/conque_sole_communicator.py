@@ -12,6 +12,7 @@ objects. Good times!
 }}} """
 
 import time, sys
+import traceback # DEBUG
 from ConqueSoleSubprocess import * # DEBUG
 
 import logging # DEBUG
@@ -79,8 +80,14 @@ if __name__ == '__main__':
             time.sleep(sleep_time)
 
         # write, read, etc
-        proc.write()
-        proc.read()
+        try:
+
+            proc.write()
+            proc.read()
+
+        except Exception, e:
+            logging.debug('Error : %s' % e)
+            logging.debug(traceback.format_exc())
 
         # increment loops, and exit if max has been reached
         loops += 1

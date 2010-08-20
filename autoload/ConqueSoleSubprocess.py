@@ -345,23 +345,23 @@ class ConqueSoleSubprocess():
             #logging.debug("line " + str(i) + " is: " + t)
 
             # add data
-            if i + self.line_offset >= len(self.data): 
+            if i >= len(self.data): 
                 self.data.append(t)
             else: 
-                self.data[i + self.line_offset] = t
+                self.data[i] = t
 
             # and character attributes
-            if i + self.line_offset >= len(self.attributes): self.attributes.append(a)
-            else:                         self.attributes[i + self.line_offset] = a
+            if i >= len(self.attributes): self.attributes.append(a)
+            else:                         self.attributes[i] = a
 
         # write new output to shared memory
         if random.randint(0, CONQUE_SOLE_MEM_REDRAW) == CONQUE_SOLE_MEM_REDRAW:
             self.shm_output.write(''.join(self.data))
         else:
-            self.shm_output.write(text = ''.join(self.data[self.top + self.line_offset : buf_info['Window'].Bottom + 1 + self.line_offset]), start = self.top * self.buffer_cols + self.line_offset * self.buffer_cols)
+            self.shm_output.write(text = ''.join(self.data[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
 
         # write cursor position to shared memory
-        stats = { 'top_offset' : buf_info['Window'].Top + self.line_offset, 'cursor_x' : curs_col, 'cursor_y' : curs_line + self.line_offset }
+        stats = { 'top_offset' : buf_info['Window'].Top, 'cursor_x' : curs_col, 'cursor_y' : curs_line }
         self.shm_stats.write(pickle.dumps(stats, 0))
         #logging.debug('wtf cursor: ' + str(buf_info))
 
@@ -383,81 +383,28 @@ class ConqueSoleSubprocess():
     def reset_console(self, buf_info): # {{{
 
         # most of the time, do nothing
-        if self.top < CONQUE_SOLE_BUFFER_LENGTH - 50:
+        if self.top < CONQUE_SOLE_BUFFER_LENGTH * self.output_blocks - 50:
             return
 
-        # calculate character length of buffer
-        size = buf_info['Size']
-        length = size.X * size.Y
-
-        logging.debug('a')
-
         self.output_blocks += 1
-        self.line_offset += buf_info['Window'].Top
 
-        logging.debug('b')
         # close down old memory
         self.shm_output.close()
         self.shm_output = None
 
-        logging.debug('a')
         # reallocate memory
         mem_key = md5.new(str(self.output_blocks) + str(time.ctime())).hexdigest()[:8]
-        logging.debug(str(self.buffer_lines))
-        logging.debug( str(self.buffer_cols ))
-        logging.debug( str(self.output_blocks))
-        logging.debug(str(self.buffer_lines * self.buffer_cols * self.output_blocks))
         self.shm_output = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.output_blocks, 'output', mem_key, True)
-        logging.debug('c')
         self.shm_output.create('write')
-        logging.debug('a')
         self.shm_output.clear()
-        logging.debug('d')
         self.shm_output.write(''.join(self.data))
 
-        logging.debug('a')
         # notify wrapper of new output block
-        self.shm_rescroll.write(pickle.dumps({'cmd' : 'new_output', 'data' : {'blocks' : self.output_blocks, 'mem_key' : mem_key } }))
+        self.shm_rescroll.write (pickle.dumps({'cmd' : 'new_output', 'data' : {'blocks' : self.output_blocks, 'mem_key' : mem_key } }))
 
-        logging.debug('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaiiii')
-
-        # move cusor to home position
-        zero = win32console.PyCOORDType (X=0, Y=0)
-
-        logging.debug('a')
-
-        # fill console with blank char
-        #self.stdout.FillConsoleOutputCharacter (u' ', length, zero)
-        #logging.debug('b')
-
-        # then refill with data
-        try:
-            # refresh buf info
-            buf_info = self.stdout.GetConsoleScreenBufferInfo()
-
-            # clear out area where we're scrolling to
-            self.stdout.SetConsoleCursorPosition (zero)
-            self.stdout.FillConsoleOutputCharacter (u' ', self.top * self.console_width , zero)
-
-            # shift current text up to top
-            scroll = win32console.PySMALL_RECTType(Left=0, Top=self.top, Right=self.console_width, Bottom=self.buffer_lines * (self.output_blocks - 1))
-            self.stdout.ScrollConsoleScreenBuffer(scroll, None, zero, u' ', buf_info['Attributes'])
-
-            logging.debug('c')
-            # reset current cursor position
-            logging.debug(str(buf_info))
-            logging.debug('top is ' + str(self.top))
-            logging.debug('cursor ' + str(buf_info['CursorPosition'].Y-self.top))
-            current = win32console.PyCOORDType (X=buf_info['CursorPosition'].X, Y=buf_info['CursorPosition'].Y-self.top)
-            self.stdout.SetConsoleCursorPosition (current)
-
-        except Exception, e:
-            logging.debug('Error : %s' % e)
-
-        logging.debug('d')
-        # reset line number of top of screen
-        self.top = 0
-
+        # set buffer size
+        size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines * self.output_blocks)
+        self.stdout.SetConsoleScreenBufferSize (size)
 
     # }}}
 
