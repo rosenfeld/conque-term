@@ -141,6 +141,9 @@ class ConqueSoleSubprocess():
     # console attribute data, array of array of int
     attributes = []
 
+    # default attribute
+    default_attribute = 7
+
     # shared memory objects
     shm_input   = None
     shm_output  = None
@@ -279,6 +282,10 @@ class ConqueSoleSubprocess():
         self.shm_output.create('write')
         self.shm_output.clear()
 
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols, 'attributes', mem_key, True)
+        self.shm_attributes.create('write')
+        self.shm_attributes.clear()
+
         self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key)
         self.shm_stats.create('write')
         self.shm_stats.clear()
@@ -349,18 +356,18 @@ class ConqueSoleSubprocess():
             # add data
             if i >= len(self.data): 
                 self.data.append(t)
+                self.attributes.append(self.attr_string(a))
             else: 
                 self.data[i] = t
-
-            # and character attributes
-            if i >= len(self.attributes): self.attributes.append(a)
-            else:                         self.attributes[i] = a
+                self.attributes[i] = self.attr_string(a)
 
         # write new output to shared memory
         if random.randint(0, CONQUE_SOLE_MEM_REDRAW) == CONQUE_SOLE_MEM_REDRAW:
             self.shm_output.write(''.join(self.data))
+            self.shm_attributes.write(''.join(self.attributes))
         else:
             self.shm_output.write(text = ''.join(self.data[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
+            self.shm_attributes.write(text = ''.join(self.attributes[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
 
         # write cursor position to shared memory
         stats = { 'top_offset' : buf_info['Window'].Top, 'cursor_x' : curs_col, 'cursor_y' : curs_line }
@@ -394,6 +401,9 @@ class ConqueSoleSubprocess():
         self.shm_output.close()
         self.shm_output = None
 
+        self.shm_attributes.close()
+        self.shm_attributes = None
+
         # reallocate memory
         mem_key = md5.new(str(self.output_blocks) + str(time.ctime())).hexdigest()[:8]
         self.shm_output = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.output_blocks, 'output', mem_key, True)
@@ -401,12 +411,28 @@ class ConqueSoleSubprocess():
         self.shm_output.clear()
         self.shm_output.write(''.join(self.data))
 
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.attributes_blocks, 'attributes', mem_key, True)
+        self.shm_attributes.create('write')
+        self.shm_attributes.clear()
+        self.shm_attributes.write(''.join(self.data))
+
         # notify wrapper of new output block
         self.shm_rescroll.write (pickle.dumps({ 'cmd' : 'new_output', 'data' : {'blocks' : self.output_blocks, 'mem_key' : mem_key } }))
 
         # set buffer size
         size = win32console.PyCOORDType (X=self.console_width, Y=self.buffer_lines * self.output_blocks)
         self.stdout.SetConsoleScreenBufferSize (size)
+
+        # prev set size call needs to process
+        time.sleep(0.2)
+
+        # set window size
+        window_size = self.stdout.GetConsoleScreenBufferInfo()['Window']
+        window_size.Top = 0
+        window_size.Left = 0
+        window_size.Right = self.console_width - 1
+        window_size.Bottom = self.console_height - 1
+        self.stdout.SetConsoleWindowInfo (True, window_size)
 
     # }}}
 
@@ -544,6 +570,21 @@ class ConqueSoleSubprocess():
         win32api.CloseHandle(handle)
 
     # }}}
+
+    # ****************************************************************************
+    # attribute number to one byte character
+
+    def attr_string(self, attr_list): # {{{
+
+        s = ''
+
+        for a in attr_list:
+            s = s + unichr(a).encode('latin1', chr(self.default_attribute))
+
+        return s
+
+        # }}}
+     
 
     # ****************************************************************************
     # add color escape sequences to output

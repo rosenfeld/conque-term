@@ -85,7 +85,7 @@ class ConqueSoleSharedMemory():
         if not self.fixed_length:
             chars = self.shm.find(chr(0))
 
-        shm_str = self.shm.read(chars).encode('ascii', '?')
+        shm_str = self.shm.read(chars)
 
         return shm_str
 

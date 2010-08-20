@@ -117,12 +117,14 @@ class ConqueSoleWrapper():
         real_start = start_line - self.line_offset
 
         output = []
+        attributes = []
 
         # get output
         for i in range(real_start, real_start + num_lines + 1):
             output.append(self.shm_output.read(self.columns, i * self.columns))
+            attributes.append(self.shm_attributes.read(self.columns, i * self.columns))
 
-        return output
+        return (output, attributes)
 
         # }}}
 
@@ -144,10 +146,16 @@ class ConqueSoleWrapper():
                 self.shm_output.close()
                 self.shm_output = None
 
+                self.shm_attributes.close()
+                self.shm_attributes = None
+
                 # reallocate memory
                 logging.debug('new output size: ' + str(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks']) + ' = ' + rescroll['data']['mem_key'])
                 self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks'], 'output', rescroll['data']['mem_key'], True)
                 self.shm_output.create('write')
+
+                self.shm_attributes= ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks'], 'attributes', rescroll['data']['mem_key'], True)
+                self.shm_attributes.create('write')
 
             stats_str = self.shm_stats.read()
             if stats_str != '':
@@ -222,6 +230,10 @@ class ConqueSoleWrapper():
         self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'output', mem_key, True)
         self.shm_output.create('write')
         self.shm_output.clear()
+
+        self.shm_attributes = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'attributes', mem_key, True)
+        self.shm_attributes.create('write')
+        self.shm_attributes.clear()
 
         self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key)
         self.shm_stats.create('write')

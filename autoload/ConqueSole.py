@@ -3,7 +3,7 @@ import vim, time, random
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # shared constants
 CONQUE_SOLE_BUFFER_LENGTH = 1000
@@ -65,32 +65,24 @@ class ConqueSole(Conque):
         # full buffer redraw, our favorite!
         if random.randint(0, CONQUE_SOLE_BUFFER_REDRAW) == 0:
             update_bottom = stats['top_offset'] + self.lines
-            lines = self.proc.read(0, update_bottom)
+            (lines, attributes) = self.proc.read(0, update_bottom)
             for i in range(0, update_bottom + 1):
-                #logging.debug('setting line ' + str(i) + ' to: ' + lines[i - update_top])
-                if i == len(self.buffer):
-                    self.buffer.append(lines[i].rstrip())
-                else:
-                    self.buffer[i] = lines[i].rstrip()
+                self.plain_text(i, lines[i], attributes[i])
 
         # full screen redraw
         elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
             update_top = self.window_top
             update_bottom = stats['top_offset'] + self.lines
-            lines = self.proc.read(update_top, update_bottom - update_top)
+            (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
             for i in range(update_top, update_bottom + 1):
-                #logging.debug('setting line ' + str(i) + ' to: ' + lines[i - update_top])
-                if i == len(self.buffer):
-                    self.buffer.append(lines[i - update_top].rstrip())
-                else:
-                    self.buffer[i] = lines[i - update_top].rstrip()
+                self.plain_text(i, lines[i], attributes[i])
             
 
         # single line redraw
         else:
-            lines = self.proc.read(stats['cursor_y'], 1)
+            (lines, attributes) = self.proc.read(stats['cursor_y'], 1)
             if lines[0] != self.buffer[stats['cursor_y']]:
-                self.buffer[stats['cursor_y']] = lines[0].rstrip()
+                self.plain_text(stats['cursor_y'], lines[0], attributes[0])
 
         # reset current position
         self.window_top = stats['top_offset']
@@ -124,6 +116,23 @@ class ConqueSole(Conque):
         self.cursor_set = True
 
     # }}}
+
+    #########################################################################
+    # update the buffer
+
+    def plain_text(self, line_nr, text, attributes):
+
+        logging.debug('line ' + str(line_nr) + ": " + text)
+        logging.debug('attributes ' + str(line_nr) + ": " + attributes)
+
+        # remove trailing whitespace
+        text = text.rstrip()
+
+        # update vim buffer
+        if len(self.buffer) <= line_nr:
+            self.buffer.append(text)
+        else:
+            self.buffer[line_nr] = text
 
     #########################################################################
     # write virtual key code to shared memory using proprietary escape seq
