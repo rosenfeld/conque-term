@@ -30,15 +30,19 @@ LOG_FILENAME = 'pylog_sub.log' # DEBUG
 # Globals {{{
 
 # memory block sizes in characters
-CONQUE_SOLE_BUFFER_LENGTH = 100
+CONQUE_SOLE_BUFFER_LENGTH = 1000
 CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
 CONQUE_SOLE_RESCROLL_SIZE = 255
 
 # interval of full output bucket replacement
-# larger number means less frequent
+# larger number means less frequent, 1 = every time
 CONQUE_SOLE_MEM_REDRAW = 1000
+
+# if cursor hasn't moved and screen hasn't scrolled, use this screen redraw interval
+# larger number means less frequent, 1 = every time
+CONQUE_SOLE_SCREEN_REDRAW = 100
 
 CONQUE_WINDOWS_VK = {
     '3'  : win32con.VK_CANCEL,
@@ -62,48 +66,6 @@ CONQUE_WINDOWS_VK = {
 }
 
 CONQUE_SEQ_REGEX_VK = re.compile(ur"(\u001b\[\d{1,3}VK)", re.UNICODE)
-
-CONQUE_ATTRIBUTE_BITS = [ 'fg-blue', 'fg-green', 'fg-red', 'fg-bold', 'bg-blue', 'bg-green', 'bg-red', 'bg-bold' ]
-
-CONQUE_ATTRIBUTE_FOREGROUND = {
-    '0000' : '30',
-    '0001' : '34',
-    '0010' : '32',
-    '0011' : '36',
-    '0100' : '31',
-    '0101' : '35',
-    '0110' : '33',
-    '0111' : '37',
-
-    '1000' : '1;90',
-    '1001' : '1;94',
-    '1010' : '1;92',
-    '1011' : '1;96',
-    '1100' : '1;91',
-    '1101' : '1;95',
-    '1110' : '1;93',
-    '1111' : '1;97'
-}
-
-CONQUE_ATTRIBUTE_BACKGROUND = {
-    '0000' : '40',
-    '0001' : '44',
-    '0010' : '42',
-    '0011' : '46',
-    '0100' : '41',
-    '0101' : '45',
-    '0110' : '43',
-    '0111' : '47',
-
-    '1000' : '1:100',
-    '1001' : '1;104',
-    '1010' : '1;102',
-    '1011' : '1;106',
-    '1100' : '1;101',
-    '1101' : '1;105',
-    '1110' : '1;103',
-    '1111' : '1;107'
-}
 
 # }}}
 
@@ -188,8 +150,8 @@ class ConqueSoleSubprocess():
 
             # hide window
             si.dwFlags |= win32con.STARTF_USESHOWWINDOW
-            #si.wShowWindow = win32con.SW_HIDE
-            si.wShowWindow = win32con.SW_MINIMIZE
+            si.wShowWindow = win32con.SW_HIDE
+            #si.wShowWindow = win32con.SW_MINIMIZE
 
             # window size
             si.dwFlags |= win32con.STARTF_USECOUNTCHARS
@@ -345,8 +307,16 @@ class ConqueSoleSubprocess():
         curs_line = buf_info['CursorPosition'].Y
         curs_col = buf_info['CursorPosition'].X
 
+        # set update range
+        if curs_line != self.cursor_line or self.top != buf_info['Window'].Top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
+            read_start = self.top
+            read_end   = buf_info['Window'].Bottom + 1
+        else:
+            read_start = curs_line
+            read_end   = curs_line + 1
+
         # read new data
-        for i in range(self.top, buf_info['Window'].Bottom + 1):
+        for i in range(read_start, read_end):
             #logging.debug("reading line " + str(i))
             coord = win32console.PyCOORDType (X=0, Y=i)
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
@@ -367,8 +337,8 @@ class ConqueSoleSubprocess():
             self.shm_output.write(''.join(self.data))
             self.shm_attributes.write(''.join(self.attributes))
         else:
-            self.shm_output.write(text = ''.join(self.data[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
-            self.shm_attributes.write(text = ''.join(self.attributes[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
+            self.shm_output.write(text = ''.join(self.data[read_start : read_end]), start = read_start * self.buffer_cols)
+            self.shm_attributes.write(text = ''.join(self.attributes[read_start : read_end]), start = read_start * self.buffer_cols)
 
         # write cursor position to shared memory
         stats = { 'top_offset' : buf_info['Window'].Top, 'default_attribute' : buf_info['Attributes'], 'cursor_x' : curs_col, 'cursor_y' : curs_line }
@@ -377,6 +347,7 @@ class ConqueSoleSubprocess():
 
         # adjust screen position
         self.top = buf_info['Window'].Top
+        self.cursor_line = curs_line
 
         #logging.debug("full output: " + ''.join(self.data[self.top : curs_line + 1]))
 
