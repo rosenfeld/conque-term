@@ -411,7 +411,7 @@ class ConqueSoleSubprocess():
         self.shm_output.clear()
         self.shm_output.write(''.join(self.data))
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.attributes_blocks, 'attributes', mem_key, True)
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.output_blocks, 'attributes', mem_key, True)
         self.shm_attributes.create('write')
         self.shm_attributes.clear()
         self.shm_attributes.write(''.join(self.data))

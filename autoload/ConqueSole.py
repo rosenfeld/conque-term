@@ -75,7 +75,7 @@ class ConqueSole(Conque):
             update_bottom = stats['top_offset'] + self.lines
             (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
             for i in range(update_top, update_bottom + 1):
-                self.plain_text(i, lines[i], attributes[i])
+                self.plain_text(i, lines[i - update_top], attributes[i - update_top])
             
 
         # single line redraw
@@ -122,8 +122,8 @@ class ConqueSole(Conque):
 
     def plain_text(self, line_nr, text, attributes):
 
-        logging.debug('line ' + str(line_nr) + ": " + text)
-        logging.debug('attributes ' + str(line_nr) + ": " + attributes)
+        #logging.debug('line ' + str(line_nr) + ": " + text)
+        #logging.debug('attributes ' + str(line_nr) + ": " + attributes)
 
         # remove trailing whitespace
         text = text.rstrip()
