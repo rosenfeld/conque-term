@@ -3,7 +3,7 @@ import vim, time, random
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals # {{{
 
@@ -71,7 +71,7 @@ class ConqueSole(Conque):
             update_bottom = stats['top_offset'] + self.lines
             (lines, attributes) = self.proc.read(0, update_bottom)
             for i in range(0, update_bottom + 1):
-                self.plain_text(i, lines[i], attributes[i])
+                self.plain_text(i, lines[i], attributes[i], stats)
 
         # full screen redraw
         elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
@@ -79,14 +79,14 @@ class ConqueSole(Conque):
             update_bottom = stats['top_offset'] + self.lines
             (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
             for i in range(update_top, update_bottom + 1):
-                self.plain_text(i, lines[i - update_top], attributes[i - update_top])
+                self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
             
 
         # single line redraw
         else:
             (lines, attributes) = self.proc.read(stats['cursor_y'], 1)
             if lines[0] != self.buffer[stats['cursor_y']]:
-                self.plain_text(stats['cursor_y'], lines[0], attributes[0])
+                self.plain_text(stats['cursor_y'], lines[0], attributes[0], stats)
 
         # reset current position
         self.window_top = stats['top_offset']
@@ -99,7 +99,9 @@ class ConqueSole(Conque):
 
         # }}}
 
+    #########################################################################
     # for polling
+
     def auto_read(self): # {{{
 
         # read output
@@ -124,10 +126,13 @@ class ConqueSole(Conque):
     #########################################################################
     # update the buffer
 
-    def plain_text(self, line_nr, text, attributes): # {{{
+    def plain_text(self, line_nr, text, attributes, stats): # {{{
 
         #logging.debug('line ' + str(line_nr) + ": " + text)
         #logging.debug('attributes ' + str(line_nr) + ": " + attributes)
+        #logging.debug('default attr ' + str(stats['default_attribute']))
+
+        self.l = line_nr + 1
 
         # remove trailing whitespace
         text = text.rstrip()
@@ -138,35 +143,60 @@ class ConqueSole(Conque):
         else:
             self.buffer[line_nr] = text
 
-        # add color
+        # for now, don't reapply color to lines
+        if line_nr + 1 in self.color_history:
+            return
+
+        #logging.debug('checking for color')
+
+        # if text attribute is different, call add_color()
         attr = None
         start = 0
-        foreach i in range(0, len(attributes)):
-            c = attributes[i]
+        for i in range(0, len(attributes)):
+            c = ord(attributes[i])
+            #logging.debug('attr char ' + str(c))
             if c != attr:
-                if attr:
-                  self.add_color(start, i, attr)
+                if attr and attr != stats['default_attribute']:
+                    self.add_color(line_nr, start, i, attr)
                 start = i
                 attr = c
 
-        if attr:
-          self.add_color(start, len(attributes) - 1, attr)
+        if attr and attr != stats['default_attribute']:
+            self.add_color(line_nr, start, len(attributes) - 1, attr)
 
         # }}}
 
-    def add_color(self, start, end, attr): # {{{
+    #########################################################################
+
+    def add_color(self, line_nr, start, end, attr): # {{{
+
+        #logging.debug('adding color at line ' + str(line_nr))
+        #logging.debug('start ' + str(start))
+        #logging.debug('start ' + str(end))
+        #logging.debug('attr ' + str(attr))
 
         # convert attribute integer to bit string
-        bit_str = bin(ord(attr))
+        bit_str = bin(attr)
         bit_str = bit_str.replace('0b', '')
 
         # slice foreground and background portions of bit string
         fg = bit_str[-4:].rjust(4, '0')
         bg = bit_str[-8:-4].rjust(4, '0')
 
-        fg_str = ''
-        bg_str = ''
-        bl_str = ''
+        # ok, first create foreground #rbg
+        red    = int(fg[1]) * 204 + int(fg[0]) * 51
+        green  = int(fg[2]) * 204 + int(fg[0]) * 51
+        blue   = int(fg[3]) * 204 + int(fg[0]) * 51
+        fg_str = "%02x%02x%02x" % (red, green, blue)
+
+        # ok, first create foreground #rbg
+        red    = int(bg[1]) * 204 + int(bg[0]) * 51
+        green  = int(bg[2]) * 204 + int(bg[0]) * 51
+        blue   = int(bg[3]) * 204 + int(bg[0]) * 51
+        bg_str = "%02x%02x%02x" % (red, green, blue)
+
+        # execute the highlight
+        self.exec_highlight(line_nr + 1, start + 1, end + 1, " guifg=#%s guibg=#%s " % (fg_str, bg_str))
 
         # }}}
 
@@ -188,7 +218,6 @@ class ConqueSole(Conque):
         pass
 
         # }}}
- 
 
     # *********************************************************************************************
     # resize if needed

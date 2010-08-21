@@ -356,10 +356,10 @@ class ConqueSoleSubprocess():
             # add data
             if i >= len(self.data): 
                 self.data.append(t)
-                self.attributes.append(self.attr_string(a))
+                self.attributes.append(self.attr_string(a, buf_info))
             else: 
                 self.data[i] = t
-                self.attributes[i] = self.attr_string(a)
+                self.attributes[i] = self.attr_string(a, buf_info)
 
         # write new output to shared memory
         if random.randint(0, CONQUE_SOLE_MEM_REDRAW) == CONQUE_SOLE_MEM_REDRAW:
@@ -370,7 +370,7 @@ class ConqueSoleSubprocess():
             self.shm_attributes.write(text = ''.join(self.attributes[self.top : buf_info['Window'].Bottom + 1]), start = self.top * self.buffer_cols)
 
         # write cursor position to shared memory
-        stats = { 'top_offset' : buf_info['Window'].Top, 'cursor_x' : curs_col, 'cursor_y' : curs_line }
+        stats = { 'top_offset' : buf_info['Window'].Top, 'default_attribute' : buf_info['Attributes'], 'cursor_x' : curs_col, 'cursor_y' : curs_line }
         self.shm_stats.write(pickle.dumps(stats, 0))
         #logging.debug('wtf cursor: ' + str(buf_info))
 
@@ -574,78 +574,26 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
     # attribute number to one byte character
 
-    def attr_string(self, attr_list): # {{{
+    def attr_string(self, attr_list, buf_info): # {{{
 
         s = ''
 
         for a in attr_list:
-            s = s + unichr(a).encode('latin1', chr(self.default_attribute))
+            s = s + unichr(a).encode('latin1', chr(buf_info['Attributes']))
 
         return s
-
-        # }}}
-     
-
-    # ****************************************************************************
-    # add color escape sequences to output
-
-    def add_color(self, text, attributes, start = 0): # {{{
-
-        final_output = ''
-
-        for i in range(start, len(text)):
-            final_output += self.attribute_to_escape(attributes[i]) + text[i]
-
-        return final_output
-
-        # }}}
-
-    # ****************************************************************************
-    # convert a console attribute integer into an ansi escape sequence
-
-    def attribute_to_escape(self, attr_num): # {{{
-
-        # no change
-        if attr_num == self.last_attribute:
-            return ''
-
-        self.last_attribute = attr_num
-
-        # if plain white text, use ^[[m
-        #if attr_num == 7:
-        #    return ur"\u001b[m"
-
-        seq = []
-
-        # convert attribute integer to bit string
-        bit_str = bin(attr_num)
-        bit_str = bit_str.replace('0b', '')
-
-        # slice foreground and background portions of bit string
-        fg = bit_str[-4:].rjust(4, '0')
-        bg = bit_str[-8:-4].rjust(4, '0')
-
-        # set escape equivs
-        if fg != '' and fg != '0000':
-            seq.append(CONQUE_ATTRIBUTE_FOREGROUND[fg])
-        if bg != '' and bg != '0000':
-            seq.append(CONQUE_ATTRIBUTE_BACKGROUND[bg])
-
-        # clean up
-        if len(seq) > 0:
-            return ur"\u001b[" + ";".join(seq)  + "m"
-
-        else:
-            return ''
 
         # }}}
 
     # ****************************************************************************
     # return screen data as string
 
-    def get_screen_text(self):
+    def get_screen_text(self): # {{{
+
         logging.debug('here')
         logging.debug(str(len(self.data)))
         return "\n".join(self.data)
+
+        # }}}
 
 
