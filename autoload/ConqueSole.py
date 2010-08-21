@@ -5,6 +5,8 @@ import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
+# Globals # {{{
+
 # shared constants
 CONQUE_SOLE_BUFFER_LENGTH = 1000
 CONQUE_SOLE_INPUT_SIZE = 1000
@@ -19,6 +21,8 @@ CONQUE_SOLE_SCREEN_REDRAW = 10
 # interval of full buffer redraw
 # larger number means less frequent
 CONQUE_SOLE_BUFFER_REDRAW = 500
+
+# }}}
 
 ###################################################################################################
 
@@ -120,7 +124,7 @@ class ConqueSole(Conque):
     #########################################################################
     # update the buffer
 
-    def plain_text(self, line_nr, text, attributes):
+    def plain_text(self, line_nr, text, attributes): # {{{
 
         #logging.debug('line ' + str(line_nr) + ": " + text)
         #logging.debug('attributes ' + str(line_nr) + ": " + attributes)
@@ -134,12 +138,46 @@ class ConqueSole(Conque):
         else:
             self.buffer[line_nr] = text
 
+        # add color
+        attr = None
+        start = 0
+        foreach i in range(0, len(attributes)):
+            c = attributes[i]
+            if c != attr:
+                if attr:
+                  self.add_color(start, i, attr)
+                start = i
+                attr = c
+
+        if attr:
+          self.add_color(start, len(attributes) - 1, attr)
+
+        # }}}
+
+    def add_color(self, start, end, attr): # {{{
+
+        # convert attribute integer to bit string
+        bit_str = bin(ord(attr))
+        bit_str = bit_str.replace('0b', '')
+
+        # slice foreground and background portions of bit string
+        fg = bit_str[-4:].rjust(4, '0')
+        bg = bit_str[-8:-4].rjust(4, '0')
+
+        fg_str = ''
+        bg_str = ''
+        bl_str = ''
+
+        # }}}
+
     #########################################################################
     # write virtual key code to shared memory using proprietary escape seq
 
     def write_vk(self, vk_code): # {{{
 
         self.proc.write_vk(vk_code)
+
+          
 
         # }}}
 
