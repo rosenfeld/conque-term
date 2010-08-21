@@ -20,6 +20,9 @@ class ConqueSoleSharedMemory():
     # is the data being stored not fixed length
     fixed_length = False
 
+    # fill memory with this character when clearing and fixed_length is true
+    fill_char = ' '
+
     # size of shared memory, in bytes / chars
     mem_size = None
 
@@ -37,12 +40,13 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # constructor I guess
 
-    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False): # {{{
+    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False, fill_char = ' '): # {{{
 
         self.mem_size = mem_size
         self.mem_type = mem_type
         self.mem_key  = mem_key
         self.fixed_length = fixed_length
+        self.fill_char = fill_char
 
     # }}}
 
@@ -60,9 +64,6 @@ class ConqueSoleSharedMemory():
 
         self.shm = mmap.mmap (0, self.mem_size, name, mmap_access)
 
-        if access == 'write':
-            self.clear()
-    
         if not self.shm:
             return False
         else:
@@ -113,7 +114,7 @@ class ConqueSoleSharedMemory():
         self.shm.seek(start)
 
         if self.fixed_length:
-            self.shm.write(' ' * self.mem_size)
+            self.shm.write(self.fill_char * self.mem_size)
         else:
             self.shm.write(chr(0))
 

@@ -30,7 +30,7 @@ LOG_FILENAME = 'pylog_sub.log' # DEBUG
 # Globals {{{
 
 # memory block sizes in characters
-CONQUE_SOLE_BUFFER_LENGTH = 1000
+CONQUE_SOLE_BUFFER_LENGTH = 100
 CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
@@ -258,7 +258,7 @@ class ConqueSoleSubprocess():
                 return false
 
             # init shared memory
-            self.init_shared_memory(mem_key)
+            self.init_shared_memory(mem_key, buf_info)
 
             return True
 
@@ -272,7 +272,7 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
     # create shared memory objects
    
-    def init_shared_memory(self, mem_key): # {{{
+    def init_shared_memory(self, mem_key, buf_info): # {{{
 
         self.shm_input = ConqueSoleSharedMemory(CONQUE_SOLE_INPUT_SIZE, 'input', mem_key)
         self.shm_input.create('write')
@@ -282,7 +282,7 @@ class ConqueSoleSubprocess():
         self.shm_output.create('write')
         self.shm_output.clear()
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols, 'attributes', mem_key, True)
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols, 'attributes', mem_key, True, chr(buf_info['Attributes']))
         self.shm_attributes.create('write')
         self.shm_attributes.clear()
 
@@ -352,6 +352,7 @@ class ConqueSoleSubprocess():
             t = self.stdout.ReadConsoleOutputCharacter (Length=self.console_width, ReadCoord=coord)
             a = self.stdout.ReadConsoleOutputAttribute (Length=self.console_width, ReadCoord=coord)
             #logging.debug("line " + str(i) + " is: " + t)
+            #logging.debug("attributes " + str(i) + " is: " + str(a))
 
             # add data
             if i >= len(self.data): 
@@ -411,10 +412,10 @@ class ConqueSoleSubprocess():
         self.shm_output.clear()
         self.shm_output.write(''.join(self.data))
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.output_blocks, 'attributes', mem_key, True)
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_lines * self.buffer_cols * self.output_blocks, 'attributes', mem_key, True, chr(buf_info['Attributes']))
         self.shm_attributes.create('write')
         self.shm_attributes.clear()
-        self.shm_attributes.write(''.join(self.data))
+        self.shm_attributes.write(''.join(self.attributes))
 
         # notify wrapper of new output block
         self.shm_rescroll.write (pickle.dumps({ 'cmd' : 'new_output', 'data' : {'blocks' : self.output_blocks, 'mem_key' : mem_key } }))
@@ -590,8 +591,6 @@ class ConqueSoleSubprocess():
 
     def get_screen_text(self): # {{{
 
-        logging.debug('here')
-        logging.debug(str(len(self.data)))
         return "\n".join(self.data)
 
         # }}}

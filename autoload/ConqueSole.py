@@ -3,12 +3,12 @@ import vim, time, random
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals # {{{
 
 # shared constants
-CONQUE_SOLE_BUFFER_LENGTH = 1000
+CONQUE_SOLE_BUFFER_LENGTH = 100
 CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
@@ -62,7 +62,7 @@ class ConqueSole(Conque):
     def read(self, timeout = 1, set_cursor = True): # {{{
 
         stats = self.proc.get_stats()
-        
+
         if not stats:
             return
 
@@ -144,7 +144,7 @@ class ConqueSole(Conque):
             self.buffer[line_nr] = text
 
         # for now, don't reapply color to lines
-        if line_nr + 1 in self.color_history:
+        if len(attributes) == 0 or line_nr + 1 in self.color_history:
             return
 
         #logging.debug('checking for color')
