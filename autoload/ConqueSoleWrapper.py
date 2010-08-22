@@ -8,7 +8,7 @@ python through shared memory objects.
 
 }}} """
 
-import md5, time, pickle
+import md5, time
 import win32api, win32con, win32process
 
 from ConqueSoleSharedMemory import * # DEBUG
@@ -34,9 +34,6 @@ class ConqueSoleWrapper():
     # NOTE: columns should never change after open() is called
     lines = 24
     columns = 80
-
-    # line offset, since real console has limited scrollback
-    line_offset = 0
 
     # shared memory objects
     shm_input   = None
@@ -113,14 +110,11 @@ class ConqueSoleWrapper():
             #logging.debug("sleep " + str(read_timeout) + " seconds")
             time.sleep(read_timeout)
 
-        # factor in line offset to start position
-        real_start = start_line - self.line_offset
-
         output = []
         attributes = []
 
         # get output
-        for i in range(real_start, real_start + num_lines + 1):
+        for i in range(start_line, start_line + num_lines + 1):
             output.append(self.shm_output.read(self.columns, i * self.columns))
             attributes.append(self.shm_attributes.read(self.columns, i * self.columns))
 
@@ -134,10 +128,9 @@ class ConqueSoleWrapper():
     def get_stats(self): # {{{
 
         try:
-            rescroll_str = self.shm_rescroll.read()
-            if rescroll_str != '' and rescroll_str != None:
+            rescroll = self.shm_rescroll.read()
+            if rescroll != '' and rescroll != None:
                 logging.debug('cmd found')
-                rescroll = pickle.loads(rescroll_str)
                 logging.debug(str(rescroll))
 
                 self.shm_rescroll.clear()
@@ -159,15 +152,12 @@ class ConqueSoleWrapper():
 
             stats_str = self.shm_stats.read()
             if stats_str != '':
-                self.stats = pickle.loads(stats_str)
+                self.stats = stats_str
             else:
                 return False
         except Exception, e:
             logging.debug('Error closing pid: %s' % e)
             return False
-
-        # add our own offset so it comes out the full scrollback position
-        self.stats['top_offset'] += self.line_offset
 
         return self.stats
 
@@ -202,16 +192,35 @@ class ConqueSoleWrapper():
         # }}}
 
     #########################################################################
+    # idle
+
+    def idle(self): # {{{
+
+        self.shm_command.write({ 'cmd' : 'idle', 'data' : {} })
+
+        # }}}
+
+    #########################################################################
+    # resume
+
+    def resume(self): # {{{
+
+        self.shm_command.write({ 'cmd' : 'resume', 'data' : {} })
+
+        # }}}
+
+    #########################################################################
     # shut it all down
 
     def close(self): # {{{
-        self.shm_command.write(pickle.dumps({'cmd' : 'close', 'data' : {} }))
+
+        self.shm_command.write({ 'cmd' : 'close', 'data' : {} })
         time.sleep(0.2)
 
         # }}}
 
     #########################################################################
-    # create shared memory instance
+    # resize console window
 
     def window_resize(self, lines, columns): # {{{
         pass
@@ -233,15 +242,15 @@ class ConqueSoleWrapper():
         self.shm_attributes = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'attributes', mem_key, True)
         self.shm_attributes.create('write')
 
-        self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key)
+        self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key, serialize = True)
         self.shm_stats.create('write')
         self.shm_stats.clear()
 
-        self.shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key)
+        self.shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
         self.shm_command.create('write')
         self.shm_command.clear()
 
-        self.shm_rescroll = ConqueSoleSharedMemory(CONQUE_SOLE_RESCROLL_SIZE, 'rescroll', mem_key)
+        self.shm_rescroll = ConqueSoleSharedMemory(CONQUE_SOLE_RESCROLL_SIZE, 'rescroll', mem_key, serialize = True)
         self.shm_rescroll.create('write')
         self.shm_rescroll.clear()
 

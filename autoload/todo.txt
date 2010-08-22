@@ -1,0 +1,7 @@
+
+ * resize console window when buffer size changes
+ * allow colors to be written to line more than once
+ X slow subprocess loops to 1/sec when buffer is unfocused
+ * investigate mintty attach problems (or don't)
+
+

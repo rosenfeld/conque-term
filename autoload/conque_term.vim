@@ -234,7 +234,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
 
     " temporary global settings go in here
-    call conque_term#on_focus()
+    call conque_term#on_focus(1)
 
 endfunction " }}}
 
@@ -521,7 +521,10 @@ endfunction "}}}
 
 " gets called when user enters conque buffer.
 " Useful for making temp changes to global config
-function! conque_term#on_focus() " {{{
+function! conque_term#on_focus(...) " {{{
+
+    let startup = get(a:000, 0, 0)
+
     " Disable NeoComplCache. It has global hooks on CursorHold and CursorMoved :-/
     let s:NeoComplCache_WasEnabled = exists(':NeoComplCacheLock')
     if s:NeoComplCache_WasEnabled == 2
@@ -531,6 +534,10 @@ function! conque_term#on_focus() " {{{
     " set poll interval to 50ms   
     let s:save_updatetime = &updatetime
     set updatetime=50
+
+    if startup == 0
+        sil exe 'python ' . g:ConqueTerm_Var . '.resume()'
+    endif
 
     " if configured, go into insert mode
     if g:ConqueTerm_InsertOnEnter == 1
@@ -547,6 +554,8 @@ function! conque_term#on_blur() " {{{
         NeoComplCacheUnlock
     endif
  
+    sil exe 'python ' . g:ConqueTerm_Var . '.idle()'
+
     " reset poll interval
     if g:ConqueTerm_ReadUnfocused == 1
         set updatetime=1000

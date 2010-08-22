@@ -16,7 +16,7 @@ CONQUE_SOLE_RESCROLL_SIZE = 255
 
 # interval of screen redraw
 # larger number means less frequent
-CONQUE_SOLE_SCREEN_REDRAW = 10
+CONQUE_SOLE_SCREEN_REDRAW = 100
 
 # interval of full buffer redraw
 # larger number means less frequent
@@ -241,5 +241,24 @@ class ConqueSole(Conque):
         except:
             vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
     # }}}
+
+
+    # *********************************************************************************************
+    # go into idle mode
+
+    def idle(self): # {{{
+
+        self.proc.idle()
+
+        # }}}
+
+    # *********************************************************************************************
+    # resume from idle mode
+
+    def resume(self): # {{{
+
+        self.proc.resume()
+
+        # }}}
 
 

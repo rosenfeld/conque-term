@@ -3,7 +3,7 @@ import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
-import mmap
+import mmap, pickle
 
 ##############################################################
 # shared memory creation
@@ -23,6 +23,9 @@ class ConqueSoleSharedMemory():
     # fill memory with this character when clearing and fixed_length is true
     fill_char = ' '
 
+    # serialize and unserialize data automatically
+    serialize = False
+
     # size of shared memory, in bytes / chars
     mem_size = None
 
@@ -40,13 +43,14 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # constructor I guess
 
-    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False, fill_char = ' '): # {{{
+    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False, fill_char = ' ', serialize = False): # {{{
 
         self.mem_size = mem_size
         self.mem_type = mem_type
         self.mem_key  = mem_key
         self.fixed_length = fixed_length
         self.fill_char = fill_char
+        self.serialize = serialize
 
     # }}}
 
@@ -88,7 +92,13 @@ class ConqueSoleSharedMemory():
 
         shm_str = self.shm.read(chars)
 
-        return shm_str
+        if self.serialize and shm_str != '':
+            try: 
+                return pickle.loads(shm_str)
+            except: 
+                return ''
+        else:
+            return shm_str
 
         # }}}
 
@@ -97,12 +107,17 @@ class ConqueSoleSharedMemory():
 
     def write(self, text, start = 0): # {{{
 
+        if self.serialize:
+            tw = pickle.dumps(text, 0)
+        else:
+            tw = text
+
         self.shm.seek(start)
 
         if self.fixed_length:
-            self.shm.write(text)
+            self.shm.write(tw)
         else:
-            self.shm.write(text + chr(0))
+            self.shm.write(tw + chr(0))
 
         # }}}
 

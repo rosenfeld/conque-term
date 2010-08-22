@@ -14,6 +14,7 @@ objects. Good times!
 import time, sys
 import traceback # DEBUG
 from ConqueSoleSubprocess import * # DEBUG
+from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
@@ -32,11 +33,23 @@ if __name__ == '__main__':
         logging.debug('Arg validation failed!')
         exit()
 
+    # shared memory size
+    CONQUE_SOLE_COMMANDS_SIZE = 255
+
     # maximum time this thing reads. 0 means no limit. Only for testing.
     max_loops = 0
 
     # read interval, in seconds
     sleep_time = 0.01
+
+    # idle read interval, in seconds
+    idle_sleep_time = 1
+
+    # are we idled?
+    is_idle = False
+
+    # mem key
+    mem_key = sys.argv[1]
 
     # console width
     console_width = int(sys.argv[2])
@@ -60,11 +73,15 @@ if __name__ == '__main__':
 
     # {{{
     proc = ConqueSoleSubprocess()
-    res = proc.open(cmd, sys.argv[1], options)
+    res = proc.open(cmd, mem_key, options)
 
     if not res:
         logging.debug('process failed to open')
         exit()
+
+    shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
+    shm_command.create('write')
+    shm_command.clear()
 
     # }}}
     
@@ -75,9 +92,25 @@ if __name__ == '__main__':
 
     while True:
 
+        # check for idle/resume
+        if is_idle or loops % 10 == 0:
+            cmd = shm_command.read()
+            if cmd:
+                if cmd['cmd'] == 'idle':
+                    is_idle = True
+                    shm_command.clear()
+                    logging.debug('idling')
+                elif cmd['cmd'] == 'resume':
+                    is_idle = False
+                    shm_command.clear()
+                    logging.debug('resuming')
+
         # sleep between loops if moderation is requested
         if sleep_time > 0:
-            time.sleep(sleep_time)
+            if is_idle:
+                time.sleep(idle_sleep_time)
+            else:
+                time.sleep(sleep_time)
 
         # write, read, etc
         try:
