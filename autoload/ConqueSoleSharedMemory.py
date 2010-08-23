@@ -115,9 +115,9 @@ class ConqueSoleSharedMemory():
         self.shm.seek(start)
 
         if self.fixed_length:
-            self.shm.write(tw)
+            self.shm.write(tw.encode('ascii', 'ignore'))
         else:
-            self.shm.write(tw + chr(0))
+            self.shm.write(tw.encode('ascii', 'ignore') + chr(0))
 
         # }}}
 
