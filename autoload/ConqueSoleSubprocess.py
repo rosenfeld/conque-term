@@ -27,7 +27,7 @@ Requirements:
 }}} """
 
 import time, re, os, ctypes, ctypes.wintypes, md5, random
-import win32con, win32process, win32console, win32api, win32gui
+import win32con, win32process, win32console, win32api, win32gui, win32event
 import traceback # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
 
@@ -124,6 +124,9 @@ class ConqueSoleSubprocess():
     shm_stats   = None
     shm_command = None
     shm_rescroll = None
+
+    # are we still a valid process?
+    is_alive = True
 
     # }}}
 
@@ -267,7 +270,9 @@ class ConqueSoleSubprocess():
    
     def read(self, timeout = 0): # {{{
 
-        #logging.debug('.')
+        # no point really
+        if not self.is_alive:
+            return
 
         # check for commands
         self.check_commands()
@@ -513,6 +518,20 @@ class ConqueSoleSubprocess():
     # }}}
 
     # ****************************************************************************
+    # check process health
+
+    def is_alive(self): # {{{
+
+        status = win32event.WaitForSingleObject(self.handle, 1)
+
+        if status == 0:
+            self.is_alive = False
+
+        return self.is_alive
+
+        # }}}
+
+    # ****************************************************************************
     # attribute number to one byte character
 
     def attr_string(self, attr_list, buf_info): # {{{
@@ -574,4 +593,5 @@ class ConqueSoleSubprocess():
         self.window_height = buf_info['Window'].Bottom + 1
 
         # }}}
+
 

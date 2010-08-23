@@ -25,114 +25,126 @@ LOG_FILENAME = 'pylog_sub.log' # DEBUG
 
 if __name__ == '__main__':
 
-    # startup and config {{{
+    # attempt to catch ALL exceptions to fend of zombies
+    try:
 
-    # simple arg validation
-    logging.debug(str(sys.argv))
-    if len(sys.argv) < 5:
-        logging.debug('Arg validation failed!')
-        exit()
+        # startup and config {{{
 
-    # shared memory size
-    CONQUE_SOLE_COMMANDS_SIZE = 255
+        # simple arg validation
+        logging.debug(str(sys.argv))
+        if len(sys.argv) < 5:
+            logging.debug('Arg validation failed!')
+            exit()
 
-    # maximum time this thing reads. 0 means no limit. Only for testing.
-    max_loops = 0
+        # shared memory size
+        CONQUE_SOLE_COMMANDS_SIZE = 255
 
-    # read interval, in seconds
-    sleep_time = 0.01
+        # maximum time this thing reads. 0 means no limit. Only for testing.
+        max_loops = 0
 
-    # idle read interval, in seconds
-    idle_sleep_time = 1
+        # read interval, in seconds
+        sleep_time = 0.01
 
-    # are we idled?
-    is_idle = False
+        # idle read interval, in seconds
+        idle_sleep_time = 1
 
-    # mem key
-    mem_key = sys.argv[1]
+        # are we idled?
+        is_idle = False
 
-    # console width
-    console_width = int(sys.argv[2])
+        # mem key
+        mem_key = sys.argv[1]
 
-    # console height
-    console_height = int(sys.argv[3])
+        # console width
+        console_width = int(sys.argv[2])
 
-    # the actual subprocess to run
-    cmd = " ".join(sys.argv[4:])
-    logging.debug('opening command: ' + cmd)
+        # console height
+        console_height = int(sys.argv[3])
 
-    # width and height
-    options = { 'LINES' : console_height, 'COLUMNS' : console_width }
+        # the actual subprocess to run
+        cmd = " ".join(sys.argv[4:])
+        logging.debug('opening command: ' + cmd)
 
-    logging.debug('with options: ' + str(options))
+        # width and height
+        options = { 'LINES' : console_height, 'COLUMNS' : console_width }
 
-    # }}}
+        logging.debug('with options: ' + str(options))
 
-    ##############################################################
-    # Create the subprocess
+        # }}}
 
-    # {{{
-    proc = ConqueSoleSubprocess()
-    res = proc.open(cmd, mem_key, options)
+        ##############################################################
+        # Create the subprocess
 
-    if not res:
-        logging.debug('process failed to open')
-        exit()
+        # {{{
+        proc = ConqueSoleSubprocess()
+        res = proc.open(cmd, mem_key, options)
 
-    shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
-    shm_command.create('write')
-    shm_command.clear()
+        if not res:
+            logging.debug('process failed to open')
+            exit()
 
-    # }}}
-    
-    ##############################################################
-    # main loop!
+        shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
+        shm_command.create('write')
+        shm_command.clear()
 
-    loops = 0
+        # }}}
+        
+        ##############################################################
+        # main loop!
 
-    while True:
+        loops = 0
 
-        # check for idle/resume
-        if is_idle or loops % 10 == 0:
-            cmd = shm_command.read()
-            if cmd:
-                if cmd['cmd'] == 'idle':
-                    is_idle = True
-                    shm_command.clear()
-                    logging.debug('idling')
-                elif cmd['cmd'] == 'resume':
-                    is_idle = False
-                    shm_command.clear()
-                    logging.debug('resuming')
+        while True:
 
-        # sleep between loops if moderation is requested
-        if sleep_time > 0:
-            if is_idle:
-                time.sleep(idle_sleep_time)
-            else:
-                time.sleep(sleep_time)
+            # check for idle/resume
+            if is_idle or loops % 25 == 0:
 
-        # write, read, etc
-        try:
+                # check process health
+                if not proc.is_alive():
+                    logging.debug('subprocess appears to be deadish, closing')
+                    proc.close()
+                    exit()
 
+                # check for change in buffer focus
+                cmd = shm_command.read()
+                if cmd:
+                    if cmd['cmd'] == 'idle':
+                        is_idle = True
+                        shm_command.clear()
+                        logging.debug('idling')
+                    elif cmd['cmd'] == 'resume':
+                        is_idle = False
+                        shm_command.clear()
+                        logging.debug('resuming')
+
+            # sleep between loops if moderation is requested
+            if sleep_time > 0:
+                if is_idle:
+                    time.sleep(idle_sleep_time)
+                else:
+                    time.sleep(sleep_time)
+
+            # write, read, etc
             proc.write()
             proc.read()
 
-        except Exception, e:
-            logging.debug('Error : %s' % e)
-            logging.debug(traceback.format_exc())
+            # increment loops, and exit if max has been reached
+            loops += 1
+            if max_loops and loops >= max_loops:
+                logging.debug('max loops reached')
+                break
 
-        # increment loops, and exit if max has been reached
-        loops += 1
-        if max_loops and loops >= max_loops:
-            logging.debug('max loops reached')
-            break
+        ##############################################################
+        # all done!
 
-    ##############################################################
-    # all done!
+        logging.debug(proc.get_screen_text())
 
-    logging.debug(proc.get_screen_text())
+        proc.close()
 
-    proc.close()
+    # if an exception was thrown, croak
+    except Exception, e:
+
+        logging.debug('Error : %s' % e)
+        logging.debug(traceback.format_exc())
+        proc.close()
 
 
