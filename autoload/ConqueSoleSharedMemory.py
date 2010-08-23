@@ -114,10 +114,16 @@ class ConqueSoleSharedMemory():
 
         self.shm.seek(start)
 
+        # make text latin-1 encoding
+        try:
+            twu = unicode(tw, 'latin-1')
+        except:
+            twu = tw
+
         if self.fixed_length:
-            self.shm.write(tw.encode('ascii', 'ignore'))
+            self.shm.write(twu.encode('latin-1'))
         else:
-            self.shm.write(tw.encode('ascii', 'ignore') + chr(0))
+            self.shm.write(twu.encode('latin-1') + chr(0))
 
         # }}}
 

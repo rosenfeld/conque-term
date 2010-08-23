@@ -525,6 +525,7 @@ class ConqueSoleSubprocess():
         status = win32event.WaitForSingleObject(self.handle, 1)
 
         if status == 0:
+            logging.debug('process is no longer alive!')
             self.is_alive = False
 
         return self.is_alive
