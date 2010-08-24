@@ -31,6 +31,8 @@ class ConqueSole(Conque):
     window_top = None
     window_bottom = None
 
+    color_cache = {}
+
     buffer = None
 
     # *********************************************************************************************
@@ -143,11 +145,23 @@ class ConqueSole(Conque):
         else:
             self.buffer[line_nr] = text
 
-        # for now, don't reapply color to lines
-        if len(attributes) == 0 or line_nr + 1 in self.color_history:
+        self.do_color(attributes = attributes, stats = stats)
+
+        # }}}
+
+    #########################################################################
+
+    def do_color(self, start = 0, end = 0, attributes = '', stats = None): # {{{
+
+        # stop here if coloration is disabled
+        if not self.enable_colors:
             return
 
-        #logging.debug('checking for color')
+        # if no colors for this line, clear everything out
+        if len(attributes) == 0 or attributes == unichr(stats['default_attribute']) * len(attributes):
+            self.color_changes = {}
+            self.apply_color(1, len(attributes), self.l)
+            return
 
         # if text attribute is different, call add_color()
         attr = None
@@ -157,18 +171,25 @@ class ConqueSole(Conque):
             #logging.debug('attr char ' + str(c))
             if c != attr:
                 if attr and attr != stats['default_attribute']:
-                    self.add_color(line_nr, start, i, attr)
+                    self.color_changes = self.translate_color(attr)
+                    self.apply_color(start + 1, i + 1, self.l)
                 start = i
                 attr = c
 
         if attr and attr != stats['default_attribute']:
-            self.add_color(line_nr, start, len(attributes) - 1, attr)
+            self.color_changes = self.translate_color(attr)
+            self.apply_color(start + 1, len(attributes), self.l)
+
 
         # }}}
 
     #########################################################################
 
-    def add_color(self, line_nr, start, end, attr): # {{{
+    def translate_color(self, attr): # {{{
+
+        # check for cached color
+        if attr in self.color_cache:
+            return self.color_cache[attr]
 
         #logging.debug('adding color at line ' + str(line_nr))
         #logging.debug('start ' + str(start))
@@ -187,16 +208,21 @@ class ConqueSole(Conque):
         red    = int(fg[1]) * 204 + int(fg[0]) * 51
         green  = int(fg[2]) * 204 + int(fg[0]) * 51
         blue   = int(fg[3]) * 204 + int(fg[0]) * 51
-        fg_str = "%02x%02x%02x" % (red, green, blue)
+        fg_str = "#%02x%02x%02x" % (red, green, blue)
 
         # ok, first create foreground #rbg
         red    = int(bg[1]) * 204 + int(bg[0]) * 51
         green  = int(bg[2]) * 204 + int(bg[0]) * 51
         blue   = int(bg[3]) * 204 + int(bg[0]) * 51
-        bg_str = "%02x%02x%02x" % (red, green, blue)
+        bg_str = "#%02x%02x%02x" % (red, green, blue)
 
-        # execute the highlight
-        self.exec_highlight(line_nr + 1, start + 1, end + 1, " guifg=#%s guibg=#%s " % (fg_str, bg_str))
+        # build value for color_changes
+    
+        color = { 'guifg' : fg_str, 'guibg' : bg_str }
+
+        self.color_cache[attr] = color
+
+        return color
 
         # }}}
 

@@ -228,7 +228,7 @@ class ConqueSoleSubprocess():
         self.shm_output.create('write')
         self.shm_output.clear()
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width, 'attributes', mem_key, True, chr(buf_info['Attributes']))
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width, 'attributes', mem_key, True, chr(buf_info['Attributes']), encoding = 'latin-1')
         self.shm_attributes.create('write')
         self.shm_attributes.clear()
 
@@ -331,7 +331,7 @@ class ConqueSoleSubprocess():
         self.cursor_line = curs_line
 
         # check for reset
-        if self.top > CONQUE_SOLE_BUFFER_LENGTH * self.output_blocks - 50:
+        if curs_line > buf_info['Size'].Y - 200:
             self.reset_console(buf_info)
 
         return None
@@ -361,7 +361,7 @@ class ConqueSoleSubprocess():
         self.shm_output.clear()
         self.shm_output.write(''.join(self.data))
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'attributes', mem_key, True, chr(buf_info['Attributes']))
+        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'attributes', mem_key, True, chr(buf_info['Attributes']), encoding = 'latin-1')
         self.shm_attributes.create('write')
         self.shm_attributes.clear()
         self.shm_attributes.write(''.join(self.attributes))
@@ -540,7 +540,7 @@ class ConqueSoleSubprocess():
         s = ''
 
         for a in attr_list:
-            s = s + unichr(a).encode('latin1', chr(buf_info['Attributes']))
+            s = s + unichr(a).encode('latin-1', chr(buf_info['Attributes']))
 
         return s
 

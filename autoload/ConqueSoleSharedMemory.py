@@ -38,12 +38,15 @@ class ConqueSoleSharedMemory():
     # mmap instance
     shm = None
 
+    # character encoding, dammit
+    encoding = 'ascii'
+
     # }}}
 
     # ****************************************************************************
     # constructor I guess
 
-    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False, fill_char = ' ', serialize = False): # {{{
+    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False, fill_char = ' ', serialize = False, encoding = 'ascii'): # {{{
 
         self.mem_size = mem_size
         self.mem_type = mem_type
@@ -51,6 +54,7 @@ class ConqueSoleSharedMemory():
         self.fixed_length = fixed_length
         self.fill_char = fill_char
         self.serialize = serialize
+        self.encoding = encoding
 
     # }}}
 
@@ -92,6 +96,13 @@ class ConqueSoleSharedMemory():
 
         shm_str = self.shm.read(chars)
 
+        # encoding
+        if self.encoding != 'ascii':
+            try:
+                shm_str = unicode(shm_str, self.encoding)
+            except:
+                pass
+
         if self.serialize and shm_str != '':
             try: 
                 return pickle.loads(shm_str)
@@ -113,17 +124,28 @@ class ConqueSoleSharedMemory():
             tw = text
 
         self.shm.seek(start)
+    
+        # if it's not ascii, it's probably some unicode disaster
+        if self.encoding != 'ascii':
+            
+            # first, ensure string is a unicode object
+            try:
+                twu = unicode(tw, self.encoding)
+            except:
+                twu = tw
 
-        # make text latin-1 encoding
-        try:
-            twu = unicode(tw, 'latin-1')
-        except:
-            twu = tw
+            # then encode it into bytes that are friendly to mmap
+            twm = twu.encode(self.encoding, 'replace')
 
-        if self.fixed_length:
-            self.shm.write(twu.encode('latin-1'))
+        # if ascii, then do nothing
         else:
-            self.shm.write(twu.encode('latin-1') + chr(0))
+            twm = tw.encode('ascii', 'replace')
+
+        # write to memory
+        if self.fixed_length:
+            self.shm.write(twm)
+        else:
+            self.shm.write(twm + chr(0))
 
         # }}}
 

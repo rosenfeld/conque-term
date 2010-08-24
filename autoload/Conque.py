@@ -232,7 +232,6 @@ class Conque:
 
     # write to pty
     def write(self, input): # {{{
-        logging.debug('writing input ' + str(input))
 
         # check if window size has changed
         self.update_window_size()
@@ -240,6 +239,7 @@ class Conque:
         # write and read
         self.proc.write(input)
         self.read(1)
+
         # }}}
 
     # read from pty, and update buffer
@@ -403,14 +403,18 @@ class Conque:
             self.apply_color(self.c, self.c + len(input))
             self.c += len(input)
 
-    def apply_color(self, start, end):
+    def apply_color(self, start, end, line = 0):
         logging.debug('applying colors ' + str(self.color_changes))
 
         # stop here if coloration is disabled
         if not self.enable_colors:
             return
 
-        real_line = self.screen.get_real_line(self.l)
+        # allow custom line nr to be passed
+        if line:
+            real_line = line
+        else:
+            real_line = self.screen.get_real_line(self.l)
 
         # check for previous overlapping coloration
         logging.debug('start ' + str(start) + ' end ' + str(end))
