@@ -78,7 +78,7 @@ class ConqueSole(Conque):
         # full screen redraw
         elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
             update_top = self.window_top
-            update_bottom = stats['top_offset'] + self.lines
+            update_bottom = stats['top_offset'] + self.lines - 1
             (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
             for i in range(update_top, update_bottom + 1):
                 self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
