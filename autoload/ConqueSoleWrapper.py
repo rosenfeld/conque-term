@@ -15,7 +15,7 @@ from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 class ConqueSoleWrapper():
 
@@ -42,6 +42,7 @@ class ConqueSoleWrapper():
     shm_stats   = None
     shm_command = None
     shm_rescroll = None
+    shm_resize = None
 
     # console python process
     proc = None
@@ -223,7 +224,14 @@ class ConqueSoleWrapper():
     # resize console window
 
     def window_resize(self, lines, columns): # {{{
-        pass
+
+        self.lines = lines
+
+        # we don't shrink buffer width
+        if columns > self.columns:
+            self.columns = columns
+
+        self.shm_resize.write({ 'cmd' : 'resize', 'data' : { 'width' : columns, 'height' : lines } })
 
         # }}}
 
@@ -249,6 +257,10 @@ class ConqueSoleWrapper():
         self.shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
         self.shm_command.create('write')
         self.shm_command.clear()
+
+        self.shm_resize = ConqueSoleSharedMemory(CONQUE_SOLE_RESIZE_SIZE, 'resize', mem_key, serialize = True)
+        self.shm_resize.create('write')
+        self.shm_resize.clear()
 
         self.shm_rescroll = ConqueSoleSharedMemory(CONQUE_SOLE_RESCROLL_SIZE, 'rescroll', mem_key, serialize = True)
         self.shm_rescroll.create('write')

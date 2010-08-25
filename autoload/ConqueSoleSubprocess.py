@@ -43,6 +43,7 @@ CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
 CONQUE_SOLE_RESCROLL_SIZE = 255
+CONQUE_SOLE_RESIZE_SIZE = 255
 
 # interval of full output bucket replacement
 # larger number means less frequent, 1 = every time
@@ -124,6 +125,7 @@ class ConqueSoleSubprocess():
     shm_stats   = None
     shm_command = None
     shm_rescroll = None
+    shm_resize = None
 
     # are we still a valid process?
     is_alive = True
@@ -240,6 +242,10 @@ class ConqueSoleSubprocess():
         self.shm_command.create('write')
         self.shm_command.clear()
 
+        self.shm_resize = ConqueSoleSharedMemory(CONQUE_SOLE_RESIZE_SIZE, 'resize', mem_key, serialize = True)
+        self.shm_resize.create('write')
+        self.shm_resize.clear()
+
         self.shm_rescroll = ConqueSoleSharedMemory(CONQUE_SOLE_RESCROLL_SIZE, 'rescroll', mem_key, serialize = True)
         self.shm_rescroll.create('write')
         self.shm_rescroll.clear()
@@ -255,13 +261,39 @@ class ConqueSoleSubprocess():
  
         cmd = self.shm_command.read()
 
-        if not cmd or cmd == '':
-            return
+        if cmd:
+        
+            # clear command
+            self.shm_command.clear()
 
-        # shut it all down
-        if cmd['cmd'] == 'close':
-            self.close()
-            return
+            # shut it all down
+            if cmd['cmd'] == 'close':
+                self.close()
+                return
+
+        cmd = self.shm_resize.read()
+
+        if cmd:
+
+            # clear command
+            self.shm_resize.clear()
+
+            # resize console
+            if cmd['cmd'] == 'resize':
+
+                logging.debug('resizing window to ' + str(cmd['data']['width']) + 'x' + str(cmd['data']['height']))
+
+                # only change buffer width if it's larger
+                if cmd['data']['width'] > self.buffer_width:
+                    self.buffer_width = cmd['data']['width']
+
+                # always change console width and height
+                self.window_width = cmd['data']['width']
+                self.window_height = cmd['data']['height']
+
+                # reset the console
+                buf_info = self.stdout.GetConsoleScreenBufferInfo()
+                self.reset_console(buf_info, add_block = False)
 
         # }}}
 
@@ -341,9 +373,12 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
     # clear the console and set cursor at home position
 
-    def reset_console(self, buf_info): # {{{
+    def reset_console(self, buf_info, add_block = True): # {{{
 
-        self.output_blocks += 1
+        # sometimes we just want to change the buffer width, 
+        # in which case no need to add another block
+        if add_block:
+            self.output_blocks += 1
 
         # close down old memory
         self.shm_output.close()
@@ -359,11 +394,21 @@ class ConqueSoleSubprocess():
         self.shm_output = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'output', mem_key, True)
         self.shm_output.create('write')
         self.shm_output.clear()
+
+        # backfill data
+        if len(self.data[0]) < self.buffer_width:
+            for i in range(0, len(self.data)):
+                self.data[i] = self.data[i] + ' ' * (self.buffer_width - len(self.data[i]))
         self.shm_output.write(''.join(self.data))
 
         self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'attributes', mem_key, True, chr(buf_info['Attributes']), encoding = 'latin-1')
         self.shm_attributes.create('write')
         self.shm_attributes.clear()
+
+        # backfill attributes
+        if len(self.attributes[0]) < self.buffer_width:
+            for i in range(0, len(self.attributes)):
+                self.attributes[i] = self.attributes[i] + chr(buf_info['Attributes']) * (self.buffer_width - len(self.attributes[i]))
         self.shm_attributes.write(''.join(self.attributes))
 
         # notify wrapper of new output block

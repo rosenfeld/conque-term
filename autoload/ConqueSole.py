@@ -13,6 +13,7 @@ CONQUE_SOLE_INPUT_SIZE = 1000
 CONQUE_SOLE_STATS_SIZE = 1000
 CONQUE_SOLE_COMMANDS_SIZE = 255
 CONQUE_SOLE_RESCROLL_SIZE = 255
+CONQUE_SOLE_RESIZE_SIZE = 255
 
 # interval of screen redraw
 # larger number means less frequent
@@ -241,7 +242,17 @@ class ConqueSole(Conque):
     # resize if needed
 
     def update_window_size(self): # {{{
-        pass
+
+        if vim.current.window.width != self.columns or vim.current.window.height != self.lines:
+
+            # reset all window size attributes to default
+            self.columns = vim.current.window.width
+            self.lines = vim.current.window.height
+            self.working_columns = vim.current.window.width
+            self.working_lines = vim.current.window.height
+            self.bottom = vim.current.window.height
+
+            self.proc.window_resize(vim.current.window.height, vim.current.window.width)
 
         # }}}
 

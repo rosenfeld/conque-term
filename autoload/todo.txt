@@ -1,7 +1,6 @@
 
  - Todo
 
- * resize console window when buffer size changes
  * fix number syntax highlighting
 
  - Maybe hopeless
@@ -14,4 +13,5 @@
  X allow colors to be written to line more than once
  X slow subprocess loops to 1/sec when buffer is unfocused
  X use better way of determining if buffer length should be extended, e.g. cursor position
+ X resize console window when buffer size changes
 
