@@ -3,7 +3,7 @@ import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
-import mmap, pickle
+import mmap, cPickle
 
 ##############################################################
 # shared memory creation
@@ -105,7 +105,7 @@ class ConqueSoleSharedMemory():
 
         if self.serialize and shm_str != '':
             try: 
-                return pickle.loads(shm_str)
+                return cPickle.loads(shm_str)
             except: 
                 return ''
         else:
@@ -119,7 +119,7 @@ class ConqueSoleSharedMemory():
     def write(self, text, start = 0): # {{{
 
         if self.serialize:
-            tw = pickle.dumps(text, 0)
+            tw = cPickle.dumps(text, 0)
         else:
             tw = text
 

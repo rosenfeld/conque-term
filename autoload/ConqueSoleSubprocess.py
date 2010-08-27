@@ -114,6 +114,7 @@ class ConqueSoleSubprocess():
 
     # console attribute data, array of array of int
     attributes = []
+    attribute_cache = {}
 
     # default attribute
     default_attribute = 7
@@ -582,10 +583,19 @@ class ConqueSoleSubprocess():
 
     def attr_string(self, attr_list, buf_info): # {{{
 
+        key = str(attr_list)
+
+        # try to pull cached value
+        if key in self.attribute_cache:
+            return self.attribute_cache[key]
+
         s = ''
 
         for a in attr_list:
             s = s + unichr(a).encode('latin-1', chr(buf_info['Attributes']))
+
+        # save cached value
+        self.attribute_cache[key] = s
 
         return s
 
