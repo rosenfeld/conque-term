@@ -83,7 +83,7 @@ class ConqueScreen(object):
     def insert(self, line, value): # {{{
         logging.debug('insert at line ' + str(self.screen_top + line - 2))
         l = self.screen_top + line - 2
-        self.buffer[l:l] = [ value ]
+        self.buffer.append(value, l)
     
     # }}}
     # }}}

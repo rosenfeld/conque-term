@@ -8,7 +8,7 @@ python through shared memory objects.
 
 }}} """
 
-import md5, time, os, sys
+import md5, time
 import win32api, win32con, win32process
 
 from ConqueSoleSharedMemory import * # DEBUG
@@ -150,8 +150,8 @@ class ConqueSoleWrapper():
                 self.stats = stats_str
             else:
                 return False
-        except Exception, e:
-            logging.debug('Error closing pid: %s' % e)
+        except:
+            logging.debug(traceback.format_exc())
             return False
 
         return self.stats
@@ -181,7 +181,7 @@ class ConqueSoleWrapper():
 
     def write_vk(self, vk_code): # {{{
 
-        seq = ur"\u001b[" + str(vk_code) + "VK"
+        seq = u("\x1b[") + str(vk_code) + "VK"
         self.write(seq)
 
         # }}}

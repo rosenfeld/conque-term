@@ -141,9 +141,7 @@ if __name__ == '__main__':
         proc.close()
 
     # if an exception was thrown, croak
-    except Exception, e:
-
-        logging.debug('Error : %s' % e)
+    except:
         logging.debug(traceback.format_exc())
         proc.close()
 

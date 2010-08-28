@@ -34,14 +34,7 @@
 
 " {{{
 
-" quick and dirty platform declaration
-if has('unix')
-    let s:platform = 'nix'
-else
-    let s:platform = 'dos'
-endif
-
-" choose a python version
+" choose a python version and define a string unicoding function
 let s:py = ''
 if has('python') && (g:ConqueTerm_PyVersion == 2 || !has('python3'))
     if g:ConqueTerm_PyVersion == 3
@@ -56,6 +49,19 @@ elseif has('python3')
     let s:py = 'py3'
     let g:ConqueTerm_PyVersion = 3
 endif
+
+" quick and dirty platform declaration
+if has('unix')
+    let s:platform = 'nix'
+else
+    let s:platform = 'dos'
+endif
+if has('unix')
+    sil exe s:py . " CONQUE_PLATFORM = 'nix'"
+else
+    sil exe s:py . " CONQUE_PLATFORM = 'dos'"
+endif
+
 
 " }}}
 
@@ -404,14 +410,14 @@ function! conque_term#set_mappings(action) "{{{
     " Special keys {{{
     if l:action == 'start'
         if s:platform == 'nix'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x08"))<CR>'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(" ")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[A"))<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[B"))<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[C"))<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[D"))<CR>'
         else
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x08"))<CR>'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(" ")<CR>'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_UP . ')<CR>'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_DOWN . ')<CR>'
@@ -643,13 +649,8 @@ endfunction " }}}
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
-if has('unix')
-    sil exe s:py . " CONQUE_PLATFORM = 'nix'"
-else
-    sil exe s:py . " CONQUE_PLATFORM = 'dos'"
-endif
-
 let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
+exec s:py . "file " . conque_py_dir . "conque_globals.py"
 exec s:py . "file " . conque_py_dir . "Conque.py"
 exec s:py . "file " . conque_py_dir . "ConqueScreen.py"
 exec s:py . "file " . conque_py_dir . "ConqueSubprocess.py"

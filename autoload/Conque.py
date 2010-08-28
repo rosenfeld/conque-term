@@ -138,12 +138,12 @@ CONQUE_FONT = {
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0001-\u000f])", re.UNICODE)
-CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0001-\u000f]$", re.UNICODE)
-CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
-CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
-CONQUE_SEQ_REGEX_HASH  = re.compile(ur"^\u001b#", re.UNICODE)
-CONQUE_SEQ_REGEX_ESC   = re.compile(ur"^\u001b", re.UNICODE)
+CONQUE_SEQ_REGEX       = re.compile(u("(\x1b\[?\??#?[0-9;]*[a-zA-Z@]|\x1b\][0-9];.*?\x07|[\x01-\x0f])"), re.UNICODE)
+CONQUE_SEQ_REGEX_CTL   = re.compile(u("^[\x01-\x0f]$"), re.UNICODE)
+CONQUE_SEQ_REGEX_CSI   = re.compile(u("^\x1b\["), re.UNICODE)
+CONQUE_SEQ_REGEX_TITLE = re.compile(u("^\x1b\]"), re.UNICODE)
+CONQUE_SEQ_REGEX_HASH  = re.compile(u("^\x1b#"), re.UNICODE)
+CONQUE_SEQ_REGEX_ESC   = re.compile(u("^\x1b"), re.UNICODE)
 
 # match table output
 CONQUE_TABLE_OUTPUT   = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
@@ -275,7 +275,6 @@ class Conque:
                 logging.debug(str(s) + '--------------------------------------------------------------')
                 logging.debug('chgs ' + str(self.color_changes))
                 logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
-                logging.debug('current: ' + self.screen[self.l])
 
                 # Check for control character match {{{
                 if CONQUE_SEQ_REGEX_CTL.match(s[0]):
@@ -419,7 +418,7 @@ class Conque:
         # check for previous overlapping coloration
         logging.debug('start ' + str(start) + ' end ' + str(end))
         to_del = []
-        if self.color_history.has_key(real_line):
+        if real_line in self.color_history:
             for i in range(len(self.color_history[real_line])):
                 syn = self.color_history[real_line][i]
                 logging.debug('checking syn ' + str(syn))
@@ -468,7 +467,7 @@ class Conque:
         vim.command(syntax_highlight)
 
         # add syntax name to history
-        if not self.color_history.has_key(real_line):
+        if not real_line in self.color_history:
             self.color_history[real_line] = []
 
         self.color_history[real_line].append({'name':syntax_name, 'start':start, 'end':end, 'highlight':highlight})
@@ -548,7 +547,7 @@ class Conque:
         # 16 colors
         else:
             for val in csi['vals']:
-                if CONQUE_FONT.has_key(val):
+                if val in CONQUE_FONT:
                     logging.debug('color ' + str(CONQUE_FONT[val]))
                     # ignore starting normal colors
                     if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
@@ -562,7 +561,7 @@ class Conque:
                     else:
                         logging.debug('c')
                         for attr in CONQUE_FONT[val]['attributes'].keys():
-                            if self.color_changes.has_key(attr) and (attr == 'cterm' or attr == 'gui'):
+                            if attr in self.color_changes and (attr == 'cterm' or attr == 'gui'):
                                 self.color_changes[attr] += ',' + CONQUE_FONT[val]['attributes'][attr]
                             else:
                                 self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
@@ -593,7 +592,7 @@ class Conque:
         # clear colors
         if csi['val'] == 2 or (csi['val'] == 0 and self.c == 1):
             real_line = self.screen.get_real_line(self.l)
-            if self.color_history.has_key(real_line):
+            if real_line in self.color_history:
                 for syn in self.color_history[real_line]:
                     vim.command('syn clear ' + syn['name'])
 

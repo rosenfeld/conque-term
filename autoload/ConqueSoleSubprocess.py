@@ -29,6 +29,7 @@ Requirements:
 import time, re, os, ctypes, ctypes.wintypes, md5, random
 import win32con, win32process, win32console, win32api, win32gui, win32event
 import traceback # DEBUG
+from conque_globals import * # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
@@ -36,22 +37,6 @@ LOG_FILENAME = 'pylog_sub.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # Globals {{{
-
-# memory block sizes in characters
-CONQUE_SOLE_BUFFER_LENGTH = 1000
-CONQUE_SOLE_INPUT_SIZE = 1000
-CONQUE_SOLE_STATS_SIZE = 1000
-CONQUE_SOLE_COMMANDS_SIZE = 255
-CONQUE_SOLE_RESCROLL_SIZE = 255
-CONQUE_SOLE_RESIZE_SIZE = 255
-
-# interval of full output bucket replacement
-# larger number means less frequent, 1 = every time
-CONQUE_SOLE_MEM_REDRAW = 1000
-
-# if cursor hasn't moved and screen hasn't scrolled, use this screen redraw interval
-# larger number means less frequent, 1 = every time
-CONQUE_SOLE_SCREEN_REDRAW = 100
 
 CONQUE_WINDOWS_VK = {
     '3'  : win32con.VK_CANCEL,
@@ -74,7 +59,7 @@ CONQUE_WINDOWS_VK = {
     '47' : win32con.VK_HELP
 }
 
-CONQUE_SEQ_REGEX_VK = re.compile(ur"(\u001b\[\d{1,3}VK)", re.UNICODE)
+CONQUE_SEQ_REGEX_VK = re.compile(u("(\x1b\[\d{1,3}VK)"), re.UNICODE)
 
 # }}}
 
@@ -185,8 +170,8 @@ class ConqueSoleSubprocess():
                     logging.debug('attempt ' + str(i))
                     win32console.AttachConsole(self.pid)
                     break
-                except Exception, e:
-                    logging.debug('ERROR attach: %s' % e)
+                except:
+                    logging.debug(traceback.format_exc())
                     pass
 
             # get input / output handles
@@ -209,8 +194,7 @@ class ConqueSoleSubprocess():
 
             return True
 
-        except Exception, e:
-            logging.debug('ERROR open: %s' % e)
+        except:
             logging.debug(traceback.format_exc())
             return False
 
@@ -347,7 +331,7 @@ class ConqueSoleSubprocess():
                 self.attributes[i] = self.attr_string(a, buf_info)
 
         # write new output to shared memory
-        if random.randint(0, CONQUE_SOLE_MEM_REDRAW) == CONQUE_SOLE_MEM_REDRAW:
+        if random.randint(0, CONQUE_SOLE_MEM_REDRAW) == 0:
             self.shm_output.write(''.join(self.data))
             self.shm_attributes.write(''.join(self.attributes))
         else:
@@ -544,15 +528,15 @@ class ConqueSoleSubprocess():
                 continue
             try:
                 self.close_pid(pid)
-            except Exception, e:
-                logging.debug('Error closing pid: %s' % e)
+            except:
+                logging.debug(traceback.format_exc())
                 pass
 
         # kill this process
         try:
             self.close_pid(current_pid)
-        except Exception, e:
-            logging.debug('Error closing pid: %s' % e)
+        except:
+            logging.debug(traceback.format_exc())
             pass
 
     def close_pid (self, pid) :
