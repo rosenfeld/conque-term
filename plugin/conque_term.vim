@@ -85,6 +85,12 @@ if !exists('g:ConqueTerm_PromptRegex')
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
 endif " }}}
 
+" Choose which Python version to attempt to load first {{{
+" Valid values are 2, 3 or 0 (no preference)
+if !exists('g:ConqueTerm_PyVersion')
+    let g:ConqueTerm_PyVersion = 0
+endif " }}}
+
 " **********************************************************************************************************
 " **** Startup *********************************************************************************************
 " **********************************************************************************************************

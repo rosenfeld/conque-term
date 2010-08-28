@@ -28,12 +28,36 @@
 " THE SOFTWARE.
 " }}}
 
+" **********************************************************************************************************
+" **** SYSTEM DETECTION ************************************************************************************
+" **********************************************************************************************************
+
+" {{{
+
 " quick and dirty platform declaration
 if has('unix')
     let s:platform = 'nix'
 else
     let s:platform = 'dos'
 endif
+
+" choose a python version
+let s:py = ''
+if has('python') && (g:ConqueTerm_PyVersion == 2 || !has('python3'))
+    if g:ConqueTerm_PyVersion == 3
+        echohl WarningMsg | echomsg "Python 3 interface is not installed, using Python 2 instead" | echohl None
+    endif
+    let s:py = 'py'
+    let g:ConqueTerm_PyVersion = 2
+elseif has('python3')
+    if g:ConqueTerm_PyVersion == 2
+        echohl WarningMsg | echomsg "Python 2 interface is not installed, using Python 3 instead" | echohl None
+    endif
+    let s:py = 'py3'
+    let g:ConqueTerm_PyVersion = 3
+endif
+
+" }}}
 
 " **********************************************************************************************************
 " **** KEY MAPPINGS ****************************************************************************************
@@ -191,14 +215,20 @@ function! conque_term#open(...) "{{{
     try
         let l:config = '{"color":' . string(g:ConqueTerm_Color) . ',"TERM":"' . g:ConqueTerm_TERM . '"}'
         if s:platform == 'nix'
-            execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
+            execute s:py . ' ' . b:ConqueTerm_Var . ' = Conque()'
+            execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
         else
-            execute 'python ' . b:ConqueTerm_Var . ' = ConqueSole()'
+            " find python.exe and communicator
+            let py_exe = conque_term#python_escape(conque_term#find_python_exe())
+            let ct_vim = conque_term#python_escape(conque_term#find_conque_term_vim())
+            if py_exe == '' || ct_vim == ''
+                return 0
+            endif
+            execute s:py . ' ' . b:ConqueTerm_Var . ' = ConqueSole()'
+            execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . ct_vim . "')"
         endif
-        execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
     catch
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
-        return 0
     endtry
 
     " set buffer mappings and auto commands 
@@ -269,18 +299,18 @@ function! conque_term#set_mappings(action) "{{{
         execute 'augroup ' . b:ConqueTerm_Var
 
         " handle unexpected closing of shell, passes HUP to parent and all child processes
-        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> python ' . b:ConqueTerm_Var . '.proc.close()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.proc.close()'
 
         " check for resized/scrolled buffer when entering buffer
-        execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> python ' . b:ConqueTerm_Var . '.update_window_size()'
-        execute 'autocmd ' . b:ConqueTerm_Var . ' VimResized python ' . b:ConqueTerm_Var . '.update_window_size()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.update_window_size()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' VimResized ' . s:py . ' ' . b:ConqueTerm_Var . '.update_window_size()'
 
         " set/reset updatetime on entering/exiting buffer
         execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> call conque_term#on_focus()'
         execute 'autocmd ' . b:ConqueTerm_Var . ' BufLeave <buffer> call conque_term#on_blur()'
 
         " reposition cursor when going into insert mode
-        execute 'autocmd ' . b:ConqueTerm_Var . ' InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.insert_enter()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' InsertEnter <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.insert_enter()'
 
         " read more output when this isn't the current buffer
         if g:ConqueTerm_ReadUnfocused == 1
@@ -288,7 +318,7 @@ function! conque_term#set_mappings(action) "{{{
         endif
 
         " poll for more output
-        sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
+        sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> ' . s:py . ' ' .  b:ConqueTerm_Var . '.auto_read()'
     endif
     " }}}
 
@@ -299,15 +329,15 @@ function! conque_term#set_mappings(action) "{{{
             continue
         endif
         if l:action == 'start'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(chr(' . c . '))<CR>'
         else
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-' . nr2char(64 + c) . '>'
         endif
     endfor
     " bonus mapping: send <C-c> in normal mode to terminal as well for panic interrupts
     if l:action == 'start'
-        sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
-        sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
+        sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(chr(3))<CR>'
     else
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <C-c>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> <C-c>'
@@ -317,7 +347,7 @@ function! conque_term#set_mappings(action) "{{{
     if !exists('g:ConqueTerm_EscKey') || g:ConqueTerm_EscKey == '<Esc>'
         " use <Esc><Esc> to send <Esc> to terminal
         if l:action == 'start'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
         else
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc><Esc>'
         endif
@@ -325,7 +355,7 @@ function! conque_term#set_mappings(action) "{{{
         " use <Esc> to send <Esc> to terminal
         if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . g:ConqueTerm_EscKey . ' <Esc>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc> <C-o>:python ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(chr(27))<CR>'
         else
             sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . g:ConqueTerm_EscKey
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Esc>'
@@ -347,14 +377,14 @@ function! conque_term#set_mappings(action) "{{{
         " <Bar>
         if i == 124
             if l:action == 'start'
-                sil exe "i" . map_modifier . "map <silent> <buffer> <Bar> <C-o>:python " . b:ConqueTerm_Var . ".write(chr(124))<CR>"
+                sil exe "i" . map_modifier . "map <silent> <buffer> <Bar> <C-o>:" . s:py . ' ' . b:ConqueTerm_Var . ".write(chr(124))<CR>"
             else
                 sil exe "i" . map_modifier . "map <silent> <buffer> <Bar>"
             endif
             continue
         endif
         if l:action == 'start'
-            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:" . s:py . ' ' . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
         else
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
         endif
@@ -364,7 +394,7 @@ function! conque_term#set_mappings(action) "{{{
     " map ASCII 128-255 {{{
     for i in range(128, 255)
         if l:action == 'start'
-            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:python " . b:ConqueTerm_Var . ".write(unichr(" . i . "))<CR>"
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:" . s:py . ' ' . b:ConqueTerm_Var . ".write(unichr(" . i . "))<CR>"
         else
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
         endif
@@ -374,20 +404,20 @@ function! conque_term#set_mappings(action) "{{{
     " Special keys {{{
     if l:action == 'start'
         if s:platform == 'nix'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(" ")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[A")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[B")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[C")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u001b[D")<CR>'
         else
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:python ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:python ' . b:ConqueTerm_Var . '.write(" ")<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_UP . ')<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_DOWN . ')<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_RIGHT . ')<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_LEFT . ')<CR>'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Del> <C-o>:python ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_DELETE . ')<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u"\u0008")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(" ")<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_UP . ')<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Down> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_DOWN . ')<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Right> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_RIGHT . ')<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Left> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_LEFT . ')<CR>'
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> <Del> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write_vk(' . s:windows_vk.VK_DELETE . ')<CR>'
         endif
     else
         sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS>'
@@ -409,10 +439,10 @@ function! conque_term#set_mappings(action) "{{{
 
     " remap paste keys {{{
     if l:action == 'start'
-        sil exe 'n' . map_modifier . 'map <silent> <buffer> p :python ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
-        sil exe 'n' . map_modifier . 'map <silent> <buffer> P :python ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
-        sil exe 'n' . map_modifier . 'map <silent> <buffer> ]p :python ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
-        sil exe 'n' . map_modifier . 'map <silent> <buffer> [p :python ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> p :' . s:py . ' ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> P :' . s:py . ' ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> ]p :' . s:py . ' ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
+        sil exe 'n' . map_modifier . 'map <silent> <buffer> [p :' . s:py . ' ' . b:ConqueTerm_Var . '.write(unicode(vim.eval("@@"), "utf-8"))<CR>a'
     else
         sil exe 'n' . map_modifier . 'map <silent> <buffer> p'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> P'
@@ -421,7 +451,7 @@ function! conque_term#set_mappings(action) "{{{
     endif
     if has('gui_running')
         if l:action == 'start'
-            sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(unicode(vim.eval('@+'), 'utf-8'))<CR>a"
+            sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:' . s:py . ' ' . b:ConqueTerm_Var . ".write(unicode(vim.eval('@+'), 'utf-8'))<CR>a"
         else
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert>'
         endif
@@ -479,7 +509,7 @@ function! conque_term#send_selected(type) "{{{
 
     " execute yanked text
     sil exe ":sb " . g:ConqueTerm_BufName
-    sil exe 'python ' . g:ConqueTerm_Var . '.paste_selection()'
+    sil exe s:py . ' ' . g:ConqueTerm_Var . '.paste_selection()'
 
     " reset original values
     let @@ = reg_save
@@ -499,7 +529,7 @@ function! conque_term#read_all() "{{{
 
     try
         for i in range(1, g:ConqueTerm_Idx - 1)
-            execute 'python ConqueTerm_' . string(i) . '.read(1, False)'
+            execute s:py . ' ' ConqueTerm_' . string(i) . '.read(1, False)'
         endfor
     catch
         " probably a deleted buffer
@@ -536,7 +566,7 @@ function! conque_term#on_focus(...) " {{{
     set updatetime=50
 
     if startup == 0
-        sil exe 'python ' . g:ConqueTerm_Var . '.resume()'
+        sil exe s:py . ' ' . g:ConqueTerm_Var . '.resume()'
     endif
 
     " if configured, go into insert mode
@@ -554,7 +584,7 @@ function! conque_term#on_blur() " {{{
         NeoComplCacheUnlock
     endif
  
-    sil exe 'python ' . g:ConqueTerm_Var . '.idle()'
+    sil exe s:py . ' ' . g:ConqueTerm_Var . '.idle()'
 
     " reset poll interval
     if g:ConqueTerm_ReadUnfocused == 1
@@ -566,24 +596,63 @@ function! conque_term#on_blur() " {{{
     endif
 endfunction " }}}
 
+" bell event (^G)
 function! conque_term#bell() " {{{
     echohl WarningMsg | echomsg "BELL!" | echohl None
 endfunction " }}}
+
+" find python.exe in windows
+function! conque_term#find_python_exe() " {{{
+
+    let sys_paths = split($PATH, ';')
+
+    " get exact python version
+    sil exe ':' . s:py . ' import sys, vim'
+    sil exe ':' . s:py . ' vim.command("let g:ConqueTerm_PyVersion = " + str(sys.version_info[0]) + str(sys.version_info[1]))'
+
+    " ... and add to path list
+    call add(sys_paths, 'C:\Python' . g:ConqueTerm_PyVersion)
+    call reverse(sys_paths)
+
+    " check if python.exe is in paths
+    for path in sys_paths
+        let cand = path . '\' . 'python.exe'
+        if executable(cand)
+            return cand
+        endif
+    endfor
+
+    echohl WarningMsg | echomsg "Unable to find python.exe, see :help ConqueTerm_PythonExe for more information" | echohl None
+
+    return ''
+
+endfunction " }}}
+
+" find autoload/conque_term.vim for windows
+function! conque_term#find_conque_term_vim() " {{{
+    "let ct_vim = findfile('autoload/conque_term.vim', &rtp)
+    let ct_vim = findfile('autoload/conque_sole_communicator.py', &rtp)
+    if ct_vim == ''
+        echohl WarningMsg | echomsg "Unable to find conque_term.vim" | echohl None
+    endif
+    return ct_vim
+endfunction " }}}
+
 
 " **********************************************************************************************************
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
 if has('unix')
-    python CONQUE_PLATFORM = 'nix'
+    sil exe s:py . " CONQUE_PLATFORM = 'nix'"
 else
-    python CONQUE_PLATFORM = 'dos'
+    sil exe s:py . " CONQUE_PLATFORM = 'dos'"
 endif
 
 let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
-exec "pyfile " . conque_py_dir . "Conque.py"
-exec "pyfile " . conque_py_dir . "ConqueScreen.py"
-exec "pyfile " . conque_py_dir . "ConqueSubprocess.py"
-exec "pyfile " . conque_py_dir . "ConqueSole.py"
-exec "pyfile " . conque_py_dir . "ConqueSoleWrapper.py"
+exec s:py . "file " . conque_py_dir . "Conque.py"
+exec s:py . "file " . conque_py_dir . "ConqueScreen.py"
+exec s:py . "file " . conque_py_dir . "ConqueSubprocess.py"
+exec s:py . "file " . conque_py_dir . "ConqueSole.py"
+exec s:py . "file " . conque_py_dir . "ConqueSoleWrapper.py"
 

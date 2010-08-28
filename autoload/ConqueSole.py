@@ -39,7 +39,7 @@ class ConqueSole(Conque):
     # *********************************************************************************************
     # start program and initialize this instance
 
-    def open(self, command, options = {}): # {{{
+    def open(self, command, options = {}, python_exe = '', communicator_py = ''): # {{{
 
         # init size
         self.columns = vim.current.window.width
@@ -52,7 +52,7 @@ class ConqueSole(Conque):
 
         # open command
         self.proc = ConqueSoleWrapper()
-        self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : self.lines, 'COLUMNS' : self.columns })
+        self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : self.lines, 'COLUMNS' : self.columns }, python_exe, communicator_py)
 
         self.buffer = vim.current.buffer
 

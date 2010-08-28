@@ -8,14 +8,14 @@ python through shared memory objects.
 
 }}} """
 
-import md5, time
+import md5, time, os, sys
 import win32api, win32con, win32process
 
 from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
-logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 class ConqueSoleWrapper():
 
@@ -47,12 +47,6 @@ class ConqueSoleWrapper():
     # console python process
     proc = None
 
-    # path to python exe
-    python_exe = 'C:\Python27\python.exe'
-
-    # path to communicator
-    communicator_py = 'conque_sole_communicator.py'
-
     # }}}
 
     #########################################################################
@@ -66,7 +60,7 @@ class ConqueSoleWrapper():
     #########################################################################
     # run communicator process which will in turn run cmd
 
-    def open(self, cmd, options = {}): # {{{
+    def open(self, cmd, options = {}, python_exe = 'python.exe', communicator_py = 'conque_sole_communicator.py'): # {{{
 
         self.lines = options['LINES']
         self.columns = options['COLUMNS']
@@ -75,7 +69,7 @@ class ConqueSoleWrapper():
         self.shm_key = md5.new(cmd + str(time.ctime())).hexdigest()[:8]
 
         # python command
-        cmd_line = '%s "%s" %s %d %d %s' % (self.python_exe, self.communicator_py, self.shm_key, int(self.columns), int(self.lines), cmd)
+        cmd_line = '%s "%s" %s %d %d %s' % (python_exe, communicator_py, self.shm_key, int(self.columns), int(self.lines), cmd)
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
