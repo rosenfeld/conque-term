@@ -270,6 +270,9 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     endfor
     sil exe "edit " . g:ConqueTerm_BufName
 
+    " showcmd gets altered by nocompatible
+    let sc_save = &showcmd
+
     " buffer settings 
     setlocal nocompatible      " conque won't work in compatible mode
     setlocal nopaste           " conque won't work in paste mode
@@ -285,6 +288,13 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal bufhidden=hide    " when buffer is no longer displayed, don't wipe it out
     setfiletype conque_term    " useful
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
+
+    " reset showcmd
+    if sc_save
+      set showcmd
+    else
+      set noshowcmd
+    endif
 
     " temporary global settings go in here
     call conque_term#on_focus(1)
