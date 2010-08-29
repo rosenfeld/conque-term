@@ -16,7 +16,6 @@ Usage:
 
 """
 
-from conque_globals import * # DEBUG
 if CONQUE_PLATFORM == 'nix':
     import os, signal, pty, tty, select, fcntl, termios, struct
 

@@ -36,32 +36,49 @@
 
 " choose a python version and define a string unicoding function
 let s:py = ''
-if has('python') && (g:ConqueTerm_PyVersion == 2 || !has('python3'))
-    if g:ConqueTerm_PyVersion == 3
-        echohl WarningMsg | echomsg "Python 3 interface is not installed, using Python 2 instead" | echohl None
-    endif
-    let s:py = 'py'
+if g:ConqueTerm_PyVersion == 3
+    let s:pytest = 'python3'
+else
+    let s:pytest = 'python'
     let g:ConqueTerm_PyVersion = 2
-elseif has('python3')
-    if g:ConqueTerm_PyVersion == 2
-        echohl WarningMsg | echomsg "Python 2 interface is not installed, using Python 3 instead" | echohl None
+endif
+
+" first the requested version
+if has(s:pytest)
+    echo s:pytest
+    if s:pytest == 'python3'
+        let s:py = 'py3'
+    else
+        let s:py = 'py'
     endif
-    let s:py = 'py3'
-    let g:ConqueTerm_PyVersion = 3
+" otherwise use the other version
+else
+    let s:py_alternate = 5 - g:ConqueTerm_PyVersion
+    if s:py_alternate == 3
+        let s:pytest = 'python3'
+    else
+        let s:pytest = 'python'
+    endif
+    if has(s:pytest)
+        echo "alternate " . s:pytest
+        echohl WarningMsg | echomsg "Python " . g:ConqueTerm_PyVersion . " interface is not installed, using Python " . s:py_alternate . " instead" | echohl None
+        let g:ConqueTerm_PyVersion = s:py_alternate
+        if s:pytest == 'python3'
+            let s:py = 'py3'
+        else
+            let s:py = 'py'
+        endif
+    endif
 endif
 
 " quick and dirty platform declaration
-if has('unix')
+if has('unix') == 1
     let s:platform = 'nix'
-else
-    let s:platform = 'dos'
-endif
-if has('unix')
     sil exe s:py . " CONQUE_PLATFORM = 'nix'"
 else
+    let s:platform = 'dos'
     sil exe s:py . " CONQUE_PLATFORM = 'dos'"
 endif
-
 
 " }}}
 
@@ -195,7 +212,7 @@ function! conque_term#open(...) "{{{
     let hooks   = get(a:000, 1, [])
 
     " bare minimum validation
-    if has('python') != 1
+    if s:py == ''
         echohl WarningMsg | echomsg "Conque requires the Python interface to be installed" | echohl None
         return 0
     endif
@@ -455,7 +472,7 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'n' . map_modifier . 'map <silent> <buffer> ]p'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> [p'
     endif
-    if has('gui_running')
+    if has('gui_running') == 1
         if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:' . s:py . ' ' . b:ConqueTerm_Var . ".write(unicode(vim.eval('@+'), 'utf-8'))<CR>a"
         else
@@ -654,6 +671,8 @@ exec s:py . "file " . conque_py_dir . "conque_globals.py"
 exec s:py . "file " . conque_py_dir . "Conque.py"
 exec s:py . "file " . conque_py_dir . "ConqueScreen.py"
 exec s:py . "file " . conque_py_dir . "ConqueSubprocess.py"
-exec s:py . "file " . conque_py_dir . "ConqueSole.py"
-exec s:py . "file " . conque_py_dir . "ConqueSoleWrapper.py"
+if s:platform == 'dos'
+    exec s:py . "file " . conque_py_dir . "ConqueSole.py"
+    exec s:py . "file " . conque_py_dir . "ConqueSoleWrapper.py"
+endif
 

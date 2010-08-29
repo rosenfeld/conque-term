@@ -253,7 +253,7 @@ class Conque:
             return
 
         logging.debug('read *********************************************************************')
-        logging.debug(str(output))
+        logging.debug(output)
         debug_profile_start = time.time()
 
         chunks = CONQUE_SEQ_REGEX.split(output)

@@ -59,9 +59,9 @@ class ConqueScreen(object):
 
         # if line is past end of screen, append
         if real_line == len(self.buffer):
-            self.buffer.append(value)
+            self.buffer.append(str(value))
         else:
-            self.buffer[ real_line ] = value
+            self.buffer[ real_line ] = str(value)
     # }}}
 
     def __delitem__(self, key): # {{{
