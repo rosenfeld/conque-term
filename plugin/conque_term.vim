@@ -88,7 +88,22 @@ endif " }}}
 " Choose which Python version to attempt to load first {{{
 " Valid values are 2, 3 or 0 (no preference)
 if !exists('g:ConqueTerm_PyVersion')
-    let g:ConqueTerm_PyVersion = 0
+    let g:ConqueTerm_PyVersion = 2
+endif " }}}
+
+" Path to python.exe. (Windows only) {{{
+" By default, Conque will check C:\PythonNN\python.exe then will search system path
+" If you have installed Python in an unusual location and it's not in your path, fill in the full path below
+" E.g. 'C:\Program Files\Python\Python27\python.exe'
+if !exists('g:ConqueTerm_PyExe')
+    let g:ConqueTerm_PyExe = ''
+endif " }}}
+
+" Path to autoload directory. (Windows only) {{{
+" Conque should be able to find this directory by itself, but if not you can specify it below
+" E.g. 'C:\Users\Nraffo\vimfiles\autoload'
+if !exists('g:ConqueTerm_AutoloadDir')
+    let g:ConqueTerm_AutoloadDir = ''
 endif " }}}
 
 " **********************************************************************************************************

@@ -637,6 +637,11 @@ endfunction " }}}
 " find python.exe in windows
 function! conque_term#find_python_exe() " {{{
 
+    " first check configuration for custom value
+    if g:ConqueTerm_PyExe != '' && executable(g:ConqueTerm_PyExe)
+        return g:ConqueTerm_PyExe
+    endif
+
     let sys_paths = split($PATH, ';')
 
     " get exact python version
@@ -663,12 +668,23 @@ endfunction " }}}
 
 " find autoload/conque_term.vim for windows
 function! conque_term#find_conque_term_vim() " {{{
-    "let ct_vim = findfile('autoload/conque_term.vim', &rtp)
+
+    " search config path
+    if g:ConqueTerm_AutoloadDir != ''
+        let ct_vim = findfile('conque_sole_communicator.py', g:ConqueTerm_AutoloadDir)
+        if ct_vim != ''
+            return ct_vim
+        endif
+    endif
+
+    " then search vim paths
     let ct_vim = findfile('autoload/conque_sole_communicator.py', &rtp)
     if ct_vim == ''
         echohl WarningMsg | echomsg "Unable to find conque_term.vim" | echohl None
     endif
+
     return ct_vim
+
 endfunction " }}}
 
 
