@@ -2,6 +2,7 @@
 import vim, time, random
 
 import logging # DEBUG
+import traceback # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 

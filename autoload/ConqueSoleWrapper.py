@@ -8,12 +8,13 @@ python through shared memory objects.
 
 }}} """
 
-import md5, time
+import time
 import win32api, win32con, win32process
 
 from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
+import traceback # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
@@ -66,7 +67,7 @@ class ConqueSoleWrapper():
         self.columns = options['COLUMNS']
 
         # create a shm key
-        self.shm_key = md5.new(cmd + str(time.ctime())).hexdigest()[:8]
+        self.shm_key = 'mk' + str(time.time())
 
         # python command
         cmd_line = '%s "%s" %s %d %d %s' % (python_exe, communicator_py, self.shm_key, int(self.columns), int(self.lines), cmd)

@@ -26,13 +26,13 @@ Requirements:
 
 }}} """
 
-import time, re, os, ctypes, ctypes.wintypes, md5, random
+import time, re, os, ctypes, ctypes.wintypes, random
 import win32con, win32process, win32console, win32api, win32gui, win32event
-import traceback # DEBUG
 from conque_globals import * # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
+import traceback # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
@@ -373,7 +373,7 @@ class ConqueSoleSubprocess():
         self.shm_attributes = None
 
         # new shared memory key
-        mem_key = md5.new(str(self.output_blocks) + str(time.ctime())).hexdigest()[:8]
+        mem_key = 'mk' + str(time.time())
 
         # reallocate memory
         self.shm_output = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'output', mem_key, True)

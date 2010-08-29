@@ -1,6 +1,7 @@
 
 import logging # DEBUG
 LOG_FILENAME = 'pylog_sub.log' # DEBUG
+import traceback # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 from conque_globals import * # DEBUG
