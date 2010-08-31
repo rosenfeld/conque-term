@@ -243,6 +243,7 @@ function! conque_term#open(...) "{{{
         else
             " find python.exe and communicator
             let py_exe = conque_term#python_escape(conque_term#find_python_exe())
+          echo conque_term#find_conque_term_vim()
             let ct_vim = conque_term#python_escape(conque_term#find_conque_term_vim())
             if py_exe == '' || ct_vim == ''
                 return 0
@@ -671,14 +672,14 @@ function! conque_term#find_conque_term_vim() " {{{
 
     " search config path
     if g:ConqueTerm_AutoloadDir != ''
-        let ct_vim = findfile('conque_sole_communicator.py', g:ConqueTerm_AutoloadDir)
+        let ct_vim = globpath(g:ConqueTerm_AutoloadDir, "**/autoload/conque_sole_communicator.py")
         if ct_vim != ''
             return ct_vim
         endif
     endif
 
     " then search vim paths
-    let ct_vim = findfile('autoload/conque_sole_communicator.py', &rtp)
+    let ct_vim = globpath(&rtp, "**/autoload/conque_sole_communicator.py")
     if ct_vim == ''
         echohl WarningMsg | echomsg "Unable to find conque_term.vim" | echohl None
     endif
