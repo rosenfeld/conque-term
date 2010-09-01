@@ -34,6 +34,30 @@
 
 " {{{
 
+function! conque_term#system_fail(feature) " {{{
+
+    " create a new buffer
+    new
+    setlocal buftype=nofile
+    setlocal nonumber
+    setlocal foldcolumn=0
+    setlocal nowrap
+    setlocal noswapfile
+
+    " missing vim features
+    if feature == 'has_py'
+
+        call append('$', 'Conque ERROR: Python interface cannot be loaded')
+        call append('$', '')
+        call append('$', 'Your version of Vim appears to be installed without the Python interface.')
+
+    endif
+
+endfunction " }}}
+
+" **********************************************************************************************************
+" PYTHON DETECTION {{{
+
 " choose a python version and define a string unicoding function
 let s:py = ''
 if g:ConqueTerm_PyVersion == 3
@@ -51,6 +75,7 @@ if has(s:pytest)
     else
         let s:py = 'py'
     endif
+
 " otherwise use the other version
 else
     let s:py_alternate = 5 - g:ConqueTerm_PyVersion
@@ -71,6 +96,17 @@ else
     endif
 endif
 
+" test if we actually found a python version
+if s:py == ''
+    call conque_term#system_fail('has_py')
+    finish
+endif
+
+" }}}
+
+" **********************************************************************************************************
+" OPERATING SYSTEM DETECTION {{{
+
 " quick and dirty platform declaration
 if has('unix') == 1
     let s:platform = 'nix'
@@ -83,7 +119,23 @@ endif
 " }}}
 
 " **********************************************************************************************************
-" **** KEY MAPPINGS ****************************************************************************************
+" WINDOWS PYTHON MODULE TEST {{{
+
+if s:platform == 'dos'
+    try
+        sil exe s:py . " import win32process"
+    catch
+        call conque_term#system_fail('has_pywin32')
+        finish
+    endtry
+endif
+
+" }}}
+
+" }}}
+
+" **********************************************************************************************************
+" **** WINDOWS VK CODES ************************************************************************************
 " **********************************************************************************************************
 
 " Windows Virtual Key Codes  {{{

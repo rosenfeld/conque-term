@@ -8,8 +8,9 @@ python through shared memory objects.
 
 }}} """
 
+import ctypes
 import time
-import win32api, win32con, win32process
+import ConqueWin32Util
 
 from ConqueSoleSharedMemory import * # DEBUG
 
@@ -74,19 +75,19 @@ class ConqueSoleWrapper():
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
-        flags = win32process.NORMAL_PRIORITY_CLASS | win32process.DETACHED_PROCESS
-        si = win32process.STARTUPINFO()
+        flags = ConqueWin32Util.NORMAL_PRIORITY_CLASS | ConqueWin32Util.DETACHED_PROCESS
+        si = ConqueWin32Util.STARTUPINFO()
+        pi = ConqueWin32Util.PROCESS_INFORMATION()
 
         # start the stupid process already
         try:
-            tpl_result = win32process.CreateProcess (None, cmd_line, None, None, 0, flags, None, '.', si)
+            ctypes.windll.kernel32.CreateProcessA(None, cmd_line, None, None, 0, flags, None, '.', ctypes.byref(si), ctypes.byref(pi))
         except:
             logging.debug('COULD NOT START %s' % cmd_line)
             raise
 
         # handle
-        self.handle = tpl_result [0]
-        self.pid = tpl_result [2]
+        self.pid = pi.dwProcessId
 
         logging.debug('communicator pid: ' + str(self.pid))
 

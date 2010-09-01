@@ -2,10 +2,11 @@
  - Todo
 
  * fix number syntax highlighting
+ * add option to use conceal for syntax highlighting
+ * call ctypes directly instead of using python for windows extensions
 
  - Maybe hopeless
 
- * investigate mintty attach problems (or don't)
  * investigate "more" input problems
 
  - Finished
