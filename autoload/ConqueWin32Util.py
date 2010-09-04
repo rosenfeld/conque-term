@@ -5,11 +5,12 @@ Python structures used for ctypes interaction
 from ctypes import *
 from ctypes.wintypes import BOOL
 
-# types with variable names comparable to win32 documentation
+# types with variable names comparable to win32 documentation {{{
 
 BYTE = c_ubyte
 CHAR = c_char
 WCHAR = c_wchar
+SHORT = c_short
 WORD = c_ushort
 DWORD = c_ulong
 LPBYTE = POINTER(c_ubyte)
@@ -20,7 +21,9 @@ LPVOID = c_void_p
 UNIT_PTR = c_ulong
 SIZE_T = c_ulong
 
-# create process flag constants
+# }}}
+
+# create process flag constants {{{
 
 CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 CREATE_DEFAULT_ERROR_MODE = 0x04000000
@@ -39,7 +42,9 @@ DETACHED_PROCESS = 0x00000008
 EXTENDED_STARTUPINFO_PRESENT = 0x00080000
 INHERIT_PARENT_AFFINITY = 0x00010000
 
-# process priority constants
+# }}}
+
+# process priority constants {{{
 
 ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
 BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
@@ -48,7 +53,9 @@ IDLE_PRIORITY_CLASS = 0x00000040
 NORMAL_PRIORITY_CLASS = 0x00000020
 REALTIME_PRIORITY_CLASS = 0x00000100
 
-# startup info constants
+# }}}
+
+# startup info constants {{{
 
 STARTF_FORCEONFEEDBACK = 0x00000040
 STARTF_FORCEOFFFEEDBACK = 0x00000080
@@ -64,7 +71,9 @@ STARTF_USESHOWWINDOW = 0x00000001
 STARTF_USESIZE = 0x00000002
 STARTF_USESTDHANDLES = 0x00000100
 
-# show window constants
+# }}}
+
+# show window constants {{{
 
 SW_FORCEMINIMIZE = 11
 SW_HIDE = 0
@@ -80,7 +89,9 @@ SW_SHOWNA = 8
 SW_SHOWNOACTIVATE = 4
 SW_SHOWNORMAL = 1
 
-# input event types
+# }}}
+
+# input event types {{{
 
 FOCUS_EVENT = 0x0010
 KEY_EVENT = 0x0001
@@ -88,7 +99,9 @@ MENU_EVENT = 0x0008
 MOUSE_EVENT = 0x0002
 WINDOW_BUFFER_SIZE_EVENT = 0x0004
 
-# key event modifiers
+# }}}
+
+# key event modifiers {{{
 
 CAPSLOCK_ON = 0x0080
 ENHANCED_KEY = 0x0100
@@ -100,7 +113,9 @@ RIGHT_CTRL_PRESSED = 0x0004
 SCROLLLOCK_ON = 0x0040
 SHIFT_PRESSED = 0x0010
 
-# process access
+# }}}
+
+# process access {{{
 
 PROCESS_CREATE_PROCESS = 0x0080
 PROCESS_CREATE_THREAD = 0x0002
@@ -115,11 +130,15 @@ PROCESS_VM_OPERATION = 0x0008
 PROCESS_VM_READ = 0x0010
 PROCESS_VM_WRITE = 0x0020
 
-# input / output handles
+# }}}
+
+# input / output handles {{{
 
 STD_INPUT_HANDLE = c_ulong(-10)
 STD_OUTPUT_HANDLE = c_ulong(-11)
 STD_ERROR_HANDLE = c_ulong(-12)
+
+# }}}
 
 # structures used for CreateProcess
 
@@ -136,8 +155,8 @@ class STARTUPINFO(Structure):
                 ("dwYCountChars", DWORD),
                 ("dwFillAttribute",DWORD),
                 ("dwFlags",       DWORD),
-                ("wShowWindow",   WORD),
-                ("cbReserved2",   WORD),
+                ("wShowWindow",   SHORT),
+                ("cbReserved2",   SHORT),
                 ("lpReserved2",   LPBYTE),
                 ("hStdInput",     HANDLE),
                 ("hStdOutput",    HANDLE),
@@ -164,14 +183,20 @@ class SECURITY_ATTRIBUTES(Structure):
                 ("InheritHandle", BOOL)]
 
 class COORD(Structure):
-    _fields_ = [("X", WORD),
-                ("Y", WORD)]
+    _fields_ = [("X", SHORT),
+                ("Y", SHORT)]
+
+    def to_str(self):
+        return str({'X':self.X,'Y':self.Y})
 
 class SMALL_RECT(Structure):
-    _fields_ = [("Left", WORD),
-                ("Top", WORD),
-                ("Right", WORD),
-                ("Bottom", WORD)]
+    _fields_ = [("Left",   SHORT),
+                ("Top",    SHORT),
+                ("Right",  SHORT),
+                ("Bottom", SHORT)]
+
+    def to_str(self):
+        return str({'Left':self.Left,'Top':self.Top,'Right':self.Right,'Bottom':self.Bottom})
 
 class CONSOLE_SCREEN_BUFFER_INFO(Structure):
     _fields_ = [("dwSize",              COORD),
@@ -179,6 +204,9 @@ class CONSOLE_SCREEN_BUFFER_INFO(Structure):
                 ("wAttributes",         DWORD),
                 ("srWindow",            SMALL_RECT),
                 ("dwMaximumWindowSize", COORD)]
+
+    def to_str(self):
+        return str({'dwSize':self.dwSize.to_str(),'dwCursorPosition':self.dwCursorPosition.to_str(),'wAttributes':self.wAttributes,'srWindow':self.srWindow.to_str(),'maxWin':self.dwMaximumWindowSize.to_str()})
 
 class KEY_EVENT_CHAR(Union):
     _fields_ = [("UnicodeChar", WCHAR),
