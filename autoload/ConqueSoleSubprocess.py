@@ -212,12 +212,14 @@ class ConqueSoleSubprocess():
             logging.debug(str(res))
             logging.debug(str(ctypes.GetLastError()))
             logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
+            time.sleep(0.2)
 
             # set buffer size
             size = ConqueWin32Util.COORD (self.buffer_width, self.buffer_height)
-            res = ctypes.windll.kernel32.SetConsoleScreenBufferSize (self.stdout, ctypes.byref(size))
+            res = ctypes.windll.kernel32.SetConsoleScreenBufferSize (self.stdout, size)
             logging.debug('buffer size: ' + str(size.to_str()))
 
+            time.sleep(0.2)
             logging.debug('size result')
             logging.debug(str(res))
             logging.debug(str(ctypes.GetLastError()))
@@ -228,7 +230,7 @@ class ConqueSoleSubprocess():
             time.sleep(0.2)
 
             # set window size
-            #self.set_window_size(self.window_width, self.window_height)
+            self.set_window_size(self.window_width, self.window_height)
 
             # init shared memory
             self.init_shared_memory(mem_key)
@@ -361,27 +363,28 @@ class ConqueSoleSubprocess():
             read_start = curs_line
             read_end   = curs_line + 1
 
+        tc = ctypes.create_unicode_buffer(self.buffer_width)
+        ac = ctypes.create_unicode_buffer(self.buffer_width)
+
         # read new data
         for i in range(read_start, read_end):
             #logging.debug("reading line " + str(i))
-            logging.debug('buffer width is ' + str(self.buffer_width))
+            #logging.debug('buffer width is ' + str(self.buffer_width))
             coord = ConqueWin32Util.COORD (0, i)
-            tc = ctypes.create_unicode_buffer(self.buffer_width)
-            ac = ctypes.create_unicode_buffer(self.buffer_width)
             chars_read = ConqueWin32Util.DWORD(0)
-            res = ctypes.windll.kernel32.ReadConsoleOutputCharacterW (self.stdout, ctypes.byref(tc), self.buffer_width, ctypes.byref(coord), ctypes.byref(chars_read))
+            res = ctypes.windll.kernel32.ReadConsoleOutputCharacterW (self.stdout, ctypes.byref(tc), self.buffer_width, coord, ctypes.byref(chars_read))
 
-            logging.debug(str(res))
-            logging.debug(str(ctypes.GetLastError()))
-            logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
+            #logging.debug(str(res))
+            #logging.debug(str(ctypes.GetLastError()))
+            #logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
 
 
-            ctypes.windll.kernel32.ReadConsoleOutputAttribute (self.stdout, ctypes.byref(ac), self.buffer_width, ctypes.byref(coord), ctypes.byref(chars_read))
-            t = ''.join(tc.value.encode('utf-8'))
-            a = ''.join(ac.value.encode('utf-8'))
-            logging.debug(str(chars_read))
-            logging.debug("line " + str(i) + " is: " + str(tc.value))
-            logging.debug("attributes " + str(i) + " is: " + str(a))
+            ctypes.windll.kernel32.ReadConsoleOutputAttribute (self.stdout, ctypes.byref(ac), self.buffer_width, coord, ctypes.byref(chars_read))
+            t = tc.value
+            a = ac.value
+            #logging.debug(str(chars_read))
+            #logging.debug("line " + str(i) + " is: " + str(tc.value))
+            #logging.debug("attributes " + str(i) + " is: " + str(a))
 
             # add data
             if i >= len(self.data): 
@@ -519,36 +522,46 @@ class ConqueSoleSubprocess():
 
     def write_plain (self, text): # {{{
 
-        list_input = ConqueWin32Util.INPUT_RECORD * len(text)
+        li = ConqueWin32Util.INPUT_RECORD * len(text)
+        list_input = li()
 
         for i in range(0, len(text)):
             # create keyboard input
             ke = ConqueWin32Util.KEY_EVENT_RECORD()
-            ke.bKeyDown = True
-            ke.wRepeatCount = 1
+            ke.bKeyDown = ctypes.c_byte(1)
+            ke.wRepeatCount = ctypes.c_short(1)
 
             cnum = ord(text[i])
+            ke.wVirtualKeyCode = ctypes.c_short(ctypes.windll.user32.VkKeyScanA(cnum))
 
             if cnum > 31:
-                ke.uChar = unichr(cnum)
-                ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum)
+                ke.uChar.UnicodeChar = ctypes.c_wchar(unichr(cnum))
             elif cnum == 3:
                 ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, self.pid)
                 continue
             else:
-                ke.uChar = unichr(cnum)
+                ke.uChar.UnicodeChar = ctypes.c_wchar(unichr(cnum))
                 if str(cnum) in CONQUE_WINDOWS_VK:
-                    kc.wVirtualKeyCode = CONQUE_WINDOWS_VK[str(cnum)]
+                    ke.wVirtualKeyCode = ctypes.c_short(CONQUE_WINDOWS_VK[str(cnum)])
                 else:
-                    ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum + 96)
-                    ke.dwControlKeyState = ConqueWin32Util.LEFT_CTRL_PRESSED
+                    ke.dwControlKeyState = ctypes.c_int(ConqueWin32Util.LEFT_CTRL_PRESSED)
 
-            kc = ConqueWin32Util.INPUT_RECORD(ConqueWin32Util.KEY_EVENT, ke)
+            kc = ConqueWin32Util.INPUT_RECORD(ConqueWin32Util.KEY_EVENT)
+            kc.Event.KeyEvent = ke
             list_input[i] =  kc
+
+            #logging.debug(kc.to_str())
 
         # write input array
         events_written = ConqueWin32Util.DWORD()
-        ctypes.windll.kernel32.WriteConsoleInput (self.stdin, ctypes.byref(list_input), len(list_input), ctypes.byref(events_written))
+        res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, len(text), ctypes.byref(events_written))
+
+        logging.debug('foo')
+        logging.debug('events written ' + str(events_written))
+        logging.debug(str(res))
+        logging.debug(str(ctypes.GetLastError()))
+        logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
+
 
     # }}}
 
@@ -556,20 +569,25 @@ class ConqueSoleSubprocess():
 
     def write_vk (self, vk_code): # {{{
 
-        list_input = ConqueWin32Util.INPUT_RECORD * 1
+        li = ConqueWin32Util.INPUT_RECORD * 1
 
         # create keyboard input
         ke = ConqueWin32Util.KEY_EVENT_RECORD()
-        ke.wVirtualKeyCode = CONQUE_WINDOWS_VK[vk_code]
-        ke.bKeyDown = True
-        ke.wRepeatCount = 1
+        ke.wVirtualKeyCode = ctypes.c_short(CONQUE_WINDOWS_VK[vk_code])
+        ke.bKeyDown = ctypes.c_byte(1)
+        ke.wRepeatCount = ctypes.c_short(1)
 
-        kc = ConqueWin32Util.INPUT_RECORD(ConqueWin32Util.KEY_EVENT, ke)
-        list_input[0] = kc
+        list_input = li(kc)
 
         # write input array
         events_written = ConqueWin32Util.DWORD()
-        ctypes.windll.kernel32.WriteConsoleInput (self.stdin, ctypes.byref(list_input), len(list_input), ctypes.byref(events_written))
+        ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, 1, ctypes.byref(events_written))
+
+        logging.debug('bar')
+        logging.debug('events written ' + str(events_written))
+        logging.debug(str(res))
+        logging.debug(str(ctypes.GetLastError()))
+        logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
 
     # }}}
 
@@ -584,7 +602,7 @@ class ConqueSoleSubprocess():
         current_pid = os.getpid()
  
         logging.debug('closing down!')
-        ctypes.windll.kernel32.GetConsoleProcessList(pid_list, len(pid_list))
+        ctypes.windll.kernel32.GetConsoleProcessList(pid_list, 10)
         logging.debug(str(self.pid))
         logging.debug(str(pid_list))
 
@@ -676,7 +694,7 @@ class ConqueSoleSubprocess():
         logging.debug('window size: ' + str(window_size.to_str()))
 
         # set the window size!
-        res = ctypes.windll.kernel32.SetConsoleWindowInfo (self.stdout, True, ctypes.byref(window_size))
+        res = ctypes.windll.kernel32.SetConsoleWindowInfo (self.stdout, ctypes.c_bool(True), ctypes.byref(window_size))
 
         logging.debug('win size result')
         logging.debug(str(res))

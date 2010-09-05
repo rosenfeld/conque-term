@@ -162,11 +162,17 @@ class STARTUPINFO(Structure):
                 ("hStdOutput",    HANDLE),
                 ("hStdError",     HANDLE),]
 
+    def to_str(self):
+        return ''
+
 class PROCESS_INFORMATION(Structure):
     _fields_ = [("hProcess",    HANDLE),
                 ("hThread",     HANDLE),
                 ("dwProcessId", DWORD),
                 ("dwThreadId",  DWORD),]
+
+    def to_str(self):
+        return ''
 
 class MEMORY_BASIC_INFORMATION(Structure):
     _fields_ = [("BaseAddress", PVOID),
@@ -177,55 +183,115 @@ class MEMORY_BASIC_INFORMATION(Structure):
                 ("Protect", DWORD),
                 ("Type", DWORD),]
 
+    def to_str(self):
+        return ''
+
 class SECURITY_ATTRIBUTES(Structure):
     _fields_ = [("Length", DWORD),
                 ("SecDescriptor", LPVOID),
                 ("InheritHandle", BOOL)]
 
+    def to_str(self):
+        return ''
+
 class COORD(Structure):
-    _fields_ = [("X", SHORT),
-                ("Y", SHORT)]
+    _fields_ = [("X", c_short),
+                ("Y", c_short)]
 
     def to_str(self):
-        return str({'X':self.X,'Y':self.Y})
+        return ''
 
 class SMALL_RECT(Structure):
-    _fields_ = [("Left",   SHORT),
-                ("Top",    SHORT),
-                ("Right",  SHORT),
-                ("Bottom", SHORT)]
+    _fields_ = [("Left", c_short),
+                ("Top", c_short),
+                ("Right", c_short),
+                ("Bottom", c_short)]
 
     def to_str(self):
-        return str({'Left':self.Left,'Top':self.Top,'Right':self.Right,'Bottom':self.Bottom})
+        return ''
 
 class CONSOLE_SCREEN_BUFFER_INFO(Structure):
-    _fields_ = [("dwSize",              COORD),
-                ("dwCursorPosition",    COORD),
-                ("wAttributes",         DWORD),
-                ("srWindow",            SMALL_RECT),
+    _fields_ = [("dwSize", COORD),
+                ("dwCursorPosition", COORD),
+                ("wAttributes", c_short),
+                ("srWindow", SMALL_RECT),
                 ("dwMaximumWindowSize", COORD)]
 
     def to_str(self):
-        return str({'dwSize':self.dwSize.to_str(),'dwCursorPosition':self.dwCursorPosition.to_str(),'wAttributes':self.wAttributes,'srWindow':self.srWindow.to_str(),'maxWin':self.dwMaximumWindowSize.to_str()})
+        return ''
 
-class KEY_EVENT_CHAR(Union):
-    _fields_ = [("UnicodeChar", WCHAR),
-                ("AsciiChar",   CHAR)]
+class CHAR_UNION(Union):
+    _fields_ = [("UnicodeChar", c_wchar),
+                ("AsciiChar", c_char)]
+
+    def to_str(self):
+        return ''
+
+class CHAR_INFO(Structure):
+    _fields_ = [("Char", CHAR_UNION),
+                ("Attributes", c_short)]
+
+    def to_str(self):
+        return ''
 
 class KEY_EVENT_RECORD(Structure):
-    _fields_ = [("bKeyDown",          BOOL),
-                ("wRepeatCount",      DWORD),
-                ("wVirtualKeyCode",   DWORD),
-                ("wVirtualScanCode",  DWORD),
-                ("uChar",             KEY_EVENT_CHAR),
-                ("dwControlKeyState", DWORD)]
+    _fields_ = [("bKeyDown", c_byte),
+                ("pad2", c_byte),
+                ('pad1', c_short),
+                ("wRepeatCount", c_short),
+                ("wVirtualKeyCode", c_short),
+                ("wVirtualScanCode", c_short),
+                ("uChar", CHAR_UNION),
+                ("dwControlKeyState", c_int)]
 
-class INPUT_RECORD_EVENTS(Union):
-    _fileds_ = [("keyEvent", KEY_EVENT_RECORD)]
+    def to_str(self):
+        return ''
+
+class MOUSE_EVENT_RECORD(Structure):
+    _fields_ = [("dwMousePosition", COORD),
+                ("dwButtonState", c_int),
+                ("dwControlKeyState", c_int),
+                ("dwEventFlags", c_int)]
+
+    def to_str(self):
+        return ''
+
+class WINDOW_BUFFER_SIZE_RECORD(Structure):
+    _fields_ = [("dwSize", COORD)]
+
+    def to_str(self):
+        return ''
+
+class MENU_EVENT_RECORD(Structure):
+    _fields_ = [("dwCommandId", c_uint)]
+
+    def to_str(self):
+        return ''
+
+class FOCUS_EVENT_RECORD(Structure):
+    _fields_ = [("bSetFocus", c_byte)]
+
+    def to_str(self):
+        return ''
+
+class INPUT_UNION(Union):
+    _fields_ = [("KeyEvent", KEY_EVENT_RECORD),
+                ("MouseEvent", MOUSE_EVENT_RECORD),
+                ("WindowBufferSizeEvent", WINDOW_BUFFER_SIZE_RECORD),
+                ("MenuEvent", MENU_EVENT_RECORD),
+                ("FocusEvent", FOCUS_EVENT_RECORD)]
+
+    def to_str(self):
+        return ''
 
 class INPUT_RECORD(Structure):
-    _fields_ = [("EventType", DWORD),
-                ("Event",     KEY_EVENT_RECORD)]
+    _fields_ = [("EventType", c_short),
+                ("Event", INPUT_UNION)]
+
+    def to_str(self):
+        return ''
+
+
 
 
 # virtual key codes
