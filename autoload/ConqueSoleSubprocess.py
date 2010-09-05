@@ -577,11 +577,13 @@ class ConqueSoleSubprocess():
         ke.bKeyDown = ctypes.c_byte(1)
         ke.wRepeatCount = ctypes.c_short(1)
 
+        kc = ConqueWin32Util.INPUT_RECORD(ConqueWin32Util.KEY_EVENT)
+        kc.Event.KeyEvent = ke
         list_input = li(kc)
 
         # write input array
         events_written = ConqueWin32Util.DWORD()
-        ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, 1, ctypes.byref(events_written))
+        res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, 1, ctypes.byref(events_written))
 
         logging.debug('bar')
         logging.debug('events written ' + str(events_written))
