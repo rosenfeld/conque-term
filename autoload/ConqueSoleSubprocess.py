@@ -26,7 +26,7 @@ Requirements:
 
 }}} """
 
-import time, re, os, os.path, ctypes, ctypes.wintypes, random, array
+import time, re, os, os.path, ctypes, random, array
 import ConqueWin32Util
 from conque_globals import * # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
@@ -173,7 +173,6 @@ class ConqueSoleSubprocess():
             logging.debug(str(ctypes.GetLastError()))
             logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
             self.pid = pi.dwProcessId
-            time.sleep(0.2)
             self.handle = pi.hProcess
             logging.debug(str(self.pid))
             logging.debug(str(self.handle))
@@ -198,33 +197,17 @@ class ConqueSoleSubprocess():
 
             # get input / output handles
             self.stdout = ctypes.windll.kernel32.GetStdHandle (ConqueWin32Util.STD_OUTPUT_HANDLE)
-            logging.debug('stdout is ' + str(self.stdout))
             self.stdin = ctypes.windll.kernel32.GetStdHandle (ConqueWin32Util.STD_INPUT_HANDLE)
-            logging.debug('stdin is ' + str(self.stdin))
-
-            logging.debug('init size')
-            time.sleep(0.2)
-            buf_info = ConqueWin32Util.CONSOLE_SCREEN_BUFFER_INFO()
-            res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
-            logging.debug(str(buf_info.to_str()))
-
-            logging.debug('init size result')
-            logging.debug(str(res))
-            logging.debug(str(ctypes.GetLastError()))
-            logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
-            time.sleep(0.2)
 
             # set buffer size
             size = ConqueWin32Util.COORD (self.buffer_width, self.buffer_height)
             res = ctypes.windll.kernel32.SetConsoleScreenBufferSize (self.stdout, size)
             logging.debug('buffer size: ' + str(size.to_str()))
 
-            time.sleep(0.2)
             logging.debug('size result')
             logging.debug(str(res))
             logging.debug(str(ctypes.GetLastError()))
             logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
-
 
             # prev set size call needs to process
             time.sleep(0.2)
@@ -248,10 +231,8 @@ class ConqueSoleSubprocess():
    
     def init_shared_memory(self, mem_key): # {{{
 
-        buf_info = ConqueWin32Util.CONSOLE_SCREEN_BUFFER_INFO()
-        res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
+        buf_info = self.get_buffer_info()
         logging.debug('-------------------------------------')
-        logging.debug(str(res))
         logging.debug(buf_info.to_str())
         logging.debug('-------------------------------------')
 
@@ -325,8 +306,7 @@ class ConqueSoleSubprocess():
                 self.window_height = cmd['data']['height']
 
                 # reset the console
-                buf_info = ConqueWin32Util.CONSOLE_SCREEN_BUFFER_INFO()
-                ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
+                buf_info = self.get_buffer_info()
                 self.reset_console(buf_info, add_block = False)
 
         # }}}
@@ -350,8 +330,7 @@ class ConqueSoleSubprocess():
             time.sleep(read_timeout)
 
         # get cursor position
-        buf_info = ConqueWin32Util.CONSOLE_SCREEN_BUFFER_INFO()
-        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
+        buf_info = self.get_buffer_info()
         curs_line = buf_info.dwCursorPosition.Y
         curs_col = buf_info.dwCursorPosition.X
 
@@ -371,7 +350,7 @@ class ConqueSoleSubprocess():
             #logging.debug("reading line " + str(i))
             #logging.debug('buffer width is ' + str(self.buffer_width))
             coord = ConqueWin32Util.COORD (0, i)
-            chars_read = ConqueWin32Util.DWORD(0)
+            chars_read = ctypes.c_ulong(0)
             res = ctypes.windll.kernel32.ReadConsoleOutputCharacterW (self.stdout, ctypes.byref(tc), self.buffer_width, coord, ctypes.byref(chars_read))
 
             #logging.debug(str(res))
@@ -466,7 +445,12 @@ class ConqueSoleSubprocess():
         # set buffer size
         size = ConqueWin32Util.COORD(X=self.buffer_width, Y=self.buffer_height * self.output_blocks)
         logging.debug('new buffer size: ' + str(size))
-        ctypes.windll.kernel32.SetConsoleScreenBufferSize (self.stdout, ctypes.byref(size))
+        res = ctypes.windll.kernel32.SetConsoleScreenBufferSize (self.stdout, size)
+
+        logging.debug('buf size result')
+        logging.debug(str(res))
+        logging.debug(str(ctypes.GetLastError()))
+        logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
 
         # prev set size call needs to process
         time.sleep(0.2)
@@ -532,19 +516,19 @@ class ConqueSoleSubprocess():
             ke.wRepeatCount = ctypes.c_short(1)
 
             cnum = ord(text[i])
-            ke.wVirtualKeyCode = ctypes.c_short(ctypes.windll.user32.VkKeyScanA(cnum))
+            ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum)
 
             if cnum > 31:
-                ke.uChar.UnicodeChar = ctypes.c_wchar(unichr(cnum))
+                ke.uChar.UnicodeChar = unichr(cnum)
             elif cnum == 3:
                 ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, self.pid)
                 continue
             else:
-                ke.uChar.UnicodeChar = ctypes.c_wchar(unichr(cnum))
+                ke.uChar.UnicodeChar = unichr(cnum)
                 if str(cnum) in CONQUE_WINDOWS_VK:
-                    ke.wVirtualKeyCode = ctypes.c_short(CONQUE_WINDOWS_VK[str(cnum)])
+                    ke.wVirtualKeyCode = CONQUE_WINDOWS_VK[str(cnum)]
                 else:
-                    ke.dwControlKeyState = ctypes.c_int(ConqueWin32Util.LEFT_CTRL_PRESSED)
+                    ke.dwControlKeyState = ConqueWin32Util.LEFT_CTRL_PRESSED
 
             kc = ConqueWin32Util.INPUT_RECORD(ConqueWin32Util.KEY_EVENT)
             kc.Event.KeyEvent = ke
@@ -553,7 +537,7 @@ class ConqueSoleSubprocess():
             #logging.debug(kc.to_str())
 
         # write input array
-        events_written = ConqueWin32Util.DWORD()
+        events_written = ctypes.c_ulong()
         res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, len(text), ctypes.byref(events_written))
 
         logging.debug('foo')
@@ -582,7 +566,7 @@ class ConqueSoleSubprocess():
         list_input = li(kc)
 
         # write input array
-        events_written = ConqueWin32Util.DWORD()
+        events_written = ctypes.c_ulong()
         res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, 1, ctypes.byref(events_written))
 
         logging.debug('bar')
@@ -597,19 +581,19 @@ class ConqueSoleSubprocess():
 
     def close(self): # {{{
 
-        pid_list = ConqueWin32Util.DWORD * 10
+        pid_list = (ctypes.c_int * 10)()
+        num = ctypes.windll.kernel32.GetConsoleProcessList(pid_list, 10)
 
         logging.debug("\n".join(self.data))
   
         current_pid = os.getpid()
  
         logging.debug('closing down!')
-        ctypes.windll.kernel32.GetConsoleProcessList(pid_list, 10)
         logging.debug(str(self.pid))
         logging.debug(str(pid_list))
 
         # kill subprocess pids
-        for pid in pid_list:
+        for pid in pid_list[0:num]:
             if not pid:
                 break
 
@@ -672,8 +656,7 @@ class ConqueSoleSubprocess():
         window_size = ConqueWin32Util.SMALL_RECT(0, 0, 0, 0)
 
         # buffer info has maximum window size data
-        buf_info = ConqueWin32Util.CONSOLE_SCREEN_BUFFER_INFO()
-        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
+        buf_info = self.get_buffer_info()
         logging.debug(str(buf_info.to_str()))
 
         # set top left corner
@@ -704,10 +687,22 @@ class ConqueSoleSubprocess():
         logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
 
         # reread buffer info to get final console max lines
-        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
+        buf_info = self.get_buffer_info()
         logging.debug('buffer size: ' + str(buf_info))
         self.window_width  = buf_info.srWindow.Right + 1
         self.window_height = buf_info.srWindow.Bottom + 1
+
+        # }}}
+
+    # ****************************************************************************
+    # get buffer info, used a lot
+
+    def get_buffer_info(self): # {{{
+
+        buf_info = ConqueWin32Util.CONSOLE_SCREEN_BUFFER_INFO()
+        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
+
+        return buf_info
 
         # }}}
 
