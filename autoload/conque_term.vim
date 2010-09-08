@@ -321,12 +321,13 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     for h in a:pre_hooks
         sil exe h
     endfor
-    sil exe "edit " . g:ConqueTerm_BufName
+    sil exe "edit ++enc=utf-8 " . g:ConqueTerm_BufName
 
     " showcmd gets altered by nocompatible
     let sc_save = &showcmd
 
     " buffer settings 
+    setlocal fileencoding=utf-8 " file encoding, even tho there's no file
     setlocal nocompatible      " conque won't work in compatible mode
     setlocal nopaste           " conque won't work in paste mode
     setlocal buftype=nofile    " this buffer is not a file, you can't save it
