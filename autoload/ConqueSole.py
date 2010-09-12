@@ -6,6 +6,11 @@ import traceback # DEBUG
 LOG_FILENAME = 'pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
+CONQUE_COLOR_SEQUENCE = (
+    '000', '009', '090', '099', '900', '909', '990', '999',
+    '000', '00f', '0f0', '0ff', 'f00', 'f0f', 'ff0', 'fff'
+)
+
 ###################################################################################################
 
 class ConqueSole(Conque):
@@ -14,6 +19,8 @@ class ConqueSole(Conque):
     window_bottom = None
 
     color_cache = {}
+    color_mode = 'conceal'
+    color_conceals = {}
 
     buffer = None
 
@@ -121,15 +128,98 @@ class ConqueSole(Conque):
         # remove trailing whitespace
         text = text.rstrip()
 
+        # if we're using concealed text for color, then s- is weird
+        if self.color_mode == 'conceal':
+            #logging.debug('adding color to ' + str(text))
+            text = self.add_conceal_color(text, attributes, stats, line_nr)
+            #logging.debug('added color to ' + str(text))
+
         # update vim buffer
         if len(self.buffer) <= line_nr:
             self.buffer.append(text)
         else:
             self.buffer[line_nr] = text
 
-        self.do_color(attributes = attributes, stats = stats)
+        if not self.color_mode == 'conceal':
+            self.do_color(attributes = attributes, stats = stats)
 
         # }}}
+
+    #########################################################################
+    # add conceal color
+
+    def add_conceal_color(self, text, attributes, stats, line_nr): # {{{
+
+        # stop here if coloration is disabled
+        if not self.enable_colors:
+            return text
+
+        # if no colors for this line, clear everything out
+        if len(attributes) == 0 or attributes == unichr(stats['default_attribute']) * len(attributes):
+            return text
+
+        new_text = ''
+
+        # if text attribute is different, call add_color()
+        attr = None
+        start = 0
+        self.color_conceals[line_nr] = []
+        ends = []
+        for i in range(0, len(attributes)):
+            c = ord(attributes[i])
+            #logging.debug('attr char ' + str(c))
+            if c != attr:
+                if attr and attr != stats['default_attribute']:
+
+                    color = self.translate_color(attr)
+
+                    new_text += chr(27) + 'sf' + color['fg_code'] + ';'
+                    ends.append(chr(27) + 'ef' + color['fg_code'] + ';')
+                    self.color_conceals[line_nr].append(start)
+
+                    if c > 15:
+                        new_text += chr(27) + 'sf' + color['bg_code'] + ';'
+                        ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
+                        self.color_conceals[line_nr].append(start)
+
+                new_text += text[start : i]
+
+                # close color regions
+                ends.reverse()
+                for j in range(0, len(ends)):
+                    new_text += ends[j]
+                    self.color_conceals[line_nr].append(i)
+                ends = []
+
+                start = i
+                attr = c
+
+
+        if attr and attr != stats['default_attribute']:
+
+            color = self.translate_color(attr)
+
+            new_text += chr(27) + 'sf' + color['fg_code'] + ';'
+            ends.append(chr(27) + 'ef' + color['fg_code'] + ';')
+
+            if c > 15:
+                new_text += chr(27) + 'sf' + color['bg_code'] + ';'
+                ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
+
+        new_text += text[start :]
+
+        if len(ends) > 0:
+            new_text += ' ' * (vim.current.window.width - len(text))
+
+        # close color regions
+        ends.reverse()
+        for i in range(0, len(ends)):
+            new_text += ends[i]
+
+        return new_text
+
+        # }}}
+        
 
     #########################################################################
 
@@ -187,20 +277,24 @@ class ConqueSole(Conque):
         bg = bit_str[-8:-4].rjust(4, '0')
 
         # ok, first create foreground #rbg
-        red    = int(fg[1]) * 204 + int(fg[0]) * 51
-        green  = int(fg[2]) * 204 + int(fg[0]) * 51
-        blue   = int(fg[3]) * 204 + int(fg[0]) * 51
+        red    = int(fg[1]) * 204 + int(fg[0]) * int(fg[1]) * 51
+        green  = int(fg[2]) * 204 + int(fg[0]) * int(fg[2]) * 51
+        blue   = int(fg[3]) * 204 + int(fg[0]) * int(fg[3]) * 51
         fg_str = "#%02x%02x%02x" % (red, green, blue)
+        fg_code = "%02x%02x%02x" % (red, green, blue)
+        fg_code = fg_code[0] + fg_code[2] + fg_code[4]
 
         # ok, first create foreground #rbg
-        red    = int(bg[1]) * 204 + int(bg[0]) * 51
-        green  = int(bg[2]) * 204 + int(bg[0]) * 51
-        blue   = int(bg[3]) * 204 + int(bg[0]) * 51
+        red    = int(bg[1]) * 204 + int(bg[0]) * int(bg[1]) * 51
+        green  = int(bg[2]) * 204 + int(bg[0]) * int(bg[2]) * 51
+        blue   = int(bg[3]) * 204 + int(bg[0]) * int(bg[3]) * 51
         bg_str = "#%02x%02x%02x" % (red, green, blue)
+        bg_code = "%02x%02x%02x" % (red, green, blue)
+        bg_code = bg_code[0] + bg_code[2] + bg_code[4]
 
         # build value for color_changes
     
-        color = { 'guifg' : fg_str, 'guibg' : bg_str }
+        color = { 'guifg' : fg_str, 'guibg' : bg_str, 'fg_code' : fg_code, 'bg_code' : bg_code }
 
         self.color_cache[attr] = color
 
@@ -214,8 +308,6 @@ class ConqueSole(Conque):
     def write_vk(self, vk_code): # {{{
 
         self.proc.write_vk(vk_code)
-
-          
 
         # }}}
 
@@ -241,6 +333,15 @@ class ConqueSole(Conque):
     # resize if needed
 
     def set_cursor(self, line, column): # {{{
+
+        # shift cursor position to handle concealed text
+        if self.enable_colors and self.color_mode == 'conceal':
+            if line - 1 in self.color_conceals:
+                for c in self.color_conceals[line - 1]:
+                    if c < column:
+                        column += 7
+                    else:
+                        break
 
         # figure out line
         real_line = line

@@ -342,23 +342,20 @@ class ConqueSoleSubprocess():
             read_start = curs_line
             read_end   = curs_line + 1
 
+        # vars used in for loop
         tc = ctypes.create_unicode_buffer(self.buffer_width)
         ac = ctypes.create_unicode_buffer(self.buffer_width)
+        coord = ConqueWin32Util.COORD (0, 0)
+        chars_read = ctypes.c_int(0)
 
         # read new data
         for i in range(read_start, read_end):
-            #logging.debug("reading line " + str(i))
-            #logging.debug('buffer width is ' + str(self.buffer_width))
-            coord = ConqueWin32Util.COORD (0, i)
-            chars_read = ctypes.c_ulong(0)
+
+            coord.Y = i
+
             res = ctypes.windll.kernel32.ReadConsoleOutputCharacterW (self.stdout, ctypes.byref(tc), self.buffer_width, coord, ctypes.byref(chars_read))
-
-            #logging.debug(str(res))
-            #logging.debug(str(ctypes.GetLastError()))
-            #logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
-
-
             ctypes.windll.kernel32.ReadConsoleOutputAttribute (self.stdout, ctypes.byref(ac), self.buffer_width, coord, ctypes.byref(chars_read))
+
             t = tc.value
             a = ac.value
             #logging.debug(str(chars_read))
@@ -537,7 +534,7 @@ class ConqueSoleSubprocess():
             #logging.debug(kc.to_str())
 
         # write input array
-        events_written = ctypes.c_ulong()
+        events_written = ctypes.c_int()
         res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, len(text), ctypes.byref(events_written))
 
         logging.debug('foo')
@@ -566,7 +563,7 @@ class ConqueSoleSubprocess():
         list_input = li(kc)
 
         # write input array
-        events_written = ctypes.c_ulong()
+        events_written = ctypes.c_int()
         res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, 1, ctypes.byref(events_written))
 
         logging.debug('bar')

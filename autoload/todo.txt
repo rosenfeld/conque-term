@@ -1,9 +1,8 @@
 
  - Todo
 
- * fix number syntax highlighting
  * add option to use conceal for syntax highlighting
- * call ctypes directly instead of using python for windows extensions
+ * fix Ctrl-D in python.exe
 
  - Maybe hopeless
 
@@ -15,4 +14,6 @@
  X slow subprocess loops to 1/sec when buffer is unfocused
  X use better way of determining if buffer length should be extended, e.g. cursor position
  X resize console window when buffer size changes
+ X fix number syntax highlighting
+ X call ctypes directly instead of using python for windows extensions
 

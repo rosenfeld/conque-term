@@ -295,13 +295,13 @@ function! conque_term#open(...) "{{{
         else
             " find python.exe and communicator
             let py_exe = conque_term#python_escape(conque_term#find_python_exe())
-          echo conque_term#find_conque_term_vim()
             let ct_vim = conque_term#python_escape(conque_term#find_conque_term_vim())
             if py_exe == '' || ct_vim == ''
                 return 0
             endif
             execute s:py . ' ' . b:ConqueTerm_Var . ' = ConqueSole()'
             execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . ct_vim . "')"
+            call conque_term#init_conceal_color()
         endif
     catch
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
@@ -340,6 +340,8 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     setlocal bufhidden=hide    " when buffer is no longer displayed, don't wipe it out
+    setlocal conceallevel=3
+    setlocal concealcursor=nic
     setfiletype conque_term    " useful
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
 
@@ -741,6 +743,118 @@ function! conque_term#find_conque_term_vim() " {{{
 
 endfunction " }}}
 
+" initialize concealed colors
+function! conque_term#init_conceal_color() " {{{
+
+    highlight link ConqueCCBG Normal
+
+    " foreground colors, low intensity
+    syn region ConqueCCF000 matchgroup=ConqueConceal start="\esf000;" end="\eef000;" concealends contains=ConqueCCBG
+    syn region ConqueCCF00c matchgroup=ConqueConceal start="\esf00c;" end="\eef00c;" concealends contains=ConqueCCBG
+    syn region ConqueCCF0c0 matchgroup=ConqueConceal start="\esf0c0;" end="\eef0c0;" concealends contains=ConqueCCBG
+    syn region ConqueCCF0cc matchgroup=ConqueConceal start="\esf0cc;" end="\eef0cc;" concealends contains=ConqueCCBG
+    syn region ConqueCCFc00 matchgroup=ConqueConceal start="\esfc00;" end="\eefc00;" concealends contains=ConqueCCBG
+    syn region ConqueCCFc0c matchgroup=ConqueConceal start="\esfc0c;" end="\eefc0c;" concealends contains=ConqueCCBG
+    syn region ConqueCCFcc0 matchgroup=ConqueConceal start="\esfcc0;" end="\eefcc0;" concealends contains=ConqueCCBG
+    syn region ConqueCCFccc matchgroup=ConqueConceal start="\esfccc;" end="\eefccc;" concealends contains=ConqueCCBG
+
+    " foreground colors, high intensity
+    syn region ConqueCCF000 matchgroup=ConqueConceal start="\esf000;" end="\eef000;" concealends contains=ConqueCCBG
+    syn region ConqueCCF00f matchgroup=ConqueConceal start="\esf00f;" end="\eef00f;" concealends contains=ConqueCCBG
+    syn region ConqueCCF0f0 matchgroup=ConqueConceal start="\esf0f0;" end="\eef0f0;" concealends contains=ConqueCCBG
+    syn region ConqueCCF0ff matchgroup=ConqueConceal start="\esf0ff;" end="\eef0ff;" concealends contains=ConqueCCBG
+    syn region ConqueCCFf00 matchgroup=ConqueConceal start="\esff00;" end="\eeff00;" concealends contains=ConqueCCBG
+    syn region ConqueCCFf0f matchgroup=ConqueConceal start="\esff0f;" end="\eeff0f;" concealends contains=ConqueCCBG
+    syn region ConqueCCFff0 matchgroup=ConqueConceal start="\esfff0;" end="\eefff0;" concealends contains=ConqueCCBG
+    syn region ConqueCCFfff matchgroup=ConqueConceal start="\esffff;" end="\eeffff;" concealends contains=ConqueCCBG
+
+    " background colors, low intensity
+    syn region ConqueCCB000 matchgroup=ConqueConceal start="\esb000;" end="\eeb000;" concealends
+    syn region ConqueCCB00c matchgroup=ConqueConceal start="\esb00c;" end="\eeb00c;" concealends
+    syn region ConqueCCB0c0 matchgroup=ConqueConceal start="\esb0c0;" end="\eeb0c0;" concealends
+    syn region ConqueCCB0cc matchgroup=ConqueConceal start="\esb0cc;" end="\eeb0cc;" concealends
+    syn region ConqueCCBc00 matchgroup=ConqueConceal start="\esbc00;" end="\eebc00;" concealends
+    syn region ConqueCCBc0c matchgroup=ConqueConceal start="\esbc0c;" end="\eebc0c;" concealends
+    syn region ConqueCCBcc0 matchgroup=ConqueConceal start="\esbcc0;" end="\eebcc0;" concealends
+    syn region ConqueCCBccc matchgroup=ConqueConceal start="\esbccc;" end="\eebccc;" concealends
+
+    " background colors, high intensity
+    syn region ConqueCCB000 matchgroup=ConqueConceal start="\esb000;" end="\eeb000;" concealends
+    syn region ConqueCCB00f matchgroup=ConqueConceal start="\esb00f;" end="\eeb00f;" concealends
+    syn region ConqueCCB0f0 matchgroup=ConqueConceal start="\esb0f0;" end="\eeb0f0;" concealends
+    syn region ConqueCCB0ff matchgroup=ConqueConceal start="\esb0ff;" end="\eeb0ff;" concealends
+    syn region ConqueCCBf00 matchgroup=ConqueConceal start="\esbf00;" end="\eebf00;" concealends
+    syn region ConqueCCBf0f matchgroup=ConqueConceal start="\esbf0f;" end="\eebf0f;" concealends
+    syn region ConqueCCBff0 matchgroup=ConqueConceal start="\esbff0;" end="\eebff0;" concealends
+    syn region ConqueCCBfff matchgroup=ConqueConceal start="\esbfff;" end="\eebfff;" concealends
+
+
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+    "highlight link ConqueCCConceal Error
+
+    " foreground colors, low intensity
+    highlight ConqueCCF000 guifg=#000000
+    highlight ConqueCCF00c guifg=#0000cc
+    highlight ConqueCCF0c0 guifg=#00cc00
+    highlight ConqueCCF0cc guifg=#00cccc
+    highlight ConqueCCFc00 guifg=#cc0000
+    highlight ConqueCCFc0c guifg=#cc00cc
+    highlight ConqueCCFcc0 guifg=#cccc00
+    highlight ConqueCCFccc guifg=#cccccc
+
+    " foreground colors, high intensity
+    highlight ConqueCCF000 guifg=#000000
+    highlight ConqueCCF00f guifg=#0000ff
+    highlight ConqueCCF0f0 guifg=#00ff00
+    highlight ConqueCCF0ff guifg=#00ffff
+    highlight ConqueCCFf00 guifg=#ff0000
+    highlight ConqueCCFf0f guifg=#ff00ff
+    highlight ConqueCCFff0 guifg=#ffff00
+    highlight ConqueCCFfff guifg=#ffffff
+
+    " background colors, low intensity
+    highlight ConqueCCB000 guibg=#000000
+    highlight ConqueCCB00c guibg=#0000cc
+    highlight ConqueCCB0c0 guibg=#00cc00
+    highlight ConqueCCB0cc guibg=#00cccc
+    highlight ConqueCCBc00 guibg=#cc0000
+    highlight ConqueCCBc0c guibg=#cc00cc
+    highlight ConqueCCBcc0 guibg=#cccc00
+    highlight ConqueCCBccc guibg=#cccccc
+
+    " background colors, high intensity
+    highlight ConqueCCB000 guibg=#000000
+    highlight ConqueCCB00f guibg=#0000ff
+    highlight ConqueCCB0f0 guibg=#00ff00
+    highlight ConqueCCB0ff guibg=#00ffff
+    highlight ConqueCCBf00 guibg=#ff0000
+    highlight ConqueCCBf0f guibg=#ff00ff
+    highlight ConqueCCBff0 guibg=#ffff00
+    highlight ConqueCCBfff guibg=#ffffff
+
+    " background colors, low intensity
+    highlight link ConqueCCB000 ConqueCCBG
+    highlight link ConqueCCB00c ConqueCCBG
+    highlight link ConqueCCB0c0 ConqueCCBG
+    highlight link ConqueCCB0cc ConqueCCBG
+    highlight link ConqueCCBc00 ConqueCCBG
+    highlight link ConqueCCBc0c ConqueCCBG
+    highlight link ConqueCCBcc0 ConqueCCBG
+    highlight link ConqueCCBccc ConqueCCBG
+
+    " background colors, high intensity
+    highlight link ConqueCCB000 ConqueCCBG
+    highlight link ConqueCCB00f ConqueCCBG
+    highlight link ConqueCCB0f0 ConqueCCBG
+    highlight link ConqueCCB0ff ConqueCCBG
+    highlight link ConqueCCBf00 ConqueCCBG
+    highlight link ConqueCCBf0f ConqueCCBG
+    highlight link ConqueCCBff0 ConqueCCBG
+    highlight link ConqueCCBfff ConqueCCBG
+
+endfunction " }}}
 
 " **********************************************************************************************************
 " **** PYTHON **********************************************************************************************
