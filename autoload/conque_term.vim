@@ -95,6 +95,9 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal nopaste           " conque won't work in paste mode
     setlocal buftype=nofile    " this buffer is not a file, you can't save it
     setlocal nonumber          " hide line numbers
+    if v:version >= 703
+        setlocal norelativenumber " hide relative line numbers (VIM >= 7.3)
+    endif
     setlocal foldcolumn=0      " reasonable left margin
     setlocal nowrap            " default to no wrap (esp with MySQL)
     setlocal noswapfile        " don't bother creating a .swp file
