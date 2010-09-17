@@ -37,6 +37,18 @@
 function! conque_term#open(...) "{{{
     let command = get(a:000, 0, '')
     let hooks   = get(a:000, 1, [])
+    let remain  = get(a:000, 2, 0)
+
+    " switch to buffer if needed
+    if remain == 1
+      let save_sb = &switchbuf
+
+      "use an agressive sb option
+      sil set switchbuf=usetab
+
+      " current buffer name
+      let current_buffer = bufname("%")
+    endif
 
     " bare minimum validation
     if has('python') != 1
@@ -74,8 +86,16 @@ function! conque_term#open(...) "{{{
     " set buffer mappings and auto commands 
     call conque_term#set_mappings('start')
 
-    startinsert!
-    return 1
+    " switch to buffer if needed
+    if remain == 1
+        " jump back to code buffer
+        sil exe ":sb " . current_buffer
+        sil exe ":set switchbuf=" . save_sb
+    else
+        startinsert!
+    endif
+
+    return g:ConqueTerm_Idx - 1
 endfunction "}}}
 
 " set buffer options
@@ -419,6 +439,80 @@ endfunction " }}}
 function! conque_term#bell() " {{{
     echohl WarningMsg | echomsg "BELL!" | echohl None
 endfunction " }}}
+
+" **********************************************************************************************************
+" **** "API" functions *************************************************************************************
+" **********************************************************************************************************
+
+" Write to a conque terminal buffer
+"
+" Use this function to send text to ConqueTerm. If you are updating a remote
+" buffer you may want to set the config option g:ConqueTerm_ReadUnfocused so
+" the terminal will continue updating.
+"
+" Example usage:
+"
+"   let conque_buff = conque_term#open('mysql -u joe LunchBucket', ['belowright split', 'resize 20'], 1)
+"   call conque_term#write('SELECT NOW() AS "Lunch time";' . "\n", conque_buff, 500)
+"
+" @param text String The text to write.
+" @param buffer_number Int The terminal number to use. Default is the most recently opened terminal.
+" @param read_time Int The number of milliseconds to wait for output before returning to your code buffer.
+function! conque_term#write(...)
+
+    " text to write
+    let g:ConqueTerm_Tmp = get(a:000, 0, '')
+
+    " figure out the terminal number to use
+    let buf_num = get(a:000, 1, 0)
+    if buf_num == 0
+        let pvar = g:ConqueTerm_var
+    else
+        let pvar = 'ConqueTerm_' . buf_num
+    endif
+
+    " figure out if we should jump to the conque buffer
+    let read_time = get(a:000, 2, 1)
+    if read_time == 0
+        let read_time = 1
+    endif
+
+    " switch to buffer if needed
+    if read_time > 1
+        let save_sb = &switchbuf
+
+        "use an agressive sb option
+        sil set switchbuf=usetab
+
+        " current buffer name
+        let current_buffer = bufname("%")
+    endif
+
+    " if we're not in terminal buffer, pass flag to not position the cursor
+    sil exe 'python ' . pvar . '.write(vim.eval("g:ConqueTerm_Tmp"), False)'
+    sil exe 'python ' . pvar . '.read(' . read_time  . ', False)'
+
+    " switch to buffer if needed
+    if read_time > 1
+        " jump back to code buffer
+        sil exe ":sb " . current_buffer
+        sil exe ":set switchbuf=" . save_sb
+    endif
+
+endfunction
+
+" Write to a conque terminal buffer, add a new line to end of input
+"
+" See conque_term#write() for details
+function! conque_term#writeln(...)
+
+    let text = get(a:000, 0, '')
+    let buff_num = get(a:000, 1, 0)
+    let read_time = get(a:000, 2, 1)
+
+    call conque_term#write(text . "\n", buff_num, read_time)
+
+endfunction
 
 " **********************************************************************************************************
 " **** PYTHON **********************************************************************************************

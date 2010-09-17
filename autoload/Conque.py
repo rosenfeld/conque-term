@@ -231,7 +231,7 @@ class Conque:
         # }}}
 
     # write to pty
-    def write(self, input): # {{{
+    def write(self, input, set_cursor = True): # {{{
         logging.debug('writing input ' + str(input))
 
         # check if window size has changed
@@ -239,7 +239,7 @@ class Conque:
 
         # write and read
         self.proc.write(input)
-        self.read(1)
+        self.read(1, set_cursor)
         # }}}
 
     # read from pty, and update buffer
