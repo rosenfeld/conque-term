@@ -138,7 +138,7 @@ CONQUE_FONT = {
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z@]|\u001b\][0-9];.*?\u0007|[\u0001-\u000f])", re.UNICODE)
+CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z0-9@=>]|\u001b\][0-9];.*?\u0007|[\u0001-\u000f])", re.UNICODE)
 CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0001-\u000f]$", re.UNICODE)
 CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
 CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
