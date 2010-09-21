@@ -143,7 +143,7 @@ CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0001-\u000f]$", re.UNICODE)
 CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
 CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
 CONQUE_SEQ_REGEX_HASH  = re.compile(ur"^\u001b#", re.UNICODE)
-CONQUE_SEQ_REGEX_ESC   = re.compile(ur"^\u001b", re.UNICODE)
+CONQUE_SEQ_REGEX_ESC   = re.compile(ur"^\u001b.$", re.UNICODE)
 
 # match table output
 CONQUE_TABLE_OUTPUT   = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
