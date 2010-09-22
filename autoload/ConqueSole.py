@@ -76,7 +76,7 @@ class ConqueSole(Conque):
         # single line redraw
         else:
             (lines, attributes) = self.proc.read(stats['cursor_y'], 1)
-            if lines[0] != self.buffer[stats['cursor_y']]:
+            if lines[0].rstrip() != self.buffer[stats['cursor_y']].rstrip():
                 self.plain_text(stats['cursor_y'], lines[0], attributes[0], stats)
 
         # reset current position
@@ -207,9 +207,6 @@ class ConqueSole(Conque):
                 ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
 
         new_text += text[start :]
-
-        if len(ends) > 0:
-            new_text += ' ' * (vim.current.window.width - len(text))
 
         # close color regions
         ends.reverse()
