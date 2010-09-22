@@ -19,7 +19,7 @@ class ConqueSole(Conque):
     window_bottom = None
 
     color_cache = {}
-    color_mode = 'conceal'
+    color_mode = None
     color_conceals = {}
 
     buffer = None
@@ -291,7 +291,11 @@ class ConqueSole(Conque):
 
         # build value for color_changes
     
-        color = { 'guifg' : fg_str, 'guibg' : bg_str, 'fg_code' : fg_code, 'bg_code' : bg_code }
+        color = { 'guifg' : fg_str, 'guibg' : bg_str }
+
+        if self.color_mode == 'conceal':
+            color['fg_code'] = fg_code
+            color['bg_code'] = bg_code
 
         self.color_cache[attr] = color
 
