@@ -525,6 +525,7 @@ class ConqueSoleSubprocess():
                 if str(cnum) in CONQUE_WINDOWS_VK:
                     ke.wVirtualKeyCode = CONQUE_WINDOWS_VK[str(cnum)]
                 else:
+                    ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum + 96)
                     ke.dwControlKeyState = ConqueWin32Util.LEFT_CTRL_PRESSED
 
             kc = ConqueWin32Util.INPUT_RECORD(ConqueWin32Util.KEY_EVENT)
