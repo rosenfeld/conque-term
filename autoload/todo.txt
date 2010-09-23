@@ -1,14 +1,27 @@
 
- - Todo
+                             For Conque 2.0
 
- * add option to use conceal for syntax highlighting
- * fix Ctrl-D in python.exe
+ Todo ----------------------------------------------------------------------
 
- - Maybe hopeless
+ - investigate "more" input problems
+ - finish dependency messaging
+ - test on XP, Vista and 7 with Python 2, 3 and 2+3
+ - test unicode output
+ - test python.exe searching
+ - update docs
 
- * investigate "more" input problems
 
- - Finished
+ Backlog -------------------------------------------------------------------
+
+ - add option to use conceal for syntax highlighting
+ - use InsertCharPre event for unicode input
+
+
+ Maybe hopeless ------------------------------------------------------------
+
+
+
+ Finished ------------------------------------------------------------------
 
  X allow colors to be written to line more than once
  X slow subprocess loops to 1/sec when buffer is unfocused
@@ -16,4 +29,5 @@
  X resize console window when buffer size changes
  X fix number syntax highlighting
  X call ctypes directly instead of using python for windows extensions
+ X fix Ctrl-D in python.exe
 
