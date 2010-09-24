@@ -166,6 +166,17 @@ workaround.
 >
     :let g:ConqueTerm_ReadUnfocused = 1
 <
+3.9 Regex for highlighting your prompt                *ConqueTerm_PromptRegex*
+
+Use this regular expression for sytax highlighting your terminal prompt. Your
+terminal will generally run faster if you use Vim highlighting instead of 
+terminal colors for your prompt. You can also use it to do more advanced
+syntax highlighting for the prompt line.
+
+Set to an empty string ('') to disable prompt highlighting.
+>
+    let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
+<
 
 ==============================================================================
 

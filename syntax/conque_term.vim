@@ -68,9 +68,11 @@ endif
 " *******************************************************************************************************************
 
 " Typical Prompt
-silent execute "syn match ConquePromptLine '" . g:ConqueTerm_PromptRegex . ".*$' contains=ConquePrompt,ConqueString oneline"
-silent execute "syn match ConquePrompt '" . g:ConqueTerm_PromptRegex . "' contained oneline"
-hi def link ConquePrompt Identifier
+if g:ConqueTerm_PromptRegex != ''
+    silent execute "syn match ConquePromptLine '" . g:ConqueTerm_PromptRegex . ".*$' contains=ConquePrompt,ConqueString oneline"
+    silent execute "syn match ConquePrompt '" . g:ConqueTerm_PromptRegex . "' contained oneline"
+    hi def link ConquePrompt Identifier
+endif
 
 " Strings
 syn region ConqueString start=+'+ end=+'+ skip=+\\'+ contained oneline

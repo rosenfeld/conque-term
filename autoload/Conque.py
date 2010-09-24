@@ -228,6 +228,9 @@ class Conque:
         # open command
         self.proc = ConqueSubprocess()
         self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : str(self.lines), 'COLUMNS' : str(self.columns)})
+
+        # send window size signal, in case LINES/COLUMNS is ignored
+        self.update_window_size(True)
         # }}}
 
     # write to pty
@@ -841,9 +844,9 @@ class Conque:
     def paste_selection(self):
         self.write(vim.eval('@@'))
 
-    def update_window_size(self):
+    def update_window_size(self, force = False):
         # resize if needed
-        if vim.current.window.width != self.columns or vim.current.window.height != self.lines:
+        if force or vim.current.window.width != self.columns or vim.current.window.height != self.lines:
 
             # reset all window size attributes to default
             self.columns = vim.current.window.width
