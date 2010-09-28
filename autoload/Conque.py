@@ -234,7 +234,7 @@ class Conque:
         # }}}
 
     # write to pty
-    def write(self, input, set_cursor = True): # {{{
+    def write(self, input, set_cursor = True, read = True): # {{{
         logging.debug('writing input ' + str(input))
 
         # check if window size has changed
@@ -242,11 +242,14 @@ class Conque:
 
         # write and read
         self.proc.write(input)
-        self.read(1, set_cursor)
+
+        # read output immediately
+        if read:
+            self.read(1, set_cursor)
         # }}}
 
     # read from pty, and update buffer
-    def read(self, timeout = 1, set_cursor = True): # {{{
+    def read(self, timeout = 1, set_cursor = True, return_output = False, update_buffer = True): # {{{
         # read from subprocess
         output = self.proc.read(timeout)
         # and strip null chars
@@ -254,6 +257,10 @@ class Conque:
 
         if output == '':
             return
+
+        # for bufferless terminals
+        if not update_buffer:
+            return output
 
         logging.debug('read *********************************************************************')
         logging.debug(str(output))
@@ -344,6 +351,9 @@ class Conque:
         vim.command('redraw')
 
         logging.info('::: read took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
+
+        if return_output:
+            return output
     # }}}
 
     # for polling

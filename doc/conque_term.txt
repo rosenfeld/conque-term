@@ -48,7 +48,7 @@ or vertical buffer. Use :ConqueTermTab to open Conque in a new tab.
 
 In insert mode you can interact with the shell as you would expect in a 
 normal terminal. All key presses will be sent to the terminal, including 
-control characters. See conque-term-special-keys for more information, 
+control characters. See |conque-term-special-keys| for more information, 
 particularly regarding the <Esc> key.
 
 In normal mode you can use Vim commands to browse your terminal output and 
@@ -95,7 +95,7 @@ If set to 1 then you will automatically go into insert mode when you enter the
 buffer. This diverges from normal Vim behavior. If 0 you will still be in
 normal mode.
 >
-    :let g:ConqueTerm_InsertOnEnter = 0
+    let g:ConqueTerm_InsertOnEnter = 0
 <
 3.2 Enable <C-w> in insert mode                          *ConqueTerm_CWInsert*
 
@@ -105,7 +105,7 @@ be sent to the terminal. If both this option and ConqueTerm_InsertOnEnter are
 set you can go in and out of the terminal buffer while never leaving insrt
 mode.
 >
-    :let g:ConqueTerm_CWInsert = 0
+    let g:ConqueTerm_CWInsert = 0
 <
 3.3 Use a custom key for leaving insert mode               *ConqueTerm_EscKey*
 
@@ -118,14 +118,14 @@ Note: You cannot use a key which is internally coded with the escape
 character. This includes the <F-> keys and often the <A-> and <M-> keys.
 Picking a control key, such as <C-k> will be your best bet.
 >
-    :let g:ConqueTerm_EscKey = '<Esc>'
+    let g:ConqueTerm_EscKey = '<Esc>'
 <
 3.4 Send selected text to Conque                       *ConqueTerm_SendVisKey*
 
 Use this key to send the currently selected text to the most recently created
 Conque buffer.
 >
-    :let g:ConqueTerm_SendVisKey = '<F9>'
+    let g:ConqueTerm_SendVisKey = '<F9>'
 <
 3.5 Enable or disable colors                                *ConqueTerm_Color*
 
@@ -133,7 +133,7 @@ Set to 1 to enable colors, 0 to disable. Syntax highlighting in Vim can be
 slow if your terminal is color intensive. Disabling color can make the
 terminal render significantly faster.
 >
-    :let g:ConqueTerm_Color = 1
+    let g:ConqueTerm_Color = 1
 <
 3.6 Choose your terminal type                                *ConqueTerm_TERM*
 
@@ -145,14 +145,14 @@ such as colors and title strings.
 You can change this setting to a more advanced type, namely 'xterm', but your
 results may vary depending on which programs you're running.
 >
-    :let g:ConqueTerm_TERM = 'vt100'
+    let g:ConqueTerm_TERM = 'vt100'
 <
 3.7 Choose Vim syntax type                                 *ConqueTerm_Syntax*
 
 Set the buffer syntax. The default 'conque' has highlighting for MySQL, but 
 not much else.
 >
-    :let g:ConqueTerm_Syntax = 'conque'
+    let g:ConqueTerm_Syntax = 'conque'
 <
 3.8 Keep updating terminal buffer                   *ConqueTerm_ReadUnfocused*
 
@@ -164,7 +164,7 @@ new lines are added beyond the bottom of the visible buffer area. This is a
 limitation of the Vim scripting language for which I haven't found a 
 workaround.
 >
-    :let g:ConqueTerm_ReadUnfocused = 1
+    let g:ConqueTerm_ReadUnfocused = 1
 <
 3.9 Regex for highlighting your prompt                *ConqueTerm_PromptRegex*
 
