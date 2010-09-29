@@ -30,6 +30,7 @@
 " Extra key codes
 let s:input_extra = {}
 let s:input_extra_num = {}
+let s:terminal_handles = {}
 
 " **********************************************************************************************************
 " **** VIM FUNCTIONS ***************************************************************************************
@@ -78,6 +79,10 @@ function! conque_term#open(...) "{{{
     let b:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_Idx += 1
+
+    " save handle
+    let handle = conque_term#create_handle(b:ConqueTerm_Idx, 1, 1)
+    let s:terminal_handles[b:ConqueTerm_Idx] = handle
 
     " open command
     try
@@ -567,7 +572,19 @@ EOF
 
 endfunction " }}}
 
-function! conque_term#get_instance(...) " {{{
+function! s:t_handle.set_callback(callback_func) dict " {{{
+
+    s:terminal_handles[self.idx].callback = callback_func
+
+endfunction " }}}
+
+function! s:t_handle.close() dict " {{{
+
+    sil exe 'python ' . self.var . '.proc.signal(1)'
+
+endfunction " }}}
+
+function! conque_term#create_handle(...) " {{{
 
     " find conque buffer to update
     let buf_num = get(a:000, 0, 0)
@@ -600,23 +617,45 @@ function! conque_term#get_instance(...) " {{{
 
 endfunction " }}}
 
+function! conque_term#get_handle(...) " {{{
+
+    " find conque buffer to update
+    let buf_num = get(a:000, 0, 0)
+
+    if exists('s:terminal_handles[buf_num]')
+        
+    elseif exists('b:ConqueTerm_Var')
+        let buf_num = b:ConqueTerm_Idx
+    else
+        let buf_num = g:ConqueTerm_Idx - 1
+    endif
+
+    return s:terminal_handles[buf_num]
+
+endfunction " }}}
+
 function! conque_term#new_terminal(...) " {{{
+
     let command = get(a:000, 0, '')
     let hooks   = get(a:000, 1, [])
     let return_to_current  = get(a:000, 2, 0)
     
     let bnum = conque_term#open(command, hooks, return_to_current)
-    let handle = conque_term#get_instance(bnum, 1, 1)
+    let handle = conque_term#create_handle(bnum, 1, 1)
+    let s:terminal_handles[bnum] = handle
 
     return handle
+
 endfunction " }}}
 
 function! conque_term#new_subprocess(command) " {{{
     
     let bnum = conque_term#open(a:command, [], 0, 0)
-    let handle = conque_term#get_instance(bnum, 0, 1)
+    let handle = conque_term#create_handle(bnum, 0, 1)
+    let s:terminal_handles[bnum] = handle
 
     return handle
+
 endfunction " }}}
 
 " **********************************************************************************************************
