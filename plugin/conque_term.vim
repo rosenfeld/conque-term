@@ -33,8 +33,6 @@ if exists('g:ConqueTerm_Loaded') || v:version < 700
     finish
 endif
 
-let g:ConqueTerm_Version = 120
-
 " **********************************************************************************************************
 " **** CONFIG **********************************************************************************************
 " **********************************************************************************************************
@@ -94,7 +92,8 @@ endif " }}}
 " Startup {{{
 
 let g:ConqueTerm_Loaded = 1
-let g:ConqueTerm_Idx = 1
+let g:ConqueTerm_Idx = 0
+let g:ConqueTerm_Version = 120
 
 command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
 command! -nargs=+ -complete=shellcmd ConqueTermSplit call conque_term#open(<q-args>, ['belowright split'])

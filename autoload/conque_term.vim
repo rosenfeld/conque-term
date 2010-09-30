@@ -27,14 +27,21 @@
 " THE SOFTWARE.
 " }}}
 
+" **********************************************************************************************************
+" **** CROSS-TERMINAL SETTINGS *****************************************************************************
+" **********************************************************************************************************
+
 " Extra key codes
 let s:input_extra = {}
 let s:input_extra_num = {}
+
+let s:t_handle = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1 }
 let s:terminal_handles = {}
+
+augroup ConqueTerm
 
 " read more output when this isn't the current buffer
 if g:ConqueTerm_ReadUnfocused == 1
-    augroup ConqueTerm
     autocmd ConqueTerm CursorHold * call conque_term#read_all()
 endif
 
@@ -47,10 +54,10 @@ function! conque_term#open(...) "{{{
     let command = get(a:000, 0, '')
     let hooks   = get(a:000, 1, [])
     let return_to_current  = get(a:000, 2, 0)
-    let use_buffer  = get(a:000, 3, 1)
+    let is_buffer  = get(a:000, 3, 1)
 
     " switch to buffer if needed
-    if return_to_current == 1
+    if is_buffer && return_to_current
       let save_sb = &switchbuf
 
       "use an agressive sb option
@@ -61,7 +68,7 @@ function! conque_term#open(...) "{{{
     endif
 
     " bare minimum validation
-    if has('python') != 1
+    if !has('python')
         echohl WarningMsg | echomsg "Conque requires the Python interface to be installed" | echohl None
         return 0
     endif
@@ -76,46 +83,55 @@ function! conque_term#open(...) "{{{
         endif
     endif
 
-    " set buffer window options
-    let g:ConqueTerm_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
-    if use_buffer == 1
-        call conque_term#set_buffer_settings(command, hooks)
-    endif
-    let b:ConqueTerm_Idx = g:ConqueTerm_Idx
-    let b:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
-    let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_Idx += 1
+    let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
+    let g:ConqueTerm_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
+
+    " set buffer window options
+    if is_buffer
+        call conque_term#set_buffer_settings(command, hooks)
+
+        let b:ConqueTerm_Idx = g:ConqueTerm_Idx
+        let b:ConqueTerm_Var = g:ConqueTerm_Var
+    endif
 
     " save handle
-    let handle = conque_term#create_handle(b:ConqueTerm_Idx, 1, 1)
-    let s:terminal_handles[b:ConqueTerm_Idx] = handle
+    let handle = conque_term#create_handle(g:ConqueTerm_Idx, is_buffer)
+    let s:terminal_handles[g:ConqueTerm_Idx] = handle
 
     " open command
     try
         let l:config = '{"color":' . string(g:ConqueTerm_Color) . ',"TERM":"' . g:ConqueTerm_TERM . '"}'
-        execute 'python ' . b:ConqueTerm_Var . ' = Conque()'
-        execute "python " . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
+        execute 'python ' . g:ConqueTerm_Var . ' = Conque()'
+        execute "python " . g:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
     catch 
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
         return 0
     endtry
 
     " set buffer mappings and auto commands 
-    if use_buffer == 1
+    if is_buffer
         call conque_term#set_mappings('start')
     endif
 
     " switch to buffer if needed
-    if return_to_current == 1
+    if is_buffer && return_to_current
         " jump back to code buffer
         sil exe ":sb " . current_buffer
         sil exe ":set switchbuf=" . save_sb
-    elseif use_buffer == 1
+    elseif is_buffer
         startinsert!
     endif
 
-    return g:ConqueTerm_Idx - 1
+    return handle
 endfunction "}}}
+
+" open(), but no buffer
+function! conque_term#subprocess(command) " {{{
+    
+    return conque_term#open(a:command, [], 0, 0)
+
+endfunction " }}}
 
 " set buffer options
 function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
@@ -402,25 +418,26 @@ endfunction "}}}
 
 " read from all known conque buffers
 function! conque_term#read_all() "{{{
-    " don't run this if we're in a conque buffer
-    if exists('b:ConqueTerm_Var')
-        return
-    endif
 
-    try
-        for i in range(1, g:ConqueTerm_Idx - 1)
+    for i in range(1, g:ConqueTerm_Idx - 1)
+        try
+            if !s:terminal_handles[i].active
+                continue
+            endif
+
             let output = s:terminal_handles[i].read(1)
 
-            if !s:terminal_handles[i].has_buffer && exists('*s:terminal_handles[i].callback')
+            if !s:terminal_handles[i].is_buffer && exists('*s:terminal_handles[i].callback')
                 call s:terminal_handles[i].callback(output)
             endif
-        endfor
-    catch
-        " probably a deleted buffer
-    endtry
+        catch
+            " probably a deleted buffer
+        endtry
+    endfor
 
     " restart updatetime
     call feedkeys("f\e")
+
 endfunction "}}}
 
 " util function to add enough \s to pass a string to python
@@ -479,9 +496,6 @@ endfunction " }}}
 " **** "API" functions *************************************************************************************
 " **********************************************************************************************************
 
-" Conque handle "class" definition
-let s:t_handle = { 'idx' : 1, 'read_time' : 1, 'var' : '', 'has_buffer' : 1 }
-
 " Write to a conque terminal buffer
 "
 " Use this function to send text to ConqueTerm. If you are updating a remote
@@ -491,16 +505,15 @@ let s:t_handle = { 'idx' : 1, 'read_time' : 1, 'var' : '', 'has_buffer' : 1 }
 " Example usage:
 "
 "   let conque_buff = conque_term#open('mysql -u joe LunchBucket', ['belowright split', 'resize 20'], 1)
-"   call conque_term#write('SELECT NOW() AS "Lunch time";' . "\n", conque_buff, 500)
+"   call conque_buff.write('SELECT NOW() AS "Lunch time";' . "\n")
 "
 " Or with minimal options:
 "
-"   call conque_term#open('bash')
-"   call conque_term#writeln('cd ' . make_path)
-"   call conque_term#writeln('make')
+"   call let conque_buff = conque_term#open('bash')
+"   call conque_buff.writeln('cd ' . make_path)
+"   call conque_buff.writeln('make')
 "
 " @param text String The text to write.
-" @param buffer_number Int (Optional) The terminal number to use. Default is the most recently opened terminal.
 function! s:t_handle.write(text) dict " {{{
 
     " if we're not in terminal buffer, pass flag to not position the cursor
@@ -524,13 +537,13 @@ endfunction " }}}
 " provide any special functionality other than locating the correct buffer.
 " 
 " @param read_time Integer (Optional) The number of milliseconds to wait for output before returning to your code buffer.
-" @param has_buffer Bool (Optional) If set to 0 then the text read will never be displayed in the terminal buffer.
+" @param update_buffer Bool (Optional) If set to 0 then the text read will never be displayed in the terminal buffer.
 function! s:t_handle.read(...) dict " {{{
 
-    let read_time = get(a:000, 0, self.read_time)
-    let has_buffer = get(a:000, 1, self.has_buffer)
+    let read_time = get(a:000, 0, 1)
+    let update_buffer = get(a:000, 1, self.is_buffer)
 
-    if has_buffer 
+    if update_buffer 
         let up_py = 'True'
     else
         let up_py = 'False'
@@ -544,7 +557,7 @@ function! s:t_handle.read(...) dict " {{{
     endif
 
     " switch to buffer if needed
-    if has_buffer && !in_buffer
+    if update_buffer && !in_buffer
         let save_sb = &switchbuf
 
         "use an agressive sb option
@@ -567,7 +580,7 @@ if conque_tmp:
 EOF
 
     " switch to buffer if needed
-    if has_buffer && !in_buffer
+    if update_buffer && !in_buffer
         " jump back to code buffer
         sil exe ":sb " . current_buffer
         sil exe ":set switchbuf=" . save_sb
@@ -604,17 +617,10 @@ function! conque_term#create_handle(...) " {{{
     endif
 
     " is ther a buffer?
-    let has_buffer = get(a:000, 1, 1)
-
-    " sleep time before reading
-    let read_time = get(a:000, 2, 1)
-    if read_time == 0
-        let read_time = 1
-    endif
+    let is_buffer = get(a:000, 1, 1)
 
     let l:handle = copy(s:t_handle)
-    let l:handle.read_time = read_time
-    let l:handle.has_buffer = has_buffer
+    let l:handle.is_buffer = is_buffer
     let l:handle.idx = buf_num
     let l:handle.var = pvar
 
@@ -636,30 +642,6 @@ function! conque_term#get_handle(...) " {{{
     endif
 
     return s:terminal_handles[buf_num]
-
-endfunction " }}}
-
-function! conque_term#new_terminal(...) " {{{
-
-    let command = get(a:000, 0, '')
-    let hooks   = get(a:000, 1, [])
-    let return_to_current  = get(a:000, 2, 0)
-    
-    let bnum = conque_term#open(command, hooks, return_to_current)
-    let handle = conque_term#create_handle(bnum, 1, 1)
-    let s:terminal_handles[bnum] = handle
-
-    return handle
-
-endfunction " }}}
-
-function! conque_term#new_subprocess(command) " {{{
-    
-    let bnum = conque_term#open(a:command, [], 0, 0)
-    let handle = conque_term#create_handle(bnum, 0, 1)
-    let s:terminal_handles[bnum] = handle
-
-    return handle
 
 endfunction " }}}
 
