@@ -14,3 +14,13 @@ let output = sub.read(500)
 call AssertEquals('nraffo', output)
 call sub.close()
 
+" test callback
+
+function! MyCB(output)
+    echo a:output
+endfunction
+
+let sub = conque_term#new_subprocess('bash')
+call sub.set_callback('MyCB')
+call sub.write('pwd')
+

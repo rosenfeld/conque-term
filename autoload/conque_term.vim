@@ -32,6 +32,12 @@ let s:input_extra = {}
 let s:input_extra_num = {}
 let s:terminal_handles = {}
 
+" read more output when this isn't the current buffer
+if g:ConqueTerm_ReadUnfocused == 1
+    augroup ConqueTerm
+    autocmd ConqueTerm CursorHold * call conque_term#read_all()
+endif
+
 " **********************************************************************************************************
 " **** VIM FUNCTIONS ***************************************************************************************
 " **********************************************************************************************************
@@ -196,11 +202,6 @@ function! conque_term#set_mappings(action) "{{{
 
         " reposition cursor when going into insert mode
         execute 'autocmd ' . b:ConqueTerm_Var . ' InsertEnter <buffer> python ' . b:ConqueTerm_Var . '.insert_enter()'
-
-        " read more output when this isn't the current buffer
-        if g:ConqueTerm_ReadUnfocused == 1
-            execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHold * call conque_term#read_all()'
-        endif
 
         " poll for more output
         sil execute 'autocmd ' . b:ConqueTerm_Var . ' CursorHoldI <buffer> python ' .  b:ConqueTerm_Var . '.auto_read()'
@@ -408,7 +409,11 @@ function! conque_term#read_all() "{{{
 
     try
         for i in range(1, g:ConqueTerm_Idx - 1)
-            execute 'python ConqueTerm_' . string(i) . '.read(1, False)'
+            let output = s:terminal_handles[i].read(1)
+
+            if !s:terminal_handles[i].has_buffer && exists('*s:terminal_handles[i].callback')
+                call s:terminal_handles[i].callback(output)
+            endif
         endfor
     catch
         " probably a deleted buffer
@@ -574,7 +579,7 @@ endfunction " }}}
 
 function! s:t_handle.set_callback(callback_func) dict " {{{
 
-    s:terminal_handles[self.idx].callback = callback_func
+    let s:terminal_handles[self.idx].callback = function(a:callback_func)
 
 endfunction " }}}
 
