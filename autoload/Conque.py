@@ -238,7 +238,8 @@ class Conque:
         logging.debug('writing input ' + str(input))
 
         # check if window size has changed
-        self.update_window_size()
+        if read:
+            self.update_window_size()
 
         # write and read
         self.proc.write(input)

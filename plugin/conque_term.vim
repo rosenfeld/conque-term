@@ -77,7 +77,7 @@ endif " }}}
 
 " Keep on updating the shell window after you've switched to another buffer {{{
 if !exists('g:ConqueTerm_ReadUnfocused')
-    let g:ConqueTerm_ReadUnfocused = 1
+    let g:ConqueTerm_ReadUnfocused = 0
 endif " }}}
 
 " Use this regular expression to highlight prompt {{{

@@ -38,11 +38,14 @@ let s:input_extra_num = {}
 let s:t_handle = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1 }
 let s:terminal_handles = {}
 
+let s:save_updatetime = &updatetime
+
 augroup ConqueTerm
+autocmd ConqueTerm VimLeave * call conque_term#close_all()
 
 " read more output when this isn't the current buffer
 if g:ConqueTerm_ReadUnfocused == 1
-    autocmd ConqueTerm CursorHold * call conque_term#read_all()
+    autocmd ConqueTerm CursorHold * call conque_term#read_all(0)
 endif
 
 " **********************************************************************************************************
@@ -129,7 +132,11 @@ endfunction "}}}
 " open(), but no buffer
 function! conque_term#subprocess(command) " {{{
     
-    return conque_term#open(a:command, [], 0, 0)
+    let handle = conque_term#open(a:command, [], 0, 0)
+    if !exists('b:ConqueTerm_Var')
+        call conque_term#on_blur()
+    endif
+    return handle
 
 endfunction " }}}
 
@@ -417,9 +424,9 @@ function! conque_term#send_selected(type) "{{{
 endfunction "}}}
 
 " read from all known conque buffers
-function! conque_term#read_all() "{{{
+function! conque_term#read_all(insert_mode) "{{{
 
-    for i in range(1, g:ConqueTerm_Idx - 1)
+    for i in range(1, g:ConqueTerm_Idx)
         try
             if !s:terminal_handles[i].active
                 continue
@@ -436,7 +443,24 @@ function! conque_term#read_all() "{{{
     endfor
 
     " restart updatetime
-    call feedkeys("f\e")
+    if a:insert_mode
+        call feedkeys("\<C-o>f\e", "n")
+    else
+        call feedkeys("f\e", "n")
+    endif
+
+endfunction "}}}
+
+" close all subprocesses
+function! conque_term#close_all() "{{{
+
+    for i in range(1, g:ConqueTerm_Idx)
+        try
+            call s:terminal_handles[i].close()
+        catch
+            " probably a deleted buffer
+        endtry
+    endfor
 
 endfunction "}}}
 
@@ -459,8 +483,12 @@ function! conque_term#on_focus() " {{{
         NeoComplCacheLock
     endif
  
-    " set poll interval to 50ms   
-    let s:save_updatetime = &updatetime
+    if g:ConqueTerm_ReadUnfocused == 1
+        autocmd! ConqueTerm CursorHoldI *
+        autocmd! ConqueTerm CursorHold *
+    endif
+
+    " set poll interval to 50ms
     set updatetime=50
 
     " if configured, go into insert mode
@@ -481,6 +509,8 @@ function! conque_term#on_blur() " {{{
     " reset poll interval
     if g:ConqueTerm_ReadUnfocused == 1
         set updatetime=1000
+        autocmd ConqueTerm CursorHoldI * call conque_term#read_all(1)
+        autocmd ConqueTerm CursorHold * call conque_term#read_all(0)
     elseif exists('s:save_updatetime')
         exe 'set updatetime=' . s:save_updatetime
     else
@@ -556,19 +586,9 @@ function! s:t_handle.read(...) dict " {{{
         let in_buffer = 0
     endif
 
-    " switch to buffer if needed
-    if update_buffer && !in_buffer
-        let save_sb = &switchbuf
-
-        "use an agressive sb option
-        sil set switchbuf=usetab
-
-        " current buffer name
-        let current_buffer = bufname("%")
-    endif
-
     let output = ''
 
+    " read!
     sil exec ":python conque_tmp = " . self.var . ".read(timeout = " . read_time . ", set_cursor = False, return_output = True, update_buffer = " . up_py . ")"
 
     " ftw!
@@ -578,13 +598,6 @@ if conque_tmp:
     conque_tmp = re.sub('"', '\\\\"', conque_tmp)
     vim.command('let output = "' + conque_tmp + '"')
 EOF
-
-    " switch to buffer if needed
-    if update_buffer && !in_buffer
-        " jump back to code buffer
-        sil exe ":sb " . current_buffer
-        sil exe ":set switchbuf=" . save_sb
-    endif
 
     return output
 
@@ -613,7 +626,7 @@ function! conque_term#create_handle(...) " {{{
         let buf_num = b:ConqueTerm_Idx
     else
         let pvar = g:ConqueTerm_Var
-        let buf_num = g:ConqueTerm_Idx - 1
+        let buf_num = g:ConqueTerm_Idx
     endif
 
     " is ther a buffer?
@@ -638,7 +651,7 @@ function! conque_term#get_handle(...) " {{{
     elseif exists('b:ConqueTerm_Var')
         let buf_num = b:ConqueTerm_Idx
     else
-        let buf_num = g:ConqueTerm_Idx - 1
+        let buf_num = g:ConqueTerm_Idx
     endif
 
     return s:terminal_handles[buf_num]
