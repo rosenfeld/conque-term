@@ -32,11 +32,10 @@
 " **********************************************************************************************************
 
 " Extra key codes
-let s:input_extra = {}
-let s:input_extra_num = {}
+let s:input_extra = []
 
-let s:t_handle = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1 }
-let s:terminal_handles = {}
+let s:term_obj = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1 }
+let s:terminals = {}
 
 let s:save_updatetime = &updatetime
 
@@ -99,8 +98,8 @@ function! conque_term#open(...) "{{{
     endif
 
     " save handle
-    let handle = conque_term#create_handle(g:ConqueTerm_Idx, is_buffer)
-    let s:terminal_handles[g:ConqueTerm_Idx] = handle
+    let t_obj = conque_term#create_terminal_object(g:ConqueTerm_Idx, is_buffer)
+    let s:terminals[g:ConqueTerm_Idx] = t_obj
 
     " open command
     try
@@ -126,17 +125,17 @@ function! conque_term#open(...) "{{{
         startinsert!
     endif
 
-    return handle
+    return t_obj
 endfunction "}}}
 
 " open(), but no buffer
 function! conque_term#subprocess(command) " {{{
     
-    let handle = conque_term#open(a:command, [], 0, 0)
+    let t_obj = conque_term#open(a:command, [], 0, 0)
     if !exists('b:ConqueTerm_Var')
         call conque_term#on_blur()
     endif
-    return handle
+    return t_obj
 
 endfunction " }}}
 
@@ -365,19 +364,11 @@ function! conque_term#set_mappings(action) "{{{
     endif
 
     " user defined mappings
-    for user_key in keys(s:input_extra)
+    for [map_from, map_to] in s:input_extra
         if l:action == 'start'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . user_key . ' <C-o>:python ' . b:ConqueTerm_Var . ".write('" . s:input_extra[user_key] . "')<CR>"
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from . ' <C-o>:python ' . b:ConqueTerm_Var . ".write('" . conque_term#python_escape(map_to) . "')<CR>"
         else
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . user_key
-        endif
-    endfor
-
-    for user_key in keys(s:input_extra_num)
-        if l:action == 'start'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . user_key . ' <C-o>:python ' . b:ConqueTerm_Var . ".write(unichr(" . s:input_extra_num[user_key] . "))<CR>"
-        else
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . user_key
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from
         endif
     endfor
 
@@ -428,14 +419,14 @@ function! conque_term#read_all(insert_mode) "{{{
 
     for i in range(1, g:ConqueTerm_Idx)
         try
-            if !s:terminal_handles[i].active
+            if !s:terminals[i].active
                 continue
             endif
 
-            let output = s:terminal_handles[i].read(1)
+            let output = s:terminals[i].read(1)
 
-            if !s:terminal_handles[i].is_buffer && exists('*s:terminal_handles[i].callback')
-                call s:terminal_handles[i].callback(output)
+            if !s:terminals[i].is_buffer && exists('*s:terminals[i].callback')
+                call s:terminals[i].callback(output)
             endif
         catch
             " probably a deleted buffer
@@ -456,7 +447,7 @@ function! conque_term#close_all() "{{{
 
     for i in range(1, g:ConqueTerm_Idx)
         try
-            call s:terminal_handles[i].close()
+            call s:terminals[i].close()
         catch
             " probably a deleted buffer
         endtry
@@ -526,49 +517,25 @@ endfunction " }}}
 " **** "API" functions *************************************************************************************
 " **********************************************************************************************************
 
+" See doc/conque_term.txt for full documentation
+
 " Write to a conque terminal buffer
-"
-" Use this function to send text to ConqueTerm. If you are updating a remote
-" buffer you may want to set the config option g:ConqueTerm_ReadUnfocused so
-" the terminal will continue updating.
-"
-" Example usage:
-"
-"   let conque_buff = conque_term#open('mysql -u joe LunchBucket', ['belowright split', 'resize 20'], 1)
-"   call conque_buff.write('SELECT NOW() AS "Lunch time";' . "\n")
-"
-" Or with minimal options:
-"
-"   call let conque_buff = conque_term#open('bash')
-"   call conque_buff.writeln('cd ' . make_path)
-"   call conque_buff.writeln('make')
-"
-" @param text String The text to write.
-function! s:t_handle.write(text) dict " {{{
+function! s:term_obj.write(text) dict " {{{
 
     " if we're not in terminal buffer, pass flag to not position the cursor
     sil exe 'python ' . self.var . '.write(vim.eval("a:text"), False, False)'
 
 endfunction " }}}
 
-" Write to a conque terminal buffer, add a new line to end of input
-"
-" See conque_term#write() for details
-function! s:t_handle.writeln(text) dict " {{{
+" same as write() but adds a newline
+function! s:term_obj.writeln(text) dict " {{{
 
     call self.write(a:text . "\n")
 
 endfunction " }}}
 
-
-" Read data from conque terminal buffer
-"
-" Retrieve an array of lines of text from the terminal. This really doesn't 
-" provide any special functionality other than locating the correct buffer.
-" 
-" @param read_time Integer (Optional) The number of milliseconds to wait for output before returning to your code buffer.
-" @param update_buffer Bool (Optional) If set to 0 then the text read will never be displayed in the terminal buffer.
-function! s:t_handle.read(...) dict " {{{
+" read from terminal buffer and return string
+function! s:term_obj.read(...) dict " {{{
 
     let read_time = get(a:000, 0, 1)
     let update_buffer = get(a:000, 1, self.is_buffer)
@@ -603,19 +570,22 @@ EOF
 
 endfunction " }}}
 
-function! s:t_handle.set_callback(callback_func) dict " {{{
+" set output callback
+function! s:term_obj.set_callback(callback_func) dict " {{{
 
-    let s:terminal_handles[self.idx].callback = function(a:callback_func)
+    let s:terminals[self.idx].callback = function(a:callback_func)
 
 endfunction " }}}
 
-function! s:t_handle.close() dict " {{{
+" close subprocess with ABORT signal
+function! s:term_obj.close() dict " {{{
 
     sil exe 'python ' . self.var . '.proc.signal(1)'
 
 endfunction " }}}
 
-function! conque_term#create_handle(...) " {{{
+" create a new terminal object
+function! conque_term#create_terminal_object(...) " {{{
 
     " find conque buffer to update
     let buf_num = get(a:000, 0, 0)
@@ -632,21 +602,22 @@ function! conque_term#create_handle(...) " {{{
     " is ther a buffer?
     let is_buffer = get(a:000, 1, 1)
 
-    let l:handle = copy(s:t_handle)
-    let l:handle.is_buffer = is_buffer
-    let l:handle.idx = buf_num
-    let l:handle.var = pvar
+    let l:t_obj = copy(s:term_obj)
+    let l:t_obj.is_buffer = is_buffer
+    let l:t_obj.idx = buf_num
+    let l:t_obj.var = pvar
 
-    return l:handle
+    return l:t_obj
 
 endfunction " }}}
 
-function! conque_term#get_handle(...) " {{{
+" get an existing terminal instance
+function! conque_term#get_instance(...) " {{{
 
     " find conque buffer to update
     let buf_num = get(a:000, 0, 0)
 
-    if exists('s:terminal_handles[buf_num]')
+    if exists('s:terminals[buf_num]')
         
     elseif exists('b:ConqueTerm_Var')
         let buf_num = b:ConqueTerm_Idx
@@ -654,8 +625,18 @@ function! conque_term#get_handle(...) " {{{
         let buf_num = g:ConqueTerm_Idx
     endif
 
-    return s:terminal_handles[buf_num]
+    return s:terminals[buf_num]
 
+endfunction " }}}
+
+" add a new default mapping
+function! conque_term#imap(map_from, map_to) " {{{
+    call add(s:input_extra, [a:map_from, a:map_to])
+endfunction " }}}
+
+" add a list of new default mappings
+function! conque_term#imap_list(map_list) " {{{
+    call extend(s:input_extra, a:map_list)
 endfunction " }}}
 
 " **********************************************************************************************************
