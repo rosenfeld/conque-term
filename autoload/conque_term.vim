@@ -34,7 +34,7 @@
 " Extra key codes
 let s:input_extra = []
 
-let s:term_obj = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1 }
+let s:term_obj = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1, 'buffer_name' : '' }
 let s:terminals = {}
 
 let s:save_updatetime = &updatetime
@@ -98,7 +98,7 @@ function! conque_term#open(...) "{{{
     endif
 
     " save handle
-    let t_obj = conque_term#create_terminal_object(g:ConqueTerm_Idx, is_buffer)
+    let t_obj = conque_term#create_terminal_object(g:ConqueTerm_Idx, is_buffer, g:ConqueTerm_BufName)
     let s:terminals[g:ConqueTerm_Idx] = t_obj
 
     " open command
@@ -582,6 +582,14 @@ function! s:term_obj.close() dict " {{{
 
     sil exe 'python ' . self.var . '.proc.signal(1)'
 
+    if self.is_buffer
+        call conque_term#set_mappings('stop')
+        if exists('g:ConqueTerm_CloseOnEnd') && g:ConqueTerm_CloseOnEnd
+            sil exe 'bwipeout! ' . self.buffer_name
+            stopinsert!
+        endif
+    endif
+
 endfunction " }}}
 
 " create a new terminal object
@@ -602,9 +610,13 @@ function! conque_term#create_terminal_object(...) " {{{
     " is ther a buffer?
     let is_buffer = get(a:000, 1, 1)
 
+    " the buffer name
+    let bname = get(a:000, 2, '')
+
     let l:t_obj = copy(s:term_obj)
     let l:t_obj.is_buffer = is_buffer
     let l:t_obj.idx = buf_num
+    let l:t_obj.buffer_name = bname
     let l:t_obj.var = pvar
 
     return l:t_obj

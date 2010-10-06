@@ -26,7 +26,7 @@ Python support. On OS X the best option is MacVim.
 Windows support is not currently available, but is in developement. A windows 
 version is scheduled to be release Fall 2010.
 
-1.2 Installation                                    *conque-term-installation*
+1.2 Installation                                         *conque-term-install*
 
 Download the latest vimball from http://conque.googlecode.com
 
@@ -182,6 +182,15 @@ syntax highlighting for the prompt line.
 Setting this to an empty string ('') will disable prompt highlighting.
 >
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
+<
+3.10 Close buffer when program exits                   *ConqueTerm_CloseOnEnd*
+
+If you want your terminal buffer to be closed and permanently deleted when the 
+program running inside of it exits, set this option to 1. Otherwise the buffer
+will become a simple text buffer after the program exits, and you can edit the
+program output in insert mode.
+>
+    let g:ConqueTerm_CloseOnEnd = 0
 <
 
 ==============================================================================

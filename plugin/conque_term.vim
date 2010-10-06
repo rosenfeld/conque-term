@@ -85,6 +85,11 @@ if !exists('g:ConqueTerm_PromptRegex')
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
 endif " }}}
 
+" Automatically close buffer when program exits {{{
+if !exists('g:ConqueTerm_CloseOnEnd')
+    let g:ConqueTerm_CloseOnEnd = 0
+endif " }}}
+
 " **********************************************************************************************************
 " **** Startup *********************************************************************************************
 " **********************************************************************************************************
