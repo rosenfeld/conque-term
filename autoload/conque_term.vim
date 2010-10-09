@@ -348,6 +348,16 @@ function! conque_term#set_mappings(action) "{{{
         endif
     endif
 
+    " attempt to map scroll wheel
+    map  <buffer> <M-Esc>[62~ <MouseDown>
+    map! <buffer> <M-Esc>[62~ <MouseDown>
+    map  <buffer> <M-Esc>[63~ <MouseUp>
+    map! <buffer> <M-Esc>[63~ <MouseUp>
+    map  <buffer> <M-Esc>[64~ <S-MouseDown>
+    map! <buffer> <M-Esc>[64~ <S-MouseDown>
+    map  <buffer> <M-Esc>[65~ <S-MouseUp>
+    map! <buffer> <M-Esc>[65~ <S-MouseUp>
+
     " disable other normal mode keys which insert text
     if l:action == 'start'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> r :echo "Replace mode disabled in shell."<CR>'
