@@ -341,8 +341,10 @@ function! conque_term#set_mappings(action) "{{{
     if has('gui_running')
         if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
+            sil exe 'i' . map_modifier . 'map <buffer> <S-Help> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
         else
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert>'
+            sil exe 'i' . map_modifier . 'map <buffer> <S-Help>'
         endif
     endif
 
