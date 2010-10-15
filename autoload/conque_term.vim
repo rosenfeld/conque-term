@@ -31,6 +31,10 @@
 " **** CROSS-TERMINAL SETTINGS *****************************************************************************
 " **********************************************************************************************************
 
+" path to this file
+let s:scriptfile = expand("<sfile>") 
+let s:scriptdir = expand("<sfile>:h") . '/'
+
 " Extra key codes
 let s:input_extra = []
 
@@ -336,12 +340,12 @@ function! conque_term#open(...) "{{{
         else
             " find python.exe and communicator
             let py_exe = conque_term#python_escape(conque_term#find_python_exe())
-            let ct_vim = conque_term#python_escape(conque_term#find_conque_term_vim())
-            if py_exe == '' || ct_vim == ''
+            let py_vim = conque_term#python_escape(s:scriptdir . 'conque_sole_communicator.py')
+            if py_exe == ''
                 return 0
             endif
             execute s:py . ' ' . b:ConqueTerm_Var . ' = ConqueSole()'
-            execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . ct_vim . "')"
+            execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . py_vim . "')"
             call conque_term#init_conceal_color()
         endif
     catch
@@ -820,27 +824,6 @@ function! conque_term#find_python_exe() " {{{
 
 endfunction " }}}
 
-" find autoload/conque_term.vim for windows
-function! conque_term#find_conque_term_vim() " {{{
-
-    " search config path
-    if g:ConqueTerm_AutoloadDir != ''
-        let ct_vim = globpath(g:ConqueTerm_AutoloadDir, "**/autoload/conque_sole_communicator.py")
-        if ct_vim != ''
-            return ct_vim
-        endif
-    endif
-
-    " then search vim paths
-    let ct_vim = globpath(&rtp, "**/autoload/conque_sole_communicator.py")
-    if ct_vim == ''
-        echohl WarningMsg | echomsg "Unable to find conque_term.vim" | echohl None
-    endif
-
-    return ct_vim
-
-endfunction " }}}
-
 " initialize concealed colors
 function! conque_term#init_conceal_color() " {{{
 
@@ -1096,13 +1079,12 @@ endfunction " }}}
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
-let conque_py_dir = substitute(findfile('autoload/conque_term.vim', &rtp), 'conque_term.vim', '', '')
-exec s:py . "file " . conque_py_dir . "conque_globals.py"
-exec s:py . "file " . conque_py_dir . "Conque.py"
-exec s:py . "file " . conque_py_dir . "ConqueScreen.py"
-exec s:py . "file " . conque_py_dir . "ConqueSubprocess.py"
+exec s:py . "file " . s:scriptdir . "conque_globals.py"
+exec s:py . "file " . s:scriptdir . "Conque.py"
+exec s:py . "file " . s:scriptdir . "ConqueScreen.py"
+exec s:py . "file " . s:scriptdir . "ConqueSubprocess.py"
 if s:platform == 'dos'
-    exec s:py . "file " . conque_py_dir . "ConqueSole.py"
-    exec s:py . "file " . conque_py_dir . "ConqueSoleWrapper.py"
+    exec s:py . "file " . s:scriptdir . "ConqueSole.py"
+    exec s:py . "file " . s:scriptdir . "ConqueSoleWrapper.py"
 endif
 
