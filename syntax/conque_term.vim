@@ -28,7 +28,7 @@ syn match MySQLPrompt "^.\?mysql>" contained oneline
 syn match MySQLPrompt "^    ->" contained oneline
 syn case ignore
 syn keyword MySQLKeyword select count max sum avg date show table tables status like as from left right outer inner join contained 
-syn keyword MySQLKeyword where group by having limit offset order desc asc show contained
+syn keyword MySQLKeyword where group by having limit offset order desc asc show contained and interval is null on
 syn case match
 syn region MySQLString start=+'+ end=+'+ skip=+\\'+ contained oneline
 syn region MySQLString start=+"+ end=+"+ skip=+\\"+ contained oneline
@@ -68,9 +68,11 @@ endif
 " *******************************************************************************************************************
 
 " Typical Prompt
-silent execute "syn match ConquePromptLine '" . g:ConqueTerm_PromptRegex . ".*$' contains=ConquePrompt,ConqueString oneline"
-silent execute "syn match ConquePrompt '" . g:ConqueTerm_PromptRegex . "' contained oneline"
-hi def link ConquePrompt Identifier
+if g:ConqueTerm_PromptRegex != ''
+    silent execute "syn match ConquePromptLine '" . g:ConqueTerm_PromptRegex . ".*$' contains=ConquePrompt,ConqueString oneline"
+    silent execute "syn match ConquePrompt '" . g:ConqueTerm_PromptRegex . "' contained oneline"
+    hi def link ConquePrompt Identifier
+endif
 
 " Strings
 syn region ConqueString start=+'+ end=+'+ skip=+\\'+ contained oneline
