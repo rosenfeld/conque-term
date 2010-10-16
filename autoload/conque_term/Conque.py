@@ -935,7 +935,7 @@ class Conque:
     ###############################################################################################
     # Random stuff {{{
 
-    def set_cursor(line, col):
+    def set_cursor(self, line, col):
         self.screen.set_cursor(line, col)
 
     def change_title(self, key, val):
