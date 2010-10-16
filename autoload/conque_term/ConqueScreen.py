@@ -51,7 +51,7 @@ class ConqueScreen(object):
             for i in range(len(self.buffer), real_line + 1):
                 self.append(' ' * self.screen_width)
 
-        return self.buffer[ real_line ]
+        return u(self.buffer[ real_line ], 'utf-8')
     # }}}
 
     def __setitem__(self, key, value): # {{{
@@ -59,9 +59,9 @@ class ConqueScreen(object):
 
         # if line is past end of screen, append
         if real_line == len(self.buffer):
-            self.buffer.append(value)
+            self.buffer.append(value.encode('utf-8'))
         else:
-            self.buffer[ real_line ] = value
+            self.buffer[ real_line ] = value.encode('utf-8')
     # }}}
 
     def __delitem__(self, key): # {{{
@@ -83,7 +83,7 @@ class ConqueScreen(object):
     def insert(self, line, value): # {{{
         logging.debug('insert at line ' + str(self.screen_top + line - 2))
         l = self.screen_top + line - 2
-        self.buffer[l:l] = [ value ]
+        self.buffer.append(value, l)
     
     # }}}
     # }}}

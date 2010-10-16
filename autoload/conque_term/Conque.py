@@ -2,7 +2,7 @@
 import vim, re, time, math
 
 import logging # DEBUG
-LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
+LOG_FILENAME = '/Users/nraffo/.vim/pylog.log' # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 # CONFIG CONSTANTS  {{{
@@ -58,6 +58,13 @@ CONQUE_ESCAPE_PLAIN = {
 #    '7':'save_cursor',
 #    '8':'restore_cursor',
 
+# Character set escape sequences, with "("
+CONQUE_ESCAPE_CHARSET = {
+    'A':'uk',
+    'B':'us',
+    '0':'graphics'
+}
+
 # Uber alternate escape sequences, with # or ?
 CONQUE_ESCAPE_QUESTION = {
     '1h':'new_line_mode',
@@ -86,6 +93,41 @@ CONQUE_ESCAPE_HASH = {
 #    '4':'double_height_bottom',
 #    '5':'single_height_single_width',
 #    '6':'single_height_double_width',
+
+CONQUE_GRAPHICS_SET = [
+    0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
+    0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
+    0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0016, 0x0017,
+    0x0018, 0x0019, 0x001A, 0x001B, 0x001C, 0x001D, 0x001E, 0x001F,
+    0x0020, 0x0021, 0x0022, 0x0023, 0x0024, 0x0025, 0x0026, 0x0027,
+    0x0028, 0x0029, 0x002A, 0x2192, 0x2190, 0x2191, 0x2193, 0x002F,
+    0x2588, 0x0031, 0x0032, 0x0033, 0x0034, 0x0035, 0x0036, 0x0037,
+    0x0038, 0x0039, 0x003A, 0x003B, 0x003C, 0x003D, 0x003E, 0x003F,
+    0x0040, 0x0041, 0x0042, 0x0043, 0x0044, 0x0045, 0x0046, 0x0047,
+    0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x004D, 0x004E, 0x004F,
+    0x0050, 0x0051, 0x0052, 0x0053, 0x0054, 0x0055, 0x0056, 0x0057,
+    0x0058, 0x0059, 0x005A, 0x005B, 0x005C, 0x005D, 0x005E, 0x00A0,
+    0x25C6, 0x2592, 0x2409, 0x240C, 0x240D, 0x240A, 0x00B0, 0x00B1,
+    0x2591, 0x240B, 0x2518, 0x2510, 0x250C, 0x2514, 0x253C, 0xF800,
+    0xF801, 0x2500, 0xF803, 0xF804, 0x251C, 0x2524, 0x2534, 0x252C,
+    0x2502, 0x2264, 0x2265, 0x03C0, 0x2260, 0x00A3, 0x00B7, 0x007F,
+    0x0080, 0x0081, 0x0082, 0x0083, 0x0084, 0x0085, 0x0086, 0x0087,
+    0x0088, 0x0089, 0x008A, 0x008B, 0x008C, 0x008D, 0x008E, 0x008F,
+    0x0090, 0x0091, 0x0092, 0x0093, 0x0094, 0x0095, 0x0096, 0x0097,
+    0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D, 0x009E, 0x009F,
+    0x00A0, 0x00A1, 0x00A2, 0x00A3, 0x00A4, 0x00A5, 0x00A6, 0x00A7,
+    0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x00AF,
+    0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x00B4, 0x00B5, 0x00B6, 0x00B7,
+    0x00B8, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x00BE, 0x00BF,
+    0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5, 0x00C6, 0x00C7,
+    0x00C8, 0x00C9, 0x00CA, 0x00CB, 0x00CC, 0x00CD, 0x00CE, 0x00CF,
+    0x00D0, 0x00D1, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6, 0x00D7,
+    0x00D8, 0x00D9, 0x00DA, 0x00DB, 0x00DC, 0x00DD, 0x00DE, 0x00DF,
+    0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00E6, 0x00E7,
+    0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00EC, 0x00ED, 0x00EE, 0x00EF,
+    0x00F0, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7,
+    0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF
+]
 
 # Font codes {{{
 CONQUE_FONT = {
@@ -138,12 +180,13 @@ CONQUE_FONT = {
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX       = re.compile(ur"(\u001b\[?\??#?[0-9;]*[a-zA-Z0-9@=>]|\u001b\][0-9];.*?\u0007|[\u0001-\u000f])", re.UNICODE)
-CONQUE_SEQ_REGEX_CTL   = re.compile(ur"^[\u0001-\u000f]$", re.UNICODE)
-CONQUE_SEQ_REGEX_CSI   = re.compile(ur"^\u001b\[", re.UNICODE)
-CONQUE_SEQ_REGEX_TITLE = re.compile(ur"^\u001b\]", re.UNICODE)
-CONQUE_SEQ_REGEX_HASH  = re.compile(ur"^\u001b#", re.UNICODE)
-CONQUE_SEQ_REGEX_ESC   = re.compile(ur"^\u001b.$", re.UNICODE)
+CONQUE_SEQ_REGEX       = re.compile(u("(\x1b\[?\??#?[0-9;]*[a-zA-Z0-9@=>]|\x1b\][0-9];.*?\x07|[\x01-\x0f])"), re.UNICODE)
+CONQUE_SEQ_REGEX_CTL   = re.compile(u("^[\x01-\x0f]$"), re.UNICODE)
+CONQUE_SEQ_REGEX_CSI   = re.compile(u("^\x1b\["), re.UNICODE)
+CONQUE_SEQ_REGEX_TITLE = re.compile(u("^\x1b\]"), re.UNICODE)
+CONQUE_SEQ_REGEX_HASH  = re.compile(u("^\x1b#"), re.UNICODE)
+CONQUE_SEQ_REGEX_ESC   = re.compile(u("^\x1b.$"), re.UNICODE)
+CONQUE_SEQ_REGEX_CHAR  = re.compile(u("^\x1b\("), re.UNICODE)
 
 # match table output
 CONQUE_TABLE_OUTPUT   = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
@@ -202,6 +245,9 @@ class Conque:
     # do we need to move the cursor?
     cursor_set = False
 
+    # current character set, ascii or graphics
+    character_set = 'ascii'
+
     # used for auto_read actions
     read_count = 0
 
@@ -238,7 +284,6 @@ class Conque:
 
     # write to pty
     def write(self, input, set_cursor = True, read = True): # {{{
-        logging.debug('writing input ' + str(input))
 
         # check if window size has changed
         if read:
@@ -250,6 +295,7 @@ class Conque:
         # read output immediately
         if read:
             self.read(1, set_cursor)
+
         # }}}
 
     # read from pty, and update buffer
@@ -267,7 +313,7 @@ class Conque:
             return output
 
         logging.debug('read *********************************************************************')
-        logging.debug(str(output))
+        #logging.debug(str(output))
         debug_profile_start = time.time()
 
         chunks = CONQUE_SEQ_REGEX.split(output)
@@ -286,10 +332,9 @@ class Conque:
                 if s == '':
                     continue
 
-                logging.debug(str(s) + '--------------------------------------------------------------')
+                #logging.debug(str(s) + '--------------------------------------------------------------')
                 logging.debug('chgs ' + str(self.color_changes))
                 logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
-                logging.debug('current: ' + self.screen[self.l])
 
                 # Check for control character match {{{
                 if CONQUE_SEQ_REGEX_CTL.match(s[0]):
@@ -325,6 +370,16 @@ class Conque:
                     logging.debug('hash match')
                     if s[-1] in CONQUE_ESCAPE_HASH:
                         getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])()
+                    else:
+                        logging.debug('escape not found for ' + str(s))
+                        pass
+                    # }}}
+                
+                # check for charset match {{{
+                elif CONQUE_SEQ_REGEX_CHAR.match(s):
+                    logging.debug('char match')
+                    if s[-1] in CONQUE_ESCAPE_CHARSET:
+                        getattr(self, 'charset_' + CONQUE_ESCAPE_CHARSET[s[-1]])()
                     else:
                         logging.debug('escape not found for ' + str(s))
                         pass
@@ -394,6 +449,14 @@ class Conque:
     # Plain text # {{{
 
     def plain_text(self, input):
+
+        # translate input into correct character set
+        if self.character_set == 'graphics':
+            old_input = input
+            input = ''
+            for i in range(0, len(old_input)):
+                input = input + unichr(CONQUE_GRAPHICS_SET[ord(old_input[i])])
+
         logging.debug('plain -- ' + str(self.color_changes))
         current_line = self.screen[self.l]
 
@@ -430,19 +493,23 @@ class Conque:
             self.apply_color(self.c, self.c + len(input))
             self.c += len(input)
 
-    def apply_color(self, start, end):
+    def apply_color(self, start, end, line = 0):
         logging.debug('applying colors ' + str(self.color_changes))
 
         # stop here if coloration is disabled
         if not self.enable_colors:
             return
 
-        real_line = self.screen.get_real_line(self.l)
+        # allow custom line nr to be passed
+        if line:
+            real_line = line
+        else:
+            real_line = self.screen.get_real_line(self.l)
 
         # check for previous overlapping coloration
         logging.debug('start ' + str(start) + ' end ' + str(end))
         to_del = []
-        if self.color_history.has_key(real_line):
+        if real_line in self.color_history:
             for i in range(len(self.color_history[real_line])):
                 syn = self.color_history[real_line][i]
                 logging.debug('checking syn ' + str(syn))
@@ -491,7 +558,7 @@ class Conque:
         vim.command(syntax_highlight)
 
         # add syntax name to history
-        if not self.color_history.has_key(real_line):
+        if not real_line in self.color_history:
             self.color_history[real_line] = []
 
         self.color_history[real_line].append({'name':syntax_name, 'start':start, 'end':end, 'highlight':highlight})
@@ -571,7 +638,7 @@ class Conque:
         # 16 colors
         else:
             for val in csi['vals']:
-                if CONQUE_FONT.has_key(val):
+                if val in CONQUE_FONT:
                     logging.debug('color ' + str(CONQUE_FONT[val]))
                     # ignore starting normal colors
                     if CONQUE_FONT[val]['normal'] and len(self.color_changes) == 0:
@@ -585,7 +652,7 @@ class Conque:
                     else:
                         logging.debug('c')
                         for attr in CONQUE_FONT[val]['attributes'].keys():
-                            if self.color_changes.has_key(attr) and (attr == 'cterm' or attr == 'gui'):
+                            if attr in self.color_changes and (attr == 'cterm' or attr == 'gui'):
                                 self.color_changes[attr] += ',' + CONQUE_FONT[val]['attributes'][attr]
                             else:
                                 self.color_changes[attr] = CONQUE_FONT[val]['attributes'][attr]
@@ -616,7 +683,7 @@ class Conque:
         # clear colors
         if csi['val'] == 2 or (csi['val'] == 0 and self.c == 1):
             real_line = self.screen.get_real_line(self.l)
-            if self.color_history.has_key(real_line):
+            if real_line in self.color_history:
                 for syn in self.color_history[real_line]:
                     vim.command('syn clear ' + syn['name'])
 
@@ -852,6 +919,20 @@ class Conque:
     # }}}
 
     ###############################################################################################
+    # CHARSET functions {{{
+
+    def charset_us(self):
+        self.character_set = 'ascii'
+
+    def charset_uk(self):
+        self.character_set = 'ascii'
+
+    def charset_graphics(self):
+        self.character_set = 'graphics'
+
+    # }}}
+
+    ###############################################################################################
     # Random stuff {{{
 
     def change_title(self, key, val):
@@ -860,6 +941,10 @@ class Conque:
         if key == '0' or key == '2':
             logging.debug('setting title to ' + re.escape(val))
             vim.command('setlocal statusline=' + re.escape(val))
+            try:
+                vim.command('set titlestring=' + re.escape(val))
+            except:
+                pass
 
     def paste(self):
         self.write(vim.eval('@@'))
@@ -905,6 +990,12 @@ class Conque:
                 self.tabstops.append(True)
             else:
                 self.tabstops.append(False)
+
+    def idle(self):
+        pass
+
+    def resume(self):
+        pass
 
     # }}}
 

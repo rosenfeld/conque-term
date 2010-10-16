@@ -16,7 +16,8 @@ Usage:
 
 """
 
-import os, signal, pty, tty, select, fcntl, termios, struct
+if CONQUE_PLATFORM == 'nix':
+    import os, signal, pty, tty, select, fcntl, termios, struct
 
 class ConqueSubprocess:
 
@@ -95,7 +96,7 @@ class ConqueSubprocess:
                         lines = os.read( self.fd, 32 )
                     except:
                         pass
-                    output = output + lines
+                    output = output + lines.decode('utf-8')
 
                 if lines == '':
                     break
@@ -108,8 +109,12 @@ class ConqueSubprocess:
     # I guess this one's not bad
     def write(self, input): # {{{
         try:
-            os.write(self.fd, input)
+            if CONQUE_PYTHON_VERSION == 2:
+                os.write(self.fd, input)
+            else:
+                os.write(self.fd, bytes(input, 'utf-8'))
         except:
+            logging.debug('write fail')
             pass
         # }}}
 
