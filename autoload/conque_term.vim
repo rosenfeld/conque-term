@@ -336,7 +336,8 @@ function! conque_term#open(...) "{{{
             endif
             execute s:py . ' ' . b:ConqueTerm_Var . ' = ConqueSole()'
             execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . py_vim . "')"
-            call conque_term#init_conceal_color()
+
+            "call conque_term#init_conceal_color()
         endif
     catch
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
@@ -400,8 +401,10 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     setlocal bufhidden=hide    " when buffer is no longer displayed, don't wipe it out
-    setlocal conceallevel=3
-    setlocal concealcursor=nic
+    if v:version >= 703
+        setlocal conceallevel=3
+        setlocal concealcursor=nic
+    endif
     setfiletype conque_term    " useful
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
 
