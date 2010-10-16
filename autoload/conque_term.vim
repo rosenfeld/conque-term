@@ -380,7 +380,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     for h in a:pre_hooks
         sil exe h
     endfor
-    sil exe "edit ++enc=utf-8 " . g:ConqueTerm_BufName
+    sil exe 'edit ++enc=utf-8 ' . g:ConqueTerm_BufName
 
     " showcmd gets altered by nocompatible
     let sc_save = &showcmd
@@ -452,7 +452,7 @@ function! conque_term#set_mappings(action) "{{{
         execute 'augroup ' . b:ConqueTerm_Var
 
         " handle unexpected closing of shell, passes HUP to parent and all child processes
-        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.proc.close()'
+        execute 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.close()'
 
         " check for resized/scrolled buffer when entering buffer
         execute 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.update_window_size()'
@@ -999,7 +999,7 @@ endfunction " }}}
 " close subprocess with ABORT signal
 function! s:term_obj.close() dict " {{{
 
-    sil exe 'python ' . self.var . '.proc.signal(1)'
+    sil exe 'python ' . self.var . '.abort()'
 
     if self.is_buffer
         call conque_term#set_mappings('stop')

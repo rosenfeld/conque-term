@@ -441,7 +441,7 @@ class Conque:
             return
         
         # otherwise set cursor position
-        self.screen.set_cursor(self.l, self.c)
+        self.set_cursor(self.l, self.c)
         self.cursor_set = True
     # }}}
 
@@ -935,6 +935,9 @@ class Conque:
     ###############################################################################################
     # Random stuff {{{
 
+    def set_cursor(line, col):
+        self.screen.set_cursor(line, col)
+
     def change_title(self, key, val):
         logging.debug(key)
         logging.debug(val)
@@ -996,6 +999,12 @@ class Conque:
 
     def resume(self):
         pass
+
+    def close (self):
+        self.proc.close()
+
+    def abort(self):
+        self.proc.signal(1)
 
     # }}}
 

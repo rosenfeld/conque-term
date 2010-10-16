@@ -26,7 +26,7 @@ Requirements:
 
 }}} """
 
-import time, re, os, os.path, ctypes, random, array
+import time, re, os, os.path, ctypes, array
 from ConqueWin32Util import * # DEBUG
 from conque_globals import * # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
@@ -114,6 +114,10 @@ class ConqueSoleSubprocess():
 
     # are we still a valid process?
     is_alive = True
+
+    # used for periodic execution of screen and memory redrawing
+    screen_redraw_ct = 0
+    mem_redraw_ct = 0
 
     # }}}
 
@@ -218,6 +222,10 @@ class ConqueSoleSubprocess():
             # init shared memory
             self.init_shared_memory(mem_key)
 
+            # init read buffers
+            self.tc = ctypes.create_unicode_buffer(self.buffer_width)
+            self.ac = ctypes.create_unicode_buffer(self.buffer_width)
+
             return True
 
         except:
@@ -317,7 +325,10 @@ class ConqueSoleSubprocess():
     def read(self, timeout = 0): # {{{
 
         # no point really
-        if not self.is_alive:
+        if self.screen_redraw_ct == 0 and not self.is_alive():
+            stats = { 'top_offset' : 0, 'default_attribute' : 0, 'cursor_x' : 0, 'cursor_y' : self.cursor_line, 'is_alive' : 0 }
+            logging.debug('is dead')
+            self.shm_stats.write(stats)
             return
 
         # check for commands
@@ -335,16 +346,17 @@ class ConqueSoleSubprocess():
         curs_col = buf_info.dwCursorPosition.X
 
         # set update range
-        if curs_line != self.cursor_line or self.top != buf_info.srWindow.Top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
+        if curs_line != self.cursor_line or self.top != buf_info.srWindow.Top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
+            self.screen_redraw_ct = 0
+            logging.debug('screen redraw')
             read_start = self.top
             read_end   = buf_info.srWindow.Bottom + 1
         else:
+            logging.debug('no screen redraw')
             read_start = curs_line
             read_end   = curs_line + 1
 
         # vars used in for loop
-        tc = ctypes.create_unicode_buffer(self.buffer_width)
-        ac = ctypes.create_unicode_buffer(self.buffer_width)
         coord = COORD (0, 0)
         chars_read = ctypes.c_int(0)
 
@@ -353,13 +365,13 @@ class ConqueSoleSubprocess():
 
             coord.Y = i
 
-            res = ctypes.windll.kernel32.ReadConsoleOutputCharacterW (self.stdout, ctypes.byref(tc), self.buffer_width, coord, ctypes.byref(chars_read))
-            ctypes.windll.kernel32.ReadConsoleOutputAttribute (self.stdout, ctypes.byref(ac), self.buffer_width, coord, ctypes.byref(chars_read))
+            res = ctypes.windll.kernel32.ReadConsoleOutputCharacterW (self.stdout, ctypes.byref(self.tc), self.buffer_width, coord, ctypes.byref(chars_read))
+            ctypes.windll.kernel32.ReadConsoleOutputAttribute (self.stdout, ctypes.byref(self.ac), self.buffer_width, coord, ctypes.byref(chars_read))
 
-            t = tc.value
-            a = ac.value
+            t = self.tc.value
+            a = self.ac.value
             #logging.debug(str(chars_read))
-            #logging.debug("line " + str(i) + " is: " + str(tc.value))
+            #logging.debug("line " + str(i) + " is: " + str(self.tc.value))
             #logging.debug("attributes " + str(i) + " is: " + str(a))
 
             # add data
@@ -371,15 +383,18 @@ class ConqueSoleSubprocess():
                 self.attributes[i] = a
 
         # write new output to shared memory
-        if random.randint(0, CONQUE_SOLE_MEM_REDRAW) == 0:
+        if self.mem_redraw_ct == CONQUE_SOLE_MEM_REDRAW:
+            self.mem_redraw_ct = 0
+            logging.debug('mem redraw')
             self.shm_output.write(''.join(self.data))
             self.shm_attributes.write(''.join(self.attributes))
         else:
+            logging.debug('no mem redraw')
             self.shm_output.write(text = ''.join(self.data[read_start : read_end]), start = read_start * self.buffer_width)
             self.shm_attributes.write(text = ''.join(self.attributes[read_start : read_end]), start = read_start * self.buffer_width)
 
         # write cursor position to shared memory
-        stats = { 'top_offset' : buf_info.srWindow.Top, 'default_attribute' : buf_info.wAttributes, 'cursor_x' : curs_col, 'cursor_y' : curs_line }
+        stats = { 'top_offset' : buf_info.srWindow.Top, 'default_attribute' : buf_info.wAttributes, 'cursor_x' : curs_col, 'cursor_y' : curs_line, 'is_alive' : 1 }
         self.shm_stats.write(stats)
         #logging.debug('wtf cursor: ' + str(buf_info))
 
@@ -390,6 +405,10 @@ class ConqueSoleSubprocess():
         # check for reset
         if curs_line > buf_info.dwSize.Y - 200:
             self.reset_console(buf_info)
+
+        # increment redraw counters
+        self.screen_redraw_ct += 1
+        self.mem_redraw_ct += 1
 
         return None
         
@@ -454,6 +473,10 @@ class ConqueSoleSubprocess():
 
         # set window size
         self.set_window_size(self.window_width, self.window_height)
+
+        # init read buffers
+        self.tc = ctypes.create_unicode_buffer(self.buffer_width)
+        self.ac = ctypes.create_unicode_buffer(self.buffer_width)
 
     # }}}
 
@@ -578,6 +601,14 @@ class ConqueSoleSubprocess():
     # ****************************************************************************
 
     def close(self): # {{{
+
+        # record status
+        self.is_alive = False
+        try:
+            stats = { 'top_offset' : 0, 'default_attribute' : 0, 'cursor_x' : 0, 'cursor_y' : self.cursor_line, 'is_alive' : 0 }
+            self.shm_stats.write(stats)
+        except:
+            pass
 
         pid_list = (ctypes.c_int * 10)()
         num = ctypes.windll.kernel32.GetConsoleProcessList(pid_list, 10)

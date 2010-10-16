@@ -90,29 +90,6 @@ class ConqueSole(Conque):
 
         # }}}
 
-    #########################################################################
-    # for polling
-
-    def auto_read(self): # {{{
-
-        # read output
-        self.read(1)
-
-        # reset timer
-        if self.c == 1:
-            vim.command('call feedkeys("\<right>\<left>", "n")')
-        else:
-            vim.command('call feedkeys("\<left>\<right>", "n")')
-
-        # stop here if cursor doesn't need to be moved
-        if self.cursor_set:
-            return
-        
-        # otherwise set cursor position
-        self.set_cursor(self.l, self.c)
-        self.cursor_set = True
-
-    # }}}
 
     #########################################################################
     # update the buffer
@@ -380,5 +357,17 @@ class ConqueSole(Conque):
         self.proc.resume()
 
         # }}}
+
+    # *********************************************************************************************
+    # end subprocess
+
+    def close (self):
+        self.proc.close()
+
+    # *********************************************************************************************
+    # end subprocess forcefully
+
+    def abort(self):
+        self.proc.close()
 
 

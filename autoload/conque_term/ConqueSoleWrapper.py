@@ -157,6 +157,16 @@ class ConqueSoleWrapper():
 
         # }}}
 
+    def is_alive(self):
+        if not self.shm_stats:
+            return True
+
+        stats_str = self.shm_stats.read()
+        if stats_str:
+            return (stats_str['is_alive'])
+        else:
+            return True
+
     #########################################################################
     # write input to shared memory
 
