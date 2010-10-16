@@ -764,7 +764,7 @@ function! conque_term#on_blur() " {{{
         NeoComplCacheUnlock
     endif
  
-    sil exe s:py . ' ' . g:ConqueTerm_Var . '.idle()'
+    sil exe s:py . ' ' . b:ConqueTerm_Var . '.idle()'
 
     " reset poll interval
     if g:ConqueTerm_ReadUnfocused == 1
