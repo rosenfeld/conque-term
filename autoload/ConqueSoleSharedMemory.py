@@ -4,10 +4,10 @@ LOG_FILENAME = 'pylog_sub.log' # DEBUG
 import traceback # DEBUG
 #logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
-from conque_globals import * # DEBUG
-
 import mmap
-if CONQUE_PYTHON_VERSION == 2:
+import sys
+
+if sys.version_info[0] == 2:
     import cPickle as pickle
 else:
     import pickle

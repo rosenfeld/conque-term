@@ -13,6 +13,8 @@ objects. Good times!
 
 import time, sys
 import traceback # DEBUG
+from conque_globals import * # DEBUG
+from ConqueWin32Util import * # DEBUG
 from ConqueSoleSubprocess import * # DEBUG
 from ConqueSoleSharedMemory import * # DEBUG
 

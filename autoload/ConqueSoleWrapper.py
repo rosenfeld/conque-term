@@ -10,9 +10,6 @@ python through shared memory objects.
 
 import ctypes
 import time
-import ConqueWin32Util
-
-from ConqueSoleSharedMemory import * # DEBUG
 
 import logging # DEBUG
 import traceback # DEBUG
@@ -75,9 +72,9 @@ class ConqueSoleWrapper():
         logging.debug('python command: ' + cmd_line)
 
         # console window attributes
-        flags = ConqueWin32Util.NORMAL_PRIORITY_CLASS | ConqueWin32Util.DETACHED_PROCESS
-        si = ConqueWin32Util.STARTUPINFO()
-        pi = ConqueWin32Util.PROCESS_INFORMATION()
+        flags = NORMAL_PRIORITY_CLASS | DETACHED_PROCESS
+        si = STARTUPINFO()
+        pi = PROCESS_INFORMATION()
 
         # start the stupid process already
         try:

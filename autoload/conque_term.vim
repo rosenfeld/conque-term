@@ -92,7 +92,6 @@ endif
 
 " first the requested version
 if has(s:pytest)
-    echo s:pytest
     if s:pytest == 'python3'
         let s:py = 'py3'
     else
@@ -108,7 +107,6 @@ else
         let s:pytest = 'python'
     endif
     if has(s:pytest)
-        echo "alternate " . s:pytest
         echohl WarningMsg | echomsg "Python " . g:ConqueTerm_PyVersion . " interface is not installed, using Python " . s:py_alternate . " instead" | echohl None
         let g:ConqueTerm_PyVersion = s:py_alternate
         if s:pytest == 'python3'
@@ -144,14 +142,6 @@ endif
 " **********************************************************************************************************
 " WINDOWS PYTHON MODULE TEST {{{
 
-if s:platform == 'dos'
-    try
-        sil exe s:py . " import win32process"
-    catch
-        call conque_term#system_fail('has_pywin32')
-        finish
-    endtry
-endif
 
 " }}}
 
@@ -350,6 +340,7 @@ function! conque_term#open(...) "{{{
         endif
     catch
         echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
+        return
     endtry
 
     " set buffer mappings and auto commands 
@@ -1084,6 +1075,8 @@ exec s:py . "file " . s:scriptdir . "Conque.py"
 exec s:py . "file " . s:scriptdir . "ConqueScreen.py"
 exec s:py . "file " . s:scriptdir . "ConqueSubprocess.py"
 if s:platform == 'dos'
+    exec s:py . "file " . s:scriptdir . "ConqueWin32Util.py"
+    exec s:py . "file " . s:scriptdir . "ConqueSoleSharedMemory.py"
     exec s:py . "file " . s:scriptdir . "ConqueSole.py"
     exec s:py . "file " . s:scriptdir . "ConqueSoleWrapper.py"
 endif
