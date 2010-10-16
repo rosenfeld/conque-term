@@ -34,6 +34,7 @@
 " path to this file
 let s:scriptfile = expand("<sfile>") 
 let s:scriptdir = expand("<sfile>:h") . '/'
+let s:scriptdirpy = expand("<sfile>:h") . '/conque_term/'
 
 " Extra key codes
 let s:input_extra = []
@@ -330,7 +331,7 @@ function! conque_term#open(...) "{{{
         else
             " find python.exe and communicator
             let py_exe = conque_term#python_escape(conque_term#find_python_exe())
-            let py_vim = conque_term#python_escape(s:scriptdir . 'conque_sole_communicator.py')
+            let py_vim = conque_term#python_escape(s:scriptdirpy . 'conque_sole_communicator.py')
             if py_exe == ''
                 return 0
             endif
@@ -1073,14 +1074,14 @@ endfunction " }}}
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
-exec s:py . "file " . s:scriptdir . "conque_globals.py"
-exec s:py . "file " . s:scriptdir . "Conque.py"
-exec s:py . "file " . s:scriptdir . "ConqueScreen.py"
-exec s:py . "file " . s:scriptdir . "ConqueSubprocess.py"
+exec s:py . "file " . s:scriptdirpy . "conque_globals.py"
+exec s:py . "file " . s:scriptdirpy . "Conque.py"
+exec s:py . "file " . s:scriptdirpy . "ConqueScreen.py"
+exec s:py . "file " . s:scriptdirpy . "ConqueSubprocess.py"
 if s:platform == 'dos'
-    exec s:py . "file " . s:scriptdir . "ConqueWin32Util.py"
-    exec s:py . "file " . s:scriptdir . "ConqueSoleSharedMemory.py"
-    exec s:py . "file " . s:scriptdir . "ConqueSole.py"
-    exec s:py . "file " . s:scriptdir . "ConqueSoleWrapper.py"
+    exec s:py . "file " . s:scriptdirpy . "ConqueWin32Util.py"
+    exec s:py . "file " . s:scriptdirpy . "ConqueSoleSharedMemory.py"
+    exec s:py . "file " . s:scriptdirpy . "ConqueSole.py"
+    exec s:py . "file " . s:scriptdirpy . "ConqueSoleWrapper.py"
 endif
 
