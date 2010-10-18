@@ -950,11 +950,14 @@ class Conque:
                 pass
 
     def paste(self):
-        self.write(vim.eval('@@'))
+        input = vim.eval('@@')
+        input = input.replace("\n", "\r")
         self.read(50)
 
     def paste_selection(self):
-        self.write(vim.eval('@@'))
+        input = vim.eval('@@')
+        input = input.replace("\n", "\r")
+        self.write(input)
 
     def update_window_size(self, force = False):
         # resize if needed

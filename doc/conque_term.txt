@@ -20,36 +20,33 @@ to your installed OS.
 1.1 Requirements for Unix                           *conque-term-requirements*
 
  * [G]Vim 7.0+ with +python and/or +python3
- * Python 2.3+ or 3.x
+ * Python 2.3+ and/or 3.x
  * Unix-like OS: Linux, OS X, Solaris, Cygwin, etc
 
 The most common stumbling block is getting a version of Vim which has the 
 python interface enabled. Most all software package managers will have a copy
-of Vim with Python support, so that would be the easiest way to get it. If 
+of Vim with Python support, so that is often the easiest way to get it. If 
 you're compiling Vim from source, be sure to use the --enable-pythoninterp 
 option, or --enable-python3interp for Python 3. On OS X the best option is 
 MacVim, which installs with Python support by default.
 
-1.1 Requirements for Windows                             *conque-term-windows*
+1.2 Requirements for Windows                             *conque-term-windows*
 
  * [G]Vim 7.3 with +python and/or +python3
- * Python 2.7 or 3.1
- * Python for Windows libraries
+ * Python 2.7 and/or 3.1
  * Modern Windows OS (XP or later)
 
-If you're using Windows, odds are you installed Vim using the official
-installer from www.vim.org. If you are still using the Vim 7.2 version you
-will need to upgrade to Vim 7.3, which is compiled with support for more
-recent Python versions.
+Conque only officially supports the latest GVim 7.3 Windows installer 
+available at www.vim.org. If you are currently using Vim 7.2 or earlier you
+will need to upgrade to 7.3 for Windows support. The Windows installer already
+has the +python/+python3 interface built in.
 
 The official 7.3 release of Vim for Windows only works with Python versions
 2.7 and/or 3.1. You can download and install Python from their website 
 http://www.python.org/download
 
-You will also need Python for Windows libraries. Be sure to install the
-version corresponding to the version of Python you have installed, either 2.7
-or 3.1 for the official Vim 7.3. You can download Python for windows at
-http://sourceforge.net/projects/pywin32/files
+If you are compiling Vim + Python from source on Windows, the requirements
+become only Vim 7.3+ and Python 2.7+.
 
 
 1.3 Installation                                    *conque-term-installation*
@@ -73,7 +70,7 @@ Type :ConqueTerm <command> to launch an application in the current buffer. Eg:
 >
     :ConqueTerm bash
     :ConqueTerm mysql -h localhost -u joe_lunchbox Menu
-    :ConqueTerm man top
+    :ConqueTerm Powershell.exe
 <
 Use :ConqueTermSplit or :ConqueTermVSplit to open Conque in a new horizontal
 or vertical buffer. Use :ConqueTermTab to open Conque in a new tab.
@@ -101,6 +98,19 @@ key. If you have multiple Conque buffers, the text will be sent to the most
 recently created buffer. Alternatively you can yank the text, switch to your
 terminal, then paste it with the normal 'p' key. This feature can be 
 configured to use a different key with the |ConqueTerm_SendVisKey| option.
+
+Toggle terminal input mode                                    *conque-term-F8*
+
+If you want to use insert mode to edit the terminal screen, press <F8>. You
+will now be able to edit the terminal output freely without your cursor
+jumping the the active prompt line. This may be useful if you want to reformat
+terminal output for readability. 
+
+While the terminal is paused new output will not be displayed on the screen
+until you press <F8> again to resume.
+
+You can configure Conque to use a different key with the |ConqueTerm_ToggleKey| 
+option.
 
 Sending the <Esc> key press                                  *conque-term-Esc*
 
@@ -159,7 +169,15 @@ Conque buffer.
 >
     let g:ConqueTerm_SendVisKey = '<F9>'
 <
-3.5 Enable or disable colors                                *ConqueTerm_Color*
+3.5 Toggle terminal input mode                          *ConqueTerm_ToggleKey*
+
+Press this key to pause terminal input and output display. You will then be
+able to edit the terminal screen as if it were a normal text buffer. Press
+this key again to resume terminal mode.
+>
+    let g:ConqueTerm_ToggleKey = '<F8>'
+<
+3.6 Enable or disable colors                                *ConqueTerm_Color*
 
 Set to 1 to enable colors, 0 to disable. Syntax highlighting in Vim can be
 slow if your terminal is color intensive. Disabling color can make the
@@ -167,7 +185,7 @@ terminal render significantly faster.
 >
     let g:ConqueTerm_Color = 1
 <
-3.6 Choose your terminal type, Unix ONLY                     *ConqueTerm_TERM*
+3.7 Choose your terminal type, Unix ONLY                     *ConqueTerm_TERM*
 
 Use this option to tell Conque what type of terminal it should identify itself
 as. Conque officially uses the more limited VT100 terminal type for
@@ -179,14 +197,14 @@ results may vary depending on which programs you're running.
 >
     let g:ConqueTerm_TERM = 'vt100'
 <
-3.7 Choose Vim syntax type                                 *ConqueTerm_Syntax*
+3.8 Choose Vim syntax type                                 *ConqueTerm_Syntax*
 
 Set the buffer syntax. The default 'conque' has highlighting for MySQL, but 
 not much else.
 >
     let g:ConqueTerm_Syntax = 'conque'
 <
-3.8 Keep updating terminal buffer                   *ConqueTerm_ReadUnfocused*
+3.9 Keep updating terminal buffer                   *ConqueTerm_ReadUnfocused*
 
 If set to 1 then your Conque buffers will continue to update after you've
 switched to another buffer.
@@ -198,7 +216,7 @@ workaround.
 >
     let g:ConqueTerm_ReadUnfocused = 1
 <
-3.9 Regex for highlighting your prompt                *ConqueTerm_PromptRegex*
+3.10 Regex for highlighting your prompt                *ConqueTerm_PromptRegex*
 
 Use this regular expression for sytax highlighting your terminal prompt. Your
 terminal will generally run faster if you use Vim highlighting instead of 
@@ -207,7 +225,16 @@ syntax highlighting for the prompt line.
 >
     let g:ConqueTerm_PromptRegex = '^\w\+@[0-9A-Za-z_.-]\+:[0-9A-Za-z_./\~,:-]\+\$'
 <
-3.10 Python version                                     *ConqueTerm_PyVersion*
+3.11 Close buffer when program exits                   *ConqueTerm_CloseOnEnd*
+
+If you want your terminal buffer to be closed and permanently deleted when the 
+program running inside of it exits, set this option to 1. Otherwise the buffer
+will become a simple text buffer after the program exits, and you can edit the
+program output in insert mode.
+>
+    let g:ConqueTerm_CloseOnEnd = 0
+<
+3.12 Python version                                     *ConqueTerm_PyVersion*
 
 Conque will work with either Python 2.x or 3.x, assuming the interfaces have
 been installed. By default it will try to use Python 2 first, then will try 
@@ -218,7 +245,7 @@ Conque will fall back to using Python 2.
 >
     let g:ConqueTerm_PyVersion = 2
 <
-3.11 Python executable, Windows ONLY                        *ConqueTerm_PyExe*
+3.13 Python executable, Windows ONLY                        *ConqueTerm_PyExe*
 
 The Windows version of Conque needs to know the path to the python.exe
 executable for the version of Python Conque is using. If you installed Python
@@ -228,26 +255,6 @@ Conque should be able to find python.exe without you changing this variable.
 For example, you might set this to 'C:\Program Files\Python27\python.exe'
 >
     let g:ConqueTerm_PyExe = ''
-<
-3.12 Autoload directory path, Windows ONLY            *ConqueTerm_AutoloadDir*
-
-The Windows version of Conque needs to know the path to your autoload
-directory, typically $HOME\vimfiles\autoload. In almost all cases Conque will
-be able to find this directory automatically, but if not you can set the path.
-
-For example, you might set this to 'C:\Users\Nraffo\vimfiles\autoload'
->
-    let g:ConqueTerm_AutoloadDir = ''
-<
-
-3.10 Close buffer when program exits                   *ConqueTerm_CloseOnEnd*
-
-If you want your terminal buffer to be closed and permanently deleted when the 
-program running inside of it exits, set this option to 1. Otherwise the buffer
-will become a simple text buffer after the program exits, and you can edit the
-program output in insert mode.
->
-    let g:ConqueTerm_CloseOnEnd = 0
 <
 
 ==============================================================================
@@ -431,11 +438,6 @@ consider prioritizing these two items:
  - todo.txt (Autocommands, line ~3137)
      8   Add an event like CursorHold that is triggered repeatedly, not just 
          once after typing something.
-
- - todo.txt (Autocommands, proposed event list, line ~3189)
-     InsertCharPre   - user typed character Insert mode, before inserting the
-     char.  Pattern is matched with text before the cursor. Set v:char to the 
-     character, can be changed. (not triggered when 'paste' is set).
 
 
 5.3 Feedback                                            *conque-term-feedback*

@@ -59,6 +59,11 @@ if !exists('g:ConqueTerm_SendVisKey')
     let g:ConqueTerm_SendVisKey = '<F9>'
 endif " }}}
 
+" Use this key to toggle terminal key mappings. {{{
+if !exists('g:ConqueTerm_ToggleKey')
+    let g:ConqueTerm_SendVisKey = '<F8>'
+endif " }}}
+
 " Enable color. {{{
 " If your apps use a lot of color it will slow down the shell.
 if !exists('g:ConqueTerm_Color')

@@ -643,9 +643,9 @@ function! conque_term#set_mappings(action) "{{{
         let b:conque_on = 0
     endif
 
-    " map command to start stop the shell
+    " map command to toggle terminal key mappings
     if a:action == 'start'
-        nnoremap <F5> :<C-u>call conque_term#set_mappings('toggle')<CR>
+        sil exe 'nnoremap ' . g:ConqueTerm_ToggleKey . ' :<C-u>call conque_term#set_mappings("toggle")<CR>'
     endif
     " }}}
 
