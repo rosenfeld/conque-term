@@ -61,7 +61,7 @@ endif " }}}
 
 " Use this key to toggle terminal key mappings. {{{
 if !exists('g:ConqueTerm_ToggleKey')
-    let g:ConqueTerm_SendVisKey = '<F8>'
+    let g:ConqueTerm_ToggleKey = '<F8>'
 endif " }}}
 
 " Enable color. {{{
