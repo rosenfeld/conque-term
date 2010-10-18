@@ -402,6 +402,7 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     setlocal sidescroll=1      " don't use buffer lines. it makes the 'clear' command not work as expected
     setlocal foldmethod=manual " don't fold on {{{}}} and stuff
     setlocal bufhidden=hide    " when buffer is no longer displayed, don't wipe it out
+    setlocal noreadonly        " this is not actually a readonly buffer
     if v:version >= 703
         setlocal conceallevel=3
         setlocal concealcursor=nic
