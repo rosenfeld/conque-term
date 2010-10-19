@@ -49,7 +49,7 @@ If you are compiling Vim + Python from source on Windows, the requirements
 become only Vim 7.3+ and Python 2.7+.
 
 
-1.3 Installation                                    *conque-term-installation*
+1.3 Installation                       *conque-term-installation-instructions*
 
 Download the latest vimball from http://conque.googlecode.com
 
