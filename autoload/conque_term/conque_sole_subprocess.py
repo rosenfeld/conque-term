@@ -579,7 +579,7 @@ class ConqueSoleSubprocess():
 
         # create keyboard input
         ke = KEY_EVENT_RECORD()
-        ke.wVirtualKeyCode = ctypes.c_short(vk_code)
+        ke.wVirtualKeyCode = ctypes.c_short(int(vk_code))
         ke.bKeyDown = ctypes.c_byte(1)
         ke.wRepeatCount = ctypes.c_short(1)
 
