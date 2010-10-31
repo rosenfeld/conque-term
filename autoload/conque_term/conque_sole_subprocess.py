@@ -1,37 +1,33 @@
-""" {{{
-FILE:     autoload/conque_term/ConqueSoleSubprocess.py
-AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
-WEBSITE:  http://conque.googlecode.com
-MODIFIED: __MODIFIED__
-VERSION:  __VERSION__, for Vim 7.0
-LICENSE:
-Conque - Vim terminal/console emulator
-Copyright (C) 2009-__YEAR__ Nico Raffo 
+# FILE:     autoload/conque_term/conque_sole_subprocess.py {{{
+# AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+# WEBSITE:  http://conque.googlecode.com
+# MODIFIED: __MODIFIED__
+# VERSION:  __VERSION__, for Vim 7.0
+# LICENSE:
+# Conque - Vim terminal/console emulator
+# Copyright (C) 2009-__YEAR__ Nico Raffo 
+# 
+# MIT License
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE. }}}
 
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-}}} """
-
-""" {{{
-ConqueSoleSubprocess
+""" ConqueSoleSubprocess {{{
 
 Creates a new subprocess with it's own (hidden) console window.
 
@@ -66,34 +62,6 @@ import ctypes
 from conque_globals import *
 from conque_win32_util import *
 from conque_sole_shared_memory import *
-
-import traceback # DEBUG
-
-# Globals {{{
-
-CONQUE_WINDOWS_VK = {
-    '3'  : VK_CANCEL,
-    '8'  : VK_BACK,
-    '9'  : VK_TAB,
-    '12' : VK_CLEAR,
-    '13' : VK_RETURN,
-    '17' : VK_CONTROL,
-    '20' : VK_CAPITAL,
-    '27' : VK_ESCAPE,
-    '35' : VK_END,
-    '36' : VK_HOME,
-    '37' : VK_LEFT,
-    '38' : VK_UP,
-    '39' : VK_RIGHT,
-    '40' : VK_DOWN,
-    '45' : VK_INSERT,
-    '46' : VK_DELETE,
-    '47' : VK_HELP
-}
-
-CONQUE_SEQ_REGEX_VK = re.compile(u("(\x1b\[\d{1,3}VK)"), re.UNICODE)
-
-# }}}
 
 class ConqueSoleSubprocess():
 
