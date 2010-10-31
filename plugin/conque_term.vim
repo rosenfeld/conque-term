@@ -1,10 +1,11 @@
 " FILE:     plugin/conque_term.vim {{{
 " AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+" WEBSITE:  http://conque.googlecode.com
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
 " LICENSE:
-" Conque - pty interaction in Vim
-" Copyright (C) 2009-2010 Nico Raffo 
+" Conque - Vim terminal/console emulator
+" Copyright (C) 2009-__YEAR__ Nico Raffo 
 "
 " MIT License
 " 
@@ -36,6 +37,8 @@ endif
 " **********************************************************************************************************
 " **** CONFIG **********************************************************************************************
 " **********************************************************************************************************
+
+" {{{
 
 " automatically go into insert mode when entering buffer {{{
 if !exists('g:ConqueTerm_InsertOnEnter')
@@ -116,6 +119,8 @@ if !exists('g:ConqueTerm_CloseOnEnd')
     let g:ConqueTerm_CloseOnEnd = 0
 endif " }}}
 
+" }}}
+
 " **********************************************************************************************************
 " **** Startup *********************************************************************************************
 " **********************************************************************************************************
@@ -133,3 +138,4 @@ command! -nargs=+ -complete=shellcmd ConqueTermTab call conque_term#open(<q-args
 
 " }}}
 
+" vim:foldmethod=marker

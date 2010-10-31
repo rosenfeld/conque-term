@@ -1,10 +1,39 @@
+""" {{{
+FILE:     autoload/conque_term/ConqueSole.py
+AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+WEBSITE:  http://conque.googlecode.com
+MODIFIED: __MODIFIED__
+VERSION:  __VERSION__, for Vim 7.0
+LICENSE:
+Conque - Vim terminal/console emulator
+Copyright (C) 2009-__YEAR__ Nico Raffo 
 
-import vim, time, random
+MIT License
 
-import logging # DEBUG
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+}}} """
+
+
+import vim
+
 import traceback # DEBUG
-LOG_FILENAME = 'pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
 
 CONQUE_COLOR_SEQUENCE = (
     '000', '009', '090', '099', '900', '909', '990', '999',
@@ -23,6 +52,10 @@ class ConqueSole(Conque):
     color_conceals = {}
 
     buffer = None
+
+    # counters for periodic rendering
+    buffer_redraw_ct = 0
+    screen_redraw_ct = 0
 
     # *********************************************************************************************
     # start program and initialize this instance
@@ -57,15 +90,20 @@ class ConqueSole(Conque):
         if not stats:
             return
 
+        self.buffer_redraw_ct += 1;
+        self.screen_redraw_ct += 1;
+
         # full buffer redraw, our favorite!
-        if random.randint(0, CONQUE_SOLE_BUFFER_REDRAW) == 0:
+        if self.buffer_redraw_ct == CONQUE_SOLE_BUFFER_REDRAW:
+            self.buffer_redraw_ct = 0;
             update_bottom = stats['top_offset'] + self.lines
             (lines, attributes) = self.proc.read(0, update_bottom)
             for i in range(0, update_bottom + 1):
                 self.plain_text(i, lines[i], attributes[i], stats)
 
         # full screen redraw
-        elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or random.randint(0, CONQUE_SOLE_SCREEN_REDRAW) == 0:
+        elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
+            self.screen_redraw_ct = 0;
             update_top = self.window_top
             update_bottom = stats['top_offset'] + self.lines - 1
             (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
@@ -371,3 +409,4 @@ class ConqueSole(Conque):
         self.proc.close()
 
 
+# vim:foldmethod=marker

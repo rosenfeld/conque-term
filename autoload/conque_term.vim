@@ -1,10 +1,11 @@
-" FILE:     plugin/conque_term.vim {{{
+" FILE:     autoload/conque_term.vim {{{
 " AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+" WEBSITE:  http://conque.googlecode.com
 " MODIFIED: __MODIFIED__
 " VERSION:  __VERSION__, for Vim 7.0
 " LICENSE:
-" Conque - pty interaction in Vim
-" Copyright (C) 2009-2010 Nico Raffo 
+" Conque - Vim terminal/console emulator
+" Copyright (C) 2009-__YEAR__ Nico Raffo 
 "
 " MIT License
 " 
@@ -31,6 +32,8 @@
 " **** CROSS-TERMINAL SETTINGS *****************************************************************************
 " **********************************************************************************************************
 
+" {{{
+
 " path to this file
 let s:scriptfile = expand("<sfile>") 
 let s:scriptdir = expand("<sfile>:h") . '/'
@@ -51,6 +54,8 @@ autocmd ConqueTerm VimLeave * call conque_term#close_all()
 if g:ConqueTerm_ReadUnfocused == 1
     autocmd ConqueTerm CursorHold * call conque_term#read_all(0)
 endif
+
+" }}}
 
 " **********************************************************************************************************
 " **** SYSTEM DETECTION ************************************************************************************
@@ -142,6 +147,12 @@ endif
 
 " **********************************************************************************************************
 " WINDOWS PYTHON MODULE TEST {{{
+
+
+" }}}
+
+" **********************************************************************************************************
+" WINDOWS PYTHON EXE TEST {{{
 
 
 " }}}
@@ -271,6 +282,8 @@ let s:windows_vk = {
 " **********************************************************************************************************
 " **** VIM FUNCTIONS ***************************************************************************************
 " **********************************************************************************************************
+
+" {{{
 
 " launch conque
 function! conque_term#open(...) "{{{
@@ -607,7 +620,7 @@ function! conque_term#set_mappings(action) "{{{
     endif
     " }}}
 
-    " disable other normal mode keys which insert text
+    " disable other normal mode keys which insert text {{{
     if l:action == 'start'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> r :echo "Replace mode disabled in shell."<CR>'
         sil exe 'n' . map_modifier . 'map <silent> <buffer> R :echo "Replace mode disabled in shell."<CR>'
@@ -625,7 +638,7 @@ function! conque_term#set_mappings(action) "{{{
     endif
     " }}}
 
-    " user defined mappings
+    " user defined mappings {{{
     for [map_from, map_to] in s:input_extra
         if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from . ' <C-o>:python ' . b:ConqueTerm_Var . ".write('" . conque_term#python_escape(map_to) . "')<CR>"
@@ -633,49 +646,23 @@ function! conque_term#set_mappings(action) "{{{
             sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from
         endif
     endfor
+    " }}}
 
-    " set conque as on or off
+    " set conque as on or off {{{
     if l:action == 'start'
         let b:conque_on = 1
     else
         let b:conque_on = 0
     endif
+    " }}}
 
-    " map command to toggle terminal key mappings
+    " map command to toggle terminal key mappings {{{
     if a:action == 'start'
         sil exe 'nnoremap ' . g:ConqueTerm_ToggleKey . ' :<C-u>call conque_term#set_mappings("toggle")<CR>'
     endif
     " }}}
 
 endfunction " }}}
-
-" send selected text from another buffer
-function! conque_term#send_selected(type) "{{{
-    let reg_save = @@
-
-    " save user's sb settings
-    let sb_save = &switchbuf
-    set switchbuf=usetab
-
-    " yank current selection
-    sil exe "normal! `<" . a:type . "`>y"
-
-    " format yanked text
-    let @@ = substitute(@@, '^[\r\n]*', '', '')
-    let @@ = substitute(@@, '[\r\n]*$', '', '')
-
-    " execute yanked text
-    sil exe ":sb " . g:ConqueTerm_BufName
-    sil exe s:py . ' ' . g:ConqueTerm_Var . '.paste_selection()'
-
-    " reset original values
-    let @@ = reg_save
-    sil exe 'set switchbuf=' . sb_save
-
-    " scroll buffer left
-    startinsert!
-    normal 0zH
-endfunction "}}}
 
 " read from all known conque buffers
 function! conque_term#read_all(insert_mode) "{{{
@@ -785,6 +772,14 @@ endfunction " }}}
 function! conque_term#bell() " {{{
     echohl WarningMsg | echomsg "BELL!" | echohl None
 endfunction " }}}
+
+" }}}
+
+" **********************************************************************************************************
+" **** Windows only functions ******************************************************************************
+" **********************************************************************************************************
+
+" {{{
 
 " find python.exe in windows
 function! conque_term#find_python_exe() " {{{
@@ -931,11 +926,45 @@ function! conque_term#init_conceal_color() " {{{
 
 endfunction " }}}
 
+" }}}
+
+" **********************************************************************************************************
+" **** Add-on features *************************************************************************************
+" **********************************************************************************************************
+
+" send selected text from another buffer
+function! conque_term#send_selected(type) "{{{
+    let reg_save = @@
+
+    " save user's sb settings
+    let sb_save = &switchbuf
+    set switchbuf=usetab
+
+    " yank current selection
+    sil exe "normal! `<" . a:type . "`>y"
+
+    " format yanked text
+    let @@ = substitute(@@, '^[\r\n]*', '', '')
+    let @@ = substitute(@@, '[\r\n]*$', '', '')
+
+    " execute yanked text
+    sil exe ":sb " . g:ConqueTerm_BufName
+    sil exe s:py . ' ' . g:ConqueTerm_Var . '.paste_selection()'
+
+    " reset original values
+    let @@ = reg_save
+    sil exe 'set switchbuf=' . sb_save
+
+    " scroll buffer left
+    startinsert!
+    normal 0zH
+endfunction "}}}
+
 " **********************************************************************************************************
 " **** "API" functions *************************************************************************************
 " **********************************************************************************************************
 
-" See doc/conque_term.txt for full documentation
+" See doc/conque_term.txt for full documentation {{{
 
 " Write to a conque terminal buffer
 function! s:term_obj.write(text) dict " {{{
@@ -1069,6 +1098,8 @@ function! conque_term#imap_list(map_list) " {{{
     call extend(s:input_extra, a:map_list)
 endfunction " }}}
 
+" }}}
+
 " **********************************************************************************************************
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
@@ -1084,3 +1115,4 @@ if s:platform == 'dos'
     exec s:py . "file " . s:scriptdirpy . "ConqueSoleWrapper.py"
 endif
 
+" vim:foldmethod=marker

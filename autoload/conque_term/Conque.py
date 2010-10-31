@@ -1,9 +1,40 @@
+""" {{{
+FILE:     autoload/conque_term/Conque.py
+AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
+WEBSITE:  http://conque.googlecode.com
+MODIFIED: __MODIFIED__
+VERSION:  __VERSION__, for Vim 7.0
+LICENSE:
+Conque - Vim terminal/console emulator
+Copyright (C) 2009-__YEAR__ Nico Raffo 
 
-import vim, re, time, math
+MIT License
 
-import logging # DEBUG
-LOG_FILENAME = '/Users/nraffo/.vim/pylog.log' # DEBUG
-#logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG) # DEBUG
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+}}} """
+
+import vim
+import re
+import math
+
+import time # DEBUG
 
 # CONFIG CONSTANTS  {{{
 
@@ -14,12 +45,12 @@ CONQUE_CTL = {
      8:'bs',  # backspace
      9:'tab', # tab
     10:'nl',  # new line
-    13:'cr'   # carriage return
+    13:'cr',  # carriage return
+    14:'so',  # shift out
+    15:'si'   # shift in
 }
 #    11 : 'vt',  # vertical tab
 #    12 : 'ff',  # form feed
-#    14 : 'so',  # shift out
-#    15 : 'si'   # shift in
 
 # Escape sequences 
 CONQUE_ESCAPE = { 
@@ -612,6 +643,12 @@ class Conque:
 
         self.c = ts
 
+    def ctl_so(self):
+        self.character_set = 'graphics'
+
+    def ctl_si(self):
+        self.character_set = 'ascii'
+
     # }}}
 
     ###############################################################################################
@@ -1072,3 +1109,4 @@ class Conque:
 
     # }}}
 
+# vim:foldmethod=marker
