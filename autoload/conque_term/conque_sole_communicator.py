@@ -47,9 +47,9 @@ import time
 import sys
 
 from conque_globals import *
-from ConqueWin32Util import *
-from ConqueSoleSubprocess import *
-from ConqueSoleSharedMemory import *
+from conque_win32_util import *
+from conque_sole_subprocess import *
+from conque_sole_shared_memory import *
 
 import traceback # DEBUG
 

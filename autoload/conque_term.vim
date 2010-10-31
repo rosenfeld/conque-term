@@ -1105,14 +1105,14 @@ endfunction " }}}
 " **********************************************************************************************************
 
 exec s:py . "file " . s:scriptdirpy . "conque_globals.py"
-exec s:py . "file " . s:scriptdirpy . "Conque.py"
-exec s:py . "file " . s:scriptdirpy . "ConqueScreen.py"
-exec s:py . "file " . s:scriptdirpy . "ConqueSubprocess.py"
+exec s:py . "file " . s:scriptdirpy . "conque.py"
+exec s:py . "file " . s:scriptdirpy . "conque_screen.py"
+exec s:py . "file " . s:scriptdirpy . "conque_subprocess.py"
 if s:platform == 'dos'
-    exec s:py . "file " . s:scriptdirpy . "ConqueWin32Util.py"
-    exec s:py . "file " . s:scriptdirpy . "ConqueSoleSharedMemory.py"
-    exec s:py . "file " . s:scriptdirpy . "ConqueSole.py"
-    exec s:py . "file " . s:scriptdirpy . "ConqueSoleWrapper.py"
+    exec s:py . "file " . s:scriptdirpy . "conque_win32_util.py"
+    exec s:py . "file " . s:scriptdirpy . "conque_sole_shared_memory.py"
+    exec s:py . "file " . s:scriptdirpy . "conque_sole.py"
+    exec s:py . "file " . s:scriptdirpy . "conque_sole_wrapper.py"
 endif
 
 " vim:foldmethod=marker
