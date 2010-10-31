@@ -304,7 +304,17 @@ class Conque:
             old_input = input
             input = ''
             for i in range(0, len(old_input)):
-                input = input + unichr(CONQUE_GRAPHICS_SET[ord(old_input[i])])
+                chrd = ord(old_input[i])
+                logging.debug('pre-translation: ' + old_input[i])
+                logging.debug('ord: ' + str(chrd))
+                try:
+                    if chrd > 255:
+                        logging.debug("over the line!!!11")
+                        input = input + old_input[i]
+                    else:
+                        input = input + unichr(CONQUE_GRAPHICS_SET[chrd])
+                except:
+                    logging.debug('failed')
 
         logging.debug('plain -- ' + str(self.color_changes))
         current_line = self.screen[self.l]
