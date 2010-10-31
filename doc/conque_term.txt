@@ -256,6 +256,17 @@ For example, you might set this to 'C:\Program Files\Python27\python.exe'
 >
     let g:ConqueTerm_PyExe = ''
 <
+3.14 Function Keys                               *ConqueTerm_SendFunctionKeys*
+
+By default, function keys (the F1-F12 row at the top of your keyboard) are not
+passed to the terminal. Set this option to 1 to send these key events.
+
+Note: Unless you configured |ConqueTerm_SendVisKey| and |ConqueTerm_ToggleKey|
+to use different keys, <F8> and <F9> will not be sent to the terminal even if
+you set this option to 1.
+>
+    let g:ConqueTerm_SendFunctionKeys = 0
+<
 
 ==============================================================================
 

@@ -119,6 +119,11 @@ if !exists('g:ConqueTerm_CloseOnEnd')
     let g:ConqueTerm_CloseOnEnd = 0
 endif " }}}
 
+" Send function key presses to terminal {{{
+if !exists('g:ConqueTerm_SendFunctionKeys')
+    let g:ConqueTerm_SendFunctionKeys = 0
+endif " }}}
+
 " }}}
 
 " **********************************************************************************************************

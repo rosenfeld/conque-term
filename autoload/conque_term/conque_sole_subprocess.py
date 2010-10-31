@@ -546,8 +546,8 @@ class ConqueSoleSubprocess():
                 continue
             else:
                 ke.uChar.UnicodeChar = unichr(cnum)
-                if str(cnum) in CONQUE_WINDOWS_VK:
-                    ke.wVirtualKeyCode = CONQUE_WINDOWS_VK[str(cnum)]
+                if cnum in CONQUE_WINDOWS_VK_INV:
+                    ke.wVirtualKeyCode = cnum
                 else:
                     ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum + 96)
                     ke.dwControlKeyState = LEFT_CTRL_PRESSED
@@ -579,7 +579,7 @@ class ConqueSoleSubprocess():
 
         # create keyboard input
         ke = KEY_EVENT_RECORD()
-        ke.wVirtualKeyCode = ctypes.c_short(CONQUE_WINDOWS_VK[vk_code])
+        ke.wVirtualKeyCode = ctypes.c_short(vk_code)
         ke.bKeyDown = ctypes.c_byte(1)
         ke.wRepeatCount = ctypes.c_short(1)
 
