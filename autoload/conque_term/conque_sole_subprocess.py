@@ -160,8 +160,8 @@ class ConqueSoleSubprocess():
 
             # hide window
             si.dwFlags |= STARTF_USESHOWWINDOW
-            #si.wShowWindow = SW_HIDE
-            si.wShowWindow = SW_MINIMIZE
+            si.wShowWindow = SW_HIDE
+            #si.wShowWindow = SW_MINIMIZE
 
             # process options
             flags = NORMAL_PRIORITY_CLASS | CREATE_NEW_PROCESS_GROUP | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE
