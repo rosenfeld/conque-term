@@ -179,7 +179,7 @@ class ConqueSoleSubprocess():
             logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
             self.pid = pi.dwProcessId
             self.handle = pi.hProcess
-            logging.debug(str(self.pid))
+            logging.info('process pid is ' + str(self.pid))
             logging.debug(str(self.handle))
 
             # attach ourselves to the new console
@@ -197,7 +197,7 @@ class ConqueSoleSubprocess():
 
                     break
                 except:
-                    logging.debug(traceback.format_exc())
+                    logging.warning(traceback.format_exc())
                     pass
 
             # get input / output handles
@@ -230,7 +230,7 @@ class ConqueSoleSubprocess():
             return True
 
         except:
-            logging.debug(traceback.format_exc())
+            logging.error(traceback.format_exc())
             return False
 
     # }}}
@@ -304,7 +304,7 @@ class ConqueSoleSubprocess():
             # resize console
             if cmd['cmd'] == 'resize':
 
-                logging.debug('resizing window to ' + str(cmd['data']['width']) + 'x' + str(cmd['data']['height']))
+                logging.info('resizing window to ' + str(cmd['data']['width']) + 'x' + str(cmd['data']['height']))
 
                 # only change buffer width if it's larger
                 if cmd['data']['width'] > self.buffer_width:
@@ -328,7 +328,7 @@ class ConqueSoleSubprocess():
         # no point really
         if self.screen_redraw_ct == 0 and not self.is_alive():
             stats = { 'top_offset' : 0, 'default_attribute' : 0, 'cursor_x' : 0, 'cursor_y' : self.cursor_line, 'is_alive' : 0 }
-            logging.debug('is dead')
+            logging.info('is dead')
             self.shm_stats.write(stats)
             return
 
@@ -349,7 +349,7 @@ class ConqueSoleSubprocess():
         # set update range
         if curs_line != self.cursor_line or self.top != buf_info.srWindow.Top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
             self.screen_redraw_ct = 0
-            logging.debug('screen redraw')
+            logging.info('screen redraw')
             read_start = self.top
             read_end   = buf_info.srWindow.Bottom + 1
         else:
@@ -386,7 +386,7 @@ class ConqueSoleSubprocess():
         # write new output to shared memory
         if self.mem_redraw_ct == CONQUE_SOLE_MEM_REDRAW:
             self.mem_redraw_ct = 0
-            logging.debug('mem redraw')
+            logging.info('mem redraw')
             self.shm_output.write(''.join(self.data))
             self.shm_attributes.write(''.join(self.attributes))
         else:
@@ -618,9 +618,9 @@ class ConqueSoleSubprocess():
   
         current_pid = os.getpid()
  
-        logging.debug('closing down!')
-        logging.debug(str(self.pid))
-        logging.debug(str(pid_list))
+        logging.info('closing down!')
+        logging.info(str(self.pid))
+        logging.info(str(pid_list))
 
         # kill subprocess pids
         for pid in pid_list[0:num]:
@@ -633,18 +633,18 @@ class ConqueSoleSubprocess():
             try:
                 self.close_pid(pid)
             except:
-                logging.debug(traceback.format_exc())
+                logging.warning(traceback.format_exc())
                 pass
 
         # kill this process
         try:
             self.close_pid(current_pid)
         except:
-            logging.debug(traceback.format_exc())
+            logging.warning(traceback.format_exc())
             pass
 
     def close_pid (self, pid) :
-        logging.debug('killing pid ' + str(pid))
+        logging.info('killing pid ' + str(pid))
         handle = ctypes.windll.kernel32.OpenProcess(PROCESS_TERMINATE, 0, pid)
         ctypes.windll.kernel32.TerminateProcess(handle, -1) 
         ctypes.windll.kernel32.CloseHandle(handle)
@@ -659,7 +659,7 @@ class ConqueSoleSubprocess():
         status = ctypes.windll.kernel32.WaitForSingleObject(self.handle, 1)
 
         if status == 0:
-            logging.debug('process is no longer alive!')
+            logging.warning('process is no longer alive!')
             self.is_alive = False
 
         return self.is_alive

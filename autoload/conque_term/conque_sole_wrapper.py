@@ -91,7 +91,7 @@ class ConqueSoleWrapper():
 
         # python command
         cmd_line = '%s "%s" %s %d %d %s' % (python_exe, communicator_py, self.shm_key, int(self.columns), int(self.lines), cmd)
-        logging.debug('python command: ' + cmd_line)
+        logging.info('python command: ' + cmd_line)
 
         # console window attributes
         flags = NORMAL_PRIORITY_CLASS | DETACHED_PROCESS
@@ -102,13 +102,13 @@ class ConqueSoleWrapper():
         try:
             ctypes.windll.kernel32.CreateProcessA(None, cmd_line, None, None, 0, flags, None, '.', ctypes.byref(si), ctypes.byref(pi))
         except:
-            logging.debug('COULD NOT START %s' % cmd_line)
+            logging.error('COULD NOT START %s' % cmd_line)
             raise
 
         # handle
         self.pid = pi.dwProcessId
 
-        logging.debug('communicator pid: ' + str(self.pid))
+        logging.info('communicator pid: ' + str(self.pid))
 
         # init shared memory objects
         self.init_shared_memory(self.shm_key)
@@ -172,7 +172,7 @@ class ConqueSoleWrapper():
             else:
                 return False
         except:
-            logging.debug(traceback.format_exc())
+            logging.warning(traceback.format_exc())
             return False
 
         return self.stats
