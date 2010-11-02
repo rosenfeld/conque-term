@@ -200,6 +200,18 @@ function! conque_term#dependency_check() " {{{
         return 0
     endif
 
+    " check for global cursorhold/cursormove events
+    let o = ''
+    silent redir => o
+    silent autocmd CursorHoldI,CursorMovedI
+    redir END
+    for line in split(o, "\n")
+        if line =~ '^ ' || line =~ '^--' || line =~ 'matchparen'
+            continue
+        endif
+        echohl WarningMsg | echomsg "Warning: Global CursorHoldI and CursorMovedI autocommands may cause ConqueTerm to run slowly." | echohl None
+    endfor
+
     " if we're all good, load python files
     call conque_term#load_python()
 
@@ -330,7 +342,7 @@ let s:windows_vk = {
 " }}}
 
 " **********************************************************************************************************
-" **** VIM FUNCTIONS ***************************************************************************************
+" **** ACTUAL CONQUE FUNCTIONS!  ***************************************************************************
 " **********************************************************************************************************
 
 " {{{
