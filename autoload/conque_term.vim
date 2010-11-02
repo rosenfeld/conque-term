@@ -47,13 +47,7 @@ let s:terminals = {}
 
 let s:save_updatetime = &updatetime
 
-augroup ConqueTerm
-autocmd ConqueTerm VimLeave * call conque_term#close_all()
-
-" read more output when this isn't the current buffer
-if g:ConqueTerm_ReadUnfocused == 1
-    autocmd ConqueTerm CursorHold * call conque_term#read_all(0)
-endif
+let s:initialized = 0
 
 " }}}
 
@@ -63,99 +57,155 @@ endif
 
 " {{{
 
-function! conque_term#system_fail(feature) " {{{
+function! conque_term#fail(feature) " {{{
 
     " create a new buffer
     new
     setlocal buftype=nofile
     setlocal nonumber
     setlocal foldcolumn=0
-    setlocal nowrap
+    setlocal wrap
     setlocal noswapfile
 
     " missing vim features
-    if feature == 'has_py'
+    if a:feature == 'python'
 
         call append('$', 'Conque ERROR: Python interface cannot be loaded')
         call append('$', '')
-        call append('$', 'Your version of Vim appears to be installed without the Python interface.')
+
+        if !executable("python")
+            call append('$', 'Your version of Vim appears to be installed without the Python interface. In ')
+            call append('$', 'addition, you may need to install Python.')
+        else
+            call append('$', 'Your version of Vim appears to be installed without the Python interface.')
+        endif
+
+        call append('$', '')
+
+        if has('unix') == 1
+            call append('$', "You are using a Unix-like operating system. Most, if not all, of the popular ")
+            call append('$', "Linux package managers have Python-enabled Vim available. For example ")
+            call append('$', "vim-gnome or vim-gtk on Ubuntu will get you everything you need.")
+            call append('$', "")
+            call append('$', "If you are compiling Vim from source, make sure you use the --enable-pythoninterp ")
+            call append('$', "configure option. You will also need to install Python and the Python headers.")
+            call append('$', "")
+            call append('$', "If you are using OS X, MacVim will give you Python support by default.")
+        else
+            call append('$', "You appear to be using Windows. The official Vim 7.3 installer available at ")
+            call append('$', "http://www.vim.org comes with the required Python interfaces. You will also ")
+            call append('$', "need to install Python 2.7 and/or Python 3.1, both available at http://www.python.org")
+        endif
+
+    elseif a:feature == 'python_exe'
+
+        call append('$', "Conque ERROR: Can't find Python executable")
+        call append('$', "")
+        call append('$', "Conque needs to know the full path to python.exe on Windows systems. By default, ")
+        call append('$', "Conque will check your system path as well as the most common installation path ")
+        call append('$', "C:\\PythonXX\\. To fix this error either:")
+        call append('$', "")
+        call append('$', "Set the g:ConqueTerm_PyExe option in your .vimrc. E.g.")
+        call append('$', "        let g:ConqueTerm_PyExe = 'C:\Program Files\Python27\python.exe'")
+        call append('$', "")
+        call append('$', "Add the directory where you installed python to your system path. This isn't a bad ")
+        call append('$', "idea in general.")
+
+    elseif a:feature == 'ctypes'
+
+        call append('$', 'Conque ERROR: Python cannot load the ctypes module')
+        call append('$', "")
+        call append('$', "Conque requires the 'ctypes' python module. This has been a standard module since Python 2.5.")
+        call append('$', "")
+        call append('$', "The recommended fix is to make sure you're using the latest official GVim version 7.3, ")
+        call append('$', "and have at least one of the two compatible versions of Python installed, ")
+        call append('$', "2.7 or 3.1. You can download the GVim 7.3 installer from http://www.vim.org. You ")
+        call append('$', "can download the Python 2.7 or 3.1 installer from http://www.python.org")
 
     endif
 
 endfunction " }}}
 
-" **********************************************************************************************************
-" PYTHON DETECTION {{{
+function! conque_term#dependency_check() " {{{
 
-" choose a python version and define a string unicoding function
-let s:py = ''
-if g:ConqueTerm_PyVersion == 3
-    let s:pytest = 'python3'
-else
-    let s:pytest = 'python'
-    let g:ConqueTerm_PyVersion = 2
-endif
-
-" first the requested version
-if has(s:pytest)
-    if s:pytest == 'python3'
-        let s:py = 'py3'
-    else
-        let s:py = 'py'
+    " don't recheck the second time 'round
+    if s:initialized == 1
+        return 1
     endif
 
-" otherwise use the other version
-else
-    let s:py_alternate = 5 - g:ConqueTerm_PyVersion
-    if s:py_alternate == 3
+    " choose a python version and define a string unicoding function
+    let s:py = ''
+    if g:ConqueTerm_PyVersion == 3
         let s:pytest = 'python3'
     else
         let s:pytest = 'python'
+        let g:ConqueTerm_PyVersion = 2
     endif
+
+    " first the requested version
     if has(s:pytest)
-        echohl WarningMsg | echomsg "Python " . g:ConqueTerm_PyVersion . " interface is not installed, using Python " . s:py_alternate . " instead" | echohl None
-        let g:ConqueTerm_PyVersion = s:py_alternate
         if s:pytest == 'python3'
             let s:py = 'py3'
         else
             let s:py = 'py'
         endif
+
+    " otherwise use the other version
+    else
+        let s:py_alternate = 5 - g:ConqueTerm_PyVersion
+        if s:py_alternate == 3
+            let s:pytest = 'python3'
+        else
+            let s:pytest = 'python'
+        endif
+        if has(s:pytest)
+            echohl WarningMsg | echomsg "Python " . g:ConqueTerm_PyVersion . " interface is not installed, using Python " . s:py_alternate . " instead" | echohl None
+            let g:ConqueTerm_PyVersion = s:py_alternate
+            if s:pytest == 'python3'
+                let s:py = 'py3'
+            else
+                let s:py = 'py'
+            endif
+        endif
     endif
-endif
 
-" test if we actually found a python version
-if s:py == ''
-    call conque_term#system_fail('has_py')
-    finish
-endif
+    " test if we actually found a python version
+    if s:py == ''
+        call conque_term#fail('python')
+        return 0
+    endif
 
-" }}}
+    " quick and dirty platform declaration
+    if has('unix') == 1
+        let s:platform = 'nix'
+        sil exe s:py . " CONQUE_PLATFORM = 'nix'"
+    else
+        let s:platform = 'dos'
+        sil exe s:py . " CONQUE_PLATFORM = 'dos'"
+    endif
 
-" **********************************************************************************************************
-" OPERATING SYSTEM DETECTION {{{
+    " if we're using Windows, make sure ctypes is available
+    if s:platform == 'dos'
+        try
+            sil exe s:py . " import ctypes"
+        catch
+            call conque_term#fail('ctypes')
+            return 0
+        endtry
+    endif
 
-" quick and dirty platform declaration
-if has('unix') == 1
-    let s:platform = 'nix'
-    sil exe s:py . " CONQUE_PLATFORM = 'nix'"
-else
-    let s:platform = 'dos'
-    sil exe s:py . " CONQUE_PLATFORM = 'dos'"
-endif
+    " if we're using Windows, make sure we can finde python executable
+    if s:platform == 'dos' && conque_term#find_python_exe() == ''
+        call conque_term#fail('python_exe')
+        return 0
+    endif
 
-" }}}
+    " if we're all good, load python files
+    call conque_term#load_python()
 
-" **********************************************************************************************************
-" WINDOWS PYTHON MODULE TEST {{{
+    return 1
 
-
-" }}}
-
-" **********************************************************************************************************
-" WINDOWS PYTHON EXE TEST {{{
-
-
-" }}}
+endfunction " }}}
 
 " }}}
 
@@ -292,6 +342,11 @@ function! conque_term#open(...) "{{{
     let return_to_current  = get(a:000, 2, 0)
     let is_buffer  = get(a:000, 3, 1)
 
+    " dependency check
+    if conque_term#dependency_check() == 0
+        return 0
+    endif
+
     " switch to buffer if needed
     if is_buffer && return_to_current
       let save_sb = &switchbuf
@@ -322,6 +377,9 @@ function! conque_term#open(...) "{{{
     let g:ConqueTerm_Idx += 1
     let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
+
+    " initialize global mappings if needed
+    call conque_term#init()
 
     " set buffer window options
     if is_buffer
@@ -708,6 +766,25 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'nnoremap ' . g:ConqueTerm_ToggleKey . ' :<C-u>call conque_term#set_mappings("toggle")<CR>'
     endif
     " }}}
+
+endfunction " }}}
+
+" Initialize global mappings. Should only be called once per Vim session
+function! conque_term#init() " {{{
+
+    if s:initialized == 1
+        return
+    endif
+
+    augroup ConqueTerm
+    autocmd ConqueTerm VimLeave * call conque_term#close_all()
+
+    " read more output when this isn't the current buffer
+    if g:ConqueTerm_ReadUnfocused == 1
+        autocmd ConqueTerm CursorHold * call conque_term#read_all(0)
+    endif
+
+    let s:initialized = 1
 
 endfunction " }}}
 
@@ -1151,15 +1228,19 @@ endfunction " }}}
 " **** PYTHON **********************************************************************************************
 " **********************************************************************************************************
 
-exec s:py . "file " . s:scriptdirpy . "conque_globals.py"
-exec s:py . "file " . s:scriptdirpy . "conque.py"
-exec s:py . "file " . s:scriptdirpy . "conque_screen.py"
-exec s:py . "file " . s:scriptdirpy . "conque_subprocess.py"
-if s:platform == 'dos'
-    exec s:py . "file " . s:scriptdirpy . "conque_win32_util.py"
-    exec s:py . "file " . s:scriptdirpy . "conque_sole_shared_memory.py"
-    exec s:py . "file " . s:scriptdirpy . "conque_sole.py"
-    exec s:py . "file " . s:scriptdirpy . "conque_sole_wrapper.py"
-endif
+function! conque_term#load_python() " {{{
+
+    exec s:py . "file " . s:scriptdirpy . "conque_globals.py"
+    exec s:py . "file " . s:scriptdirpy . "conque.py"
+    exec s:py . "file " . s:scriptdirpy . "conque_screen.py"
+    exec s:py . "file " . s:scriptdirpy . "conque_subprocess.py"
+    if s:platform == 'dos'
+        exec s:py . "file " . s:scriptdirpy . "conque_win32_util.py"
+        exec s:py . "file " . s:scriptdirpy . "conque_sole_shared_memory.py"
+        exec s:py . "file " . s:scriptdirpy . "conque_sole.py"
+        exec s:py . "file " . s:scriptdirpy . "conque_sole_wrapper.py"
+    endif
+
+endfunction " }}}
 
 " vim:foldmethod=marker

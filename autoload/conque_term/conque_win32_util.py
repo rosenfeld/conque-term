@@ -150,8 +150,6 @@ STD_ERROR_HANDLE = c_ulong(-12)
 
 # }}}
 
-# virtual key codes {{{
-
 CONQUE_WINDOWS_VK = { # {{{
     'VK_LBUTTON': 0x0001,
     'VK_RBUTTON': 0x0002,
