@@ -100,7 +100,7 @@ class ConqueSoleWrapper():
 
         # start the stupid process already
         try:
-            ctypes.windll.kernel32.CreateProcessA(None, cmd_line, None, None, 0, flags, None, '.', ctypes.byref(si), ctypes.byref(pi))
+            res = ctypes.windll.kernel32.CreateProcessW(None, u(cmd_line), None, None, 0, flags, None, u('.'), ctypes.byref(si), ctypes.byref(pi))
         except:
             logging.error('COULD NOT START %s' % cmd_line)
             raise

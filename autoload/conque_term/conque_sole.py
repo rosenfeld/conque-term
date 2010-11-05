@@ -157,7 +157,7 @@ class ConqueSole(Conque):
             return text
 
         # if no colors for this line, clear everything out
-        if len(attributes) == 0 or attributes == unichr(stats['default_attribute']) * len(attributes):
+        if len(attributes) == 0 or attributes == u(chr(stats['default_attribute'])) * len(attributes):
             return text
 
         new_text = ''
@@ -229,7 +229,7 @@ class ConqueSole(Conque):
             return
 
         # if no colors for this line, clear everything out
-        if len(attributes) == 0 or attributes == unichr(stats['default_attribute']) * len(attributes):
+        if len(attributes) == 0 or attributes == u(chr(stats['default_attribute'])) * len(attributes):
             self.color_changes = {}
             self.apply_color(1, len(attributes), self.l)
             return

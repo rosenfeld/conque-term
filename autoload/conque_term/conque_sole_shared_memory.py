@@ -33,9 +33,15 @@ import mmap
 import sys
 
 if sys.version_info[0] == 2:
+    CONQUE_PYTHON_VERSION = 2
+else:
+    CONQUE_PYTHON_VERSION = 3
+
+if CONQUE_PYTHON_VERSION == 2:
     import cPickle as pickle
 else:
     import pickle
+
 
 class ConqueSoleSharedMemory():
 
@@ -68,6 +74,9 @@ class ConqueSoleSharedMemory():
     # character encoding, dammit
     encoding = 'ascii'
 
+    # pickle terminator
+    TERMINATOR = None
+
     # }}}
 
     # ****************************************************************************
@@ -82,6 +91,7 @@ class ConqueSoleSharedMemory():
         self.fill_char = fill_char
         self.serialize = serialize
         self.encoding = encoding
+        self.TERMINATOR = str(chr(0)).encode(self.encoding)
 
     # }}}
 
@@ -119,24 +129,26 @@ class ConqueSoleSharedMemory():
         self.shm.seek(start)
 
         if not self.fixed_length:
-            chars = self.shm.find(chr(0))
+            chars = self.shm.find(self.TERMINATOR)
+
+        if chars == 0:
+            return ''
 
         shm_str = self.shm.read(chars)
 
+        # return unpickled byte object
+        if self.serialize:
+            return pickle.loads(shm_str)
+
+        # decode byes in python 3
+        if CONQUE_PYTHON_VERSION == 3:
+            return str(shm_str, self.encoding)
+
         # encoding
         if self.encoding != 'ascii':
-            try:
-                shm_str = unicode(shm_str, self.encoding)
-            except:
-                pass
+            shm_str = unicode(shm_str, self.encoding)
 
-        if self.serialize and shm_str != '':
-            try: 
-                return pickle.loads(shm_str)
-            except: 
-                return ''
-        else:
-            return shm_str
+        return shm_str
 
         # }}}
 
@@ -145,34 +157,23 @@ class ConqueSoleSharedMemory():
 
     def write(self, text, start = 0): # {{{
 
+        # simple scenario, let pickle create bytes
         if self.serialize:
-            tw = pickle.dumps(text, 0)
+            if CONQUE_PYTHON_VERSION == 3:
+                tb = pickle.dumps(text, 0)
+            else:
+                tb = pickle.dumps(text, 0).encode(self.encoding)
+
         else:
-            tw = text
+            tb = text.encode(self.encoding, 'replace')
 
         self.shm.seek(start)
     
-        # if it's not ascii, it's probably some unicode disaster
-        if self.encoding != 'ascii':
-            
-            # first, ensure string is a unicode object
-            try:
-                twu = unicode(tw, self.encoding)
-            except:
-                twu = tw
-
-            # then encode it into bytes that are friendly to mmap
-            twm = twu.encode(self.encoding, 'replace')
-
-        # if ascii, then do nothing
-        else:
-            twm = tw.encode('ascii', 'replace')
-
         # write to memory
         if self.fixed_length:
-            self.shm.write(twm)
+            self.shm.write(tb)
         else:
-            self.shm.write(twm + chr(0))
+            self.shm.write(tb + self.TERMINATOR)
 
         # }}}
 
@@ -184,9 +185,9 @@ class ConqueSoleSharedMemory():
         self.shm.seek(start)
 
         if self.fixed_length:
-            self.shm.write(self.fill_char * self.mem_size)
+            self.shm.write(str(self.fill_char * self.mem_size).encode(self.encoding))
         else:
-            self.shm.write(chr(0))
+            self.shm.write(self.TERMINATOR)
 
         # }}}
 

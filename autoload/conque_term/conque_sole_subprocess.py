@@ -540,12 +540,12 @@ class ConqueSoleSubprocess():
             ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum)
 
             if cnum > 31:
-                ke.uChar.UnicodeChar = unichr(cnum)
+                ke.uChar.UnicodeChar = u(chr(cnum))
             elif cnum == 3:
                 ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, self.pid)
                 continue
             else:
-                ke.uChar.UnicodeChar = unichr(cnum)
+                ke.uChar.UnicodeChar = u(chr(cnum))
                 if cnum in CONQUE_WINDOWS_VK_INV:
                     ke.wVirtualKeyCode = cnum
                 else:
