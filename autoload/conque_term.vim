@@ -379,7 +379,7 @@ function! conque_term#open(...) "{{{
         echohl WarningMsg | echomsg "No command found" | echohl None
         return 0
     else
-        let l:cargs = split(command, '[^\]\s')
+        let l:cargs = split(command, '[^\\]\@<=\s')
         let l:cargs[0] = substitute(l:cargs[0], '\\ ', ' ', 'g')
         if !executable(l:cargs[0])
             echohl WarningMsg | echomsg "Not an executable: " . l:cargs[0] | echohl None

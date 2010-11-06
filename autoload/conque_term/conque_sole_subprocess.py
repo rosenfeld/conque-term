@@ -543,7 +543,9 @@ class ConqueSoleSubprocess():
                 ke.uChar.UnicodeChar = u(chr(cnum))
             elif cnum == 3:
                 ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, self.pid)
-                continue
+                ke.uChar.UnicodeChar = u(chr(cnum))
+                ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanA(cnum + 96)
+                ke.dwControlKeyState = LEFT_CTRL_PRESSED
             else:
                 ke.uChar.UnicodeChar = u(chr(cnum))
                 if cnum in CONQUE_WINDOWS_VK_INV:
