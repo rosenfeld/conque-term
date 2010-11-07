@@ -1164,7 +1164,11 @@ endfunction " }}}
 " close subprocess with ABORT signal
 function! s:term_obj.close() dict " {{{
 
-    sil exe 'python ' . self.var . '.abort()'
+    try
+        sil exe 'python ' . self.var . '.abort()'
+    catch
+        " probably already dead
+    endtry
 
     if self.is_buffer
         call conque_term#set_mappings('stop')
