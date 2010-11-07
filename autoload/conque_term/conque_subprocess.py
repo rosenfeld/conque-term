@@ -5,20 +5,20 @@
 # VERSION:  __VERSION__, for Vim 7.0
 # LICENSE:
 # Conque - Vim terminal/console emulator
-# Copyright (C) 2009-__YEAR__ Nico Raffo 
-# 
+# Copyright (C) 2009-__YEAR__ Nico Raffo
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,11 +53,12 @@ if CONQUE_PLATFORM == 'nix':
     import termios
     import struct
 
+
 class ConqueSubprocess:
 
     # process id
     pid = 0
-    
+
     # stdout+stderr file descriptor
     fd = None
 
@@ -67,12 +68,12 @@ class ConqueSubprocess:
         # }}}
 
     # create pty + subprocess
-    def open(self, command, env = {}): # {{{
+    def open(self, command, env={}): # {{{
 
         # parse command
-        command_arr  = command.split()
-        executable   = command_arr[0]
-        args         = command_arr
+        command_arr = command.split()
+        executable = command_arr[0]
+        args = command_arr
 
         # try to fork a new pty
         try:
@@ -96,7 +97,7 @@ class ConqueSubprocess:
                 attrs[0] = attrs[0] | tty.BRKINT | tty.IXANY | tty.IMAXBEL
                 attrs[2] = attrs[2] | tty.HUPCL
                 attrs[3] = attrs[3] | tty.ICANON | tty.ECHO | tty.ISIG | tty.ECHOKE
-                attrs[6][tty.VMIN]  = 1
+                attrs[6][tty.VMIN] = 1
                 attrs[6][tty.VTIME] = 0
                 tty.tcsetattr(1, tty.TCSANOW, attrs)
             except:
@@ -114,7 +115,7 @@ class ConqueSubprocess:
 
     # read from pty
     # XXX - select.poll() doesn't work in OS X!!!!!!!
-    def read(self, timeout = 1): # {{{
+    def read(self, timeout=1): # {{{
 
         output = ''
         read_timeout = float(timeout) / 1000
@@ -122,12 +123,12 @@ class ConqueSubprocess:
         try:
             # read from fd until no more output
             while 1:
-                s_read, s_write, s_error = select.select( [ self.fd ], [], [], read_timeout)
+                s_read, s_write, s_error = select.select([self.fd], [], [], read_timeout)
 
                 lines = ''
                 for s_fd in s_read:
                     try:
-                        lines = os.read( self.fd, 32 )
+                        lines = os.read(self.fd, 32)
                     except:
                         pass
                     output = output + lines.decode('utf-8')
@@ -171,7 +172,7 @@ class ConqueSubprocess:
         p_status = True
 
         try:
-            if os.waitpid( self.pid, os.WNOHANG )[0]:
+            if os.waitpid(self.pid, os.WNOHANG)[0]:
                 p_status = False
         except:
             p_status = False

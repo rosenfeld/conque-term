@@ -5,20 +5,20 @@
 # VERSION:  __VERSION__, for Vim 7.0
 # LICENSE:
 # Conque - Vim terminal/console emulator
-# Copyright (C) 2009-__YEAR__ Nico Raffo 
-# 
+# Copyright (C) 2009-__YEAR__ Nico Raffo
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -269,7 +269,7 @@ CONQUE_WINDOWS_VK = { # {{{
     'VK_RMENU': 0x00A5
 }
 
-CONQUE_WINDOWS_VK_INV = dict([v,k] for k,v in CONQUE_WINDOWS_VK.items())
+CONQUE_WINDOWS_VK_INV = dict([v, k] for k, v in CONQUE_WINDOWS_VK.items())
 
 # }}}
 
@@ -278,14 +278,15 @@ CONQUE_WINDOWS_VK_INV = dict([v,k] for k,v in CONQUE_WINDOWS_VK.items())
 # Odd types {{{
 
 LPBYTE = POINTER(c_ubyte)
-LPTSTR = POINTER(c_char) 
+LPTSTR = POINTER(c_char)
 
 # }}}
 
+
 class STARTUPINFO(Structure): # {{{
-    _fields_ = [("cb",            c_ulong),        
-                ("lpReserved",    LPTSTR), 
-                ("lpDesktop",     LPTSTR),  
+    _fields_ = [("cb",            c_ulong),
+                ("lpReserved",    LPTSTR),
+                ("lpDesktop",     LPTSTR),
                 ("lpTitle",       LPTSTR),
                 ("dwX",           c_ulong),
                 ("dwY",           c_ulong),
@@ -293,7 +294,7 @@ class STARTUPINFO(Structure): # {{{
                 ("dwYSize",       c_ulong),
                 ("dwXCountChars", c_ulong),
                 ("dwYCountChars", c_ulong),
-                ("dwFillAttribute",c_ulong),
+                ("dwFillAttribute", c_ulong),
                 ("dwFlags",       c_ulong),
                 ("wShowWindow",   c_short),
                 ("cbReserved2",   c_short),

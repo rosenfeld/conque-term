@@ -5,20 +5,20 @@
 # VERSION:  __VERSION__, for Vim 7.0
 # LICENSE:
 # Conque - Vim terminal/console emulator
-# Copyright (C) 2009-__YEAR__ Nico Raffo 
-# 
+# Copyright (C) 2009-__YEAR__ Nico Raffo
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE. }}}
 
-""" 
+"""
 ConqueSoleCommunicator
 
 Script to transfer communications between python being run in Vim and a
@@ -35,7 +35,7 @@ subprocess run inside a Windows console. This is required since interactive
 programs in Windows appear to require a console, and python run in Vim is
 not attached to any console. So a console version of python must be initiated
 for the subprocess. Communication is then done with the use of shared memory
-objects. Good times! 
+objects. Good times!
 """
 
 import time
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         logging.info('opening command: ' + cmd)
 
         # width and height
-        options = { 'LINES' : console_height, 'COLUMNS' : console_width }
+        options = {'LINES': console_height, 'COLUMNS': console_width}
 
         logging.info('with options: ' + str(options))
 
@@ -108,12 +108,12 @@ if __name__ == '__main__':
             logging.info('process failed to open')
             exit()
 
-        shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
+        shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize=True)
         shm_command.create('write')
         shm_command.clear()
 
         # }}}
-        
+
         ##############################################################
         # main loop!
 

@@ -5,20 +5,20 @@
 # VERSION:  __VERSION__, for Vim 7.0
 # LICENSE:
 # Conque - Vim terminal/console emulator
-# Copyright (C) 2009-__YEAR__ Nico Raffo 
-# 
+# Copyright (C) 2009-__YEAR__ Nico Raffo
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,6 +28,7 @@
 # THE SOFTWARE. }}}
 
 import vim
+
 
 class ConqueSole(Conque):
 
@@ -47,7 +48,7 @@ class ConqueSole(Conque):
     # *********************************************************************************************
     # start program and initialize this instance
 
-    def open(self, command, options = {}, python_exe = '', communicator_py = ''): # {{{
+    def open(self, command, options={}, python_exe='', communicator_py=''): # {{{
 
         # init size
         self.columns = vim.current.window.width
@@ -60,7 +61,7 @@ class ConqueSole(Conque):
 
         # open command
         self.proc = ConqueSoleWrapper()
-        self.proc.open(command, { 'TERM' : options['TERM'], 'CONQUE' : '1', 'LINES' : self.lines, 'COLUMNS' : self.columns }, python_exe, communicator_py)
+        self.proc.open(command, {'TERM': options['TERM'], 'CONQUE': '1', 'LINES': self.lines, 'COLUMNS': self.columns}, python_exe, communicator_py)
 
         self.buffer = vim.current.buffer
 
@@ -70,19 +71,19 @@ class ConqueSole(Conque):
     # *********************************************************************************************
     # read and update screen
 
-    def read(self, timeout = 1, set_cursor = True): # {{{
+    def read(self, timeout=1, set_cursor=True): # {{{
 
         stats = self.proc.get_stats()
 
         if not stats:
             return
 
-        self.buffer_redraw_ct += 1;
-        self.screen_redraw_ct += 1;
+        self.buffer_redraw_ct += 1
+        self.screen_redraw_ct += 1
 
         # full buffer redraw, our favorite!
         if self.buffer_redraw_ct == CONQUE_SOLE_BUFFER_REDRAW:
-            self.buffer_redraw_ct = 0;
+            self.buffer_redraw_ct = 0
             update_bottom = stats['top_offset'] + self.lines
             (lines, attributes) = self.proc.read(0, update_bottom)
             for i in range(0, update_bottom + 1):
@@ -90,13 +91,13 @@ class ConqueSole(Conque):
 
         # full screen redraw
         elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
-            self.screen_redraw_ct = 0;
+            self.screen_redraw_ct = 0
             update_top = self.window_top
             update_bottom = stats['top_offset'] + self.lines - 1
             (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
             for i in range(update_top, update_bottom + 1):
                 self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
-            
+
 
         # single line redraw
         else:
@@ -143,7 +144,7 @@ class ConqueSole(Conque):
             self.buffer[line_nr] = text
 
         if not self.color_mode == 'conceal':
-            self.do_color(attributes = attributes, stats = stats)
+            self.do_color(attributes=attributes, stats=stats)
 
         # }}}
 
@@ -184,7 +185,7 @@ class ConqueSole(Conque):
                         ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
                         self.color_conceals[line_nr].append(start)
 
-                new_text += text[start : i]
+                new_text += text[start:i]
 
                 # close color regions
                 ends.reverse()
@@ -208,7 +209,7 @@ class ConqueSole(Conque):
                 new_text += chr(27) + 'sf' + color['bg_code'] + ';'
                 ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
 
-        new_text += text[start :]
+        new_text += text[start:]
 
         # close color regions
         ends.reverse()
@@ -218,11 +219,10 @@ class ConqueSole(Conque):
         return new_text
 
         # }}}
-        
 
     #########################################################################
 
-    def do_color(self, start = 0, end = 0, attributes = '', stats = None): # {{{
+    def do_color(self, start=0, end=0, attributes='', stats=None): # {{{
 
         # stop here if coloration is disabled
         if not self.enable_colors:
@@ -276,24 +276,24 @@ class ConqueSole(Conque):
         bg = bit_str[-8:-4].rjust(4, '0')
 
         # ok, first create foreground #rbg
-        red    = int(fg[1]) * 204 + int(fg[0]) * int(fg[1]) * 51
-        green  = int(fg[2]) * 204 + int(fg[0]) * int(fg[2]) * 51
-        blue   = int(fg[3]) * 204 + int(fg[0]) * int(fg[3]) * 51
+        red = int(fg[1]) * 204 + int(fg[0]) * int(fg[1]) * 51
+        green = int(fg[2]) * 204 + int(fg[0]) * int(fg[2]) * 51
+        blue = int(fg[3]) * 204 + int(fg[0]) * int(fg[3]) * 51
         fg_str = "#%02x%02x%02x" % (red, green, blue)
         fg_code = "%02x%02x%02x" % (red, green, blue)
         fg_code = fg_code[0] + fg_code[2] + fg_code[4]
 
         # ok, first create foreground #rbg
-        red    = int(bg[1]) * 204 + int(bg[0]) * int(bg[1]) * 51
-        green  = int(bg[2]) * 204 + int(bg[0]) * int(bg[2]) * 51
-        blue   = int(bg[3]) * 204 + int(bg[0]) * int(bg[3]) * 51
+        red = int(bg[1]) * 204 + int(bg[0]) * int(bg[1]) * 51
+        green = int(bg[2]) * 204 + int(bg[0]) * int(bg[2]) * 51
+        blue = int(bg[3]) * 204 + int(bg[0]) * int(bg[3]) * 51
         bg_str = "#%02x%02x%02x" % (red, green, blue)
         bg_code = "%02x%02x%02x" % (red, green, blue)
         bg_code = bg_code[0] + bg_code[2] + bg_code[4]
 
         # build value for color_changes
-    
-        color = { 'guifg' : fg_str, 'guibg' : bg_str }
+
+        color = {'guifg': fg_str, 'guibg': bg_str}
 
         if self.color_mode == 'conceal':
             color['fg_code'] = fg_code
@@ -352,7 +352,7 @@ class ConqueSole(Conque):
             for l in range(len(self.buffer) - 1, real_line):
                 self.buffer.append('')
 
-        # figure out column 
+        # figure out column
         real_column = column
         if len(self.buffer[real_line - 1]) < real_column:
             self.buffer[real_line - 1] = self.buffer[real_line - 1] + ' ' * (real_column - len(self.buffer[real_line - 1]))
@@ -386,7 +386,7 @@ class ConqueSole(Conque):
     # *********************************************************************************************
     # end subprocess
 
-    def close (self):
+    def close(self):
         self.proc.close()
 
     # *********************************************************************************************

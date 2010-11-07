@@ -5,20 +5,20 @@
 # VERSION:  __VERSION__, for Vim 7.0
 # LICENSE:
 # Conque - Vim terminal/console emulator
-# Copyright (C) 2009-__YEAR__ Nico Raffo 
-# 
+# Copyright (C) 2009-__YEAR__ Nico Raffo
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -82,11 +82,11 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # constructor I guess
 
-    def __init__ (self, mem_size, mem_type, mem_key, fixed_length = False, fill_char = ' ', serialize = False, encoding = 'ascii'): # {{{
+    def __init__(self, mem_size, mem_type, mem_key, fixed_length=False, fill_char=' ', serialize=False, encoding='ascii'): # {{{
 
         self.mem_size = mem_size
         self.mem_type = mem_type
-        self.mem_key  = mem_key
+        self.mem_key = mem_key
         self.fixed_length = fixed_length
         self.fill_char = fill_char
         self.serialize = serialize
@@ -98,7 +98,7 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # create memory block
 
-    def create (self, access = 'write'): # {{{
+    def create(self, access='write'): # {{{
 
         if access == 'write':
             mmap_access = mmap.ACCESS_WRITE
@@ -107,7 +107,7 @@ class ConqueSoleSharedMemory():
 
         name = "conque_%s_%s" % (self.mem_type, self.mem_key)
 
-        self.shm = mmap.mmap (0, self.mem_size, name, mmap_access)
+        self.shm = mmap.mmap(0, self.mem_size, name, mmap_access)
 
         if not self.shm:
             return False
@@ -119,7 +119,7 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # read data
 
-    def read (self, chars = 1, start = 0): # {{{
+    def read(self, chars=1, start=0): # {{{
 
         # invalid reads
         if self.fixed_length and (chars == 0 or start + chars > self.mem_size):
@@ -155,7 +155,7 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # write data
 
-    def write(self, text, start = 0): # {{{
+    def write(self, text, start=0): # {{{
 
         # simple scenario, let pickle create bytes
         if self.serialize:
@@ -168,7 +168,7 @@ class ConqueSoleSharedMemory():
             tb = text.encode(self.encoding, 'replace')
 
         self.shm.seek(start)
-    
+
         # write to memory
         if self.fixed_length:
             self.shm.write(tb)
@@ -180,7 +180,7 @@ class ConqueSoleSharedMemory():
     # ****************************************************************************
     # clear
 
-    def clear(self, start = 0): # {{{
+    def clear(self, start=0): # {{{
 
         self.shm.seek(start)
 

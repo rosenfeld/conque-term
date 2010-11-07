@@ -5,20 +5,20 @@
 # VERSION:  __VERSION__, for Vim 7.0
 # LICENSE:
 # Conque - Vim terminal/console emulator
-# Copyright (C) 2009-__YEAR__ Nico Raffo 
-# 
+# Copyright (C) 2009-__YEAR__ Nico Raffo
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -72,8 +72,9 @@ CONQUE_SOLE_MEM_REDRAW = 1000
 # PYTHON VERSION
 CONQUE_PYTHON_VERSION = sys.version_info[0]
 
-# foolhardy attempt to make unicode string syntax compatible with both python 2 and 3
-def u(str_val, str_encoding = 'latin-1', errors = 'strict'):
+
+def u(str_val, str_encoding='latin-1', errors='strict'):
+    """foolhardy attempt to make unicode string syntax compatible with both python 2 and 3"""
 
     if CONQUE_PYTHON_VERSION == 3:
         return str_val
@@ -84,91 +85,91 @@ def u(str_val, str_encoding = 'latin-1', errors = 'strict'):
 # Escape sequence settings  {{{
 
 CONQUE_CTL = {
-     1:'soh', # start of heading
-     2:'stx', # start of text
-     7:'bel', # bell
-     8:'bs',  # backspace
-     9:'tab', # tab
-    10:'nl',  # new line
-    13:'cr',  # carriage return
-    14:'so',  # shift out
-    15:'si'   # shift in
+     1: 'soh', # start of heading
+     2: 'stx', # start of text
+     7: 'bel', # bell
+     8: 'bs',  # backspace
+     9: 'tab', # tab
+    10: 'nl',  # new line
+    13: 'cr',  # carriage return
+    14: 'so',  # shift out
+    15: 'si'   # shift in
 }
 #    11 : 'vt',  # vertical tab
 #    12 : 'ff',  # form feed
 
-# Escape sequences 
-CONQUE_ESCAPE = { 
-    'm':'font',
-    'J':'clear_screen',
-    'K':'clear_line',
-    '@':'add_spaces',
-    'A':'cursor_up',
-    'B':'cursor_down',
-    'C':'cursor_right',
-    'D':'cursor_left',
-    'G':'cursor_to_column',
-    'H':'cursor',
-    'P':'delete_chars',
-    'f':'cursor',
-    'g':'tab_clear',
-    'r':'set_coords',
-    'h':'set',
-    'l':'reset'
+# Escape sequences
+CONQUE_ESCAPE = {
+    'm': 'font',
+    'J': 'clear_screen',
+    'K': 'clear_line',
+    '@': 'add_spaces',
+    'A': 'cursor_up',
+    'B': 'cursor_down',
+    'C': 'cursor_right',
+    'D': 'cursor_left',
+    'G': 'cursor_to_column',
+    'H': 'cursor',
+    'P': 'delete_chars',
+    'f': 'cursor',
+    'g': 'tab_clear',
+    'r': 'set_coords',
+    'h': 'set',
+    'l': 'reset'
 }
-#    'L':'insert_lines',
-#    'M':'delete_lines',
-#    'd':'cusor_vpos',
+#    'L': 'insert_lines',
+#    'M': 'delete_lines',
+#    'd': 'cusor_vpos',
 
 # Alternate escape sequences, no [
 CONQUE_ESCAPE_PLAIN = {
-    'D':'scroll_up',
-    'E':'next_line',
-    'H':'set_tab',
-    'M':'scroll_down'
+    'D': 'scroll_up',
+    'E': 'next_line',
+    'H': 'set_tab',
+    'M': 'scroll_down'
 }
-#    'N':'single_shift_2',
-#    'O':'single_shift_3',
-#    '=':'alternate_keypad',
-#    '>':'numeric_keypad',
-#    '7':'save_cursor',
-#    '8':'restore_cursor',
+#    'N': 'single_shift_2',
+#    'O': 'single_shift_3',
+#    '=': 'alternate_keypad',
+#    '>': 'numeric_keypad',
+#    '7': 'save_cursor',
+#    '8': 'restore_cursor',
 
 # Character set escape sequences, with "("
 CONQUE_ESCAPE_CHARSET = {
-    'A':'uk',
-    'B':'us',
-    '0':'graphics'
+    'A': 'uk',
+    'B': 'us',
+    '0': 'graphics'
 }
 
 # Uber alternate escape sequences, with # or ?
 CONQUE_ESCAPE_QUESTION = {
-    '1h':'new_line_mode',
-    '3h':'132_cols',
-    '4h':'smooth_scrolling',
-    '5h':'reverse_video',
-    '6h':'relative_origin',
-    '7h':'set_auto_wrap',
-    '8h':'set_auto_repeat',
-    '9h':'set_interlacing_mode',
-    '1l':'set_cursor_key',
-    '2l':'set_vt52',
-    '3l':'80_cols',
-    '4l':'set_jump_scrolling',
-    '5l':'normal_video',
-    '6l':'absolute_origin',
-    '7l':'reset_auto_wrap',
-    '8l':'reset_auto_repeat',
-    '9l':'reset_interlacing_mode'
+    '1h': 'new_line_mode',
+    '3h': '132_cols',
+    '4h': 'smooth_scrolling',
+    '5h': 'reverse_video',
+    '6h': 'relative_origin',
+    '7h': 'set_auto_wrap',
+    '8h': 'set_auto_repeat',
+    '9h': 'set_interlacing_mode',
+    '1l': 'set_cursor_key',
+    '2l': 'set_vt52',
+    '3l': '80_cols',
+    '4l': 'set_jump_scrolling',
+    '5l': 'normal_video',
+    '6l': 'absolute_origin',
+    '7l': 'reset_auto_wrap',
+    '8l': 'reset_auto_repeat',
+    '9l': 'reset_interlacing_mode'
 }
 
 CONQUE_ESCAPE_HASH = {
-    '8':'screen_alignment_test'
-} 
-#    '3':'double_height_top',
-#    '4':'double_height_bottom',
-#    '5':'single_height_single_width',
-#    '6':'single_height_double_width',
+    '8': 'screen_alignment_test'
+}
+#    '3': 'double_height_top',
+#    '4': 'double_height_bottom',
+#    '5': 'single_height_single_width',
+#    '6': 'single_height_double_width',
 
 CONQUE_GRAPHICS_SET = [
     0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
@@ -207,65 +208,65 @@ CONQUE_GRAPHICS_SET = [
 
 # Font codes {{{
 CONQUE_FONT = {
-    0: {'description':'Normal (default)', 'attributes': {'cterm':'NONE','ctermfg':'NONE','ctermbg':'NONE','gui':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':True},
-    1: {'description':'Bold', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':False},
-    4: {'description':'Underlined', 'attributes': {'cterm':'UNDERLINE','gui':'UNDERLINE'}, 'normal':False},
-    5: {'description':'Blink (appears as Bold)', 'attributes': {'cterm':'BOLD','gui':'BOLD'}, 'normal':False},
-    7: {'description':'Inverse', 'attributes': {'cterm':'REVERSE','gui':'REVERSE'}, 'normal':False},
-    8: {'description':'Invisible (hidden)', 'attributes': {'ctermfg':'0','ctermbg':'0','guifg':'#000000','guibg':'#000000'}, 'normal':False},
-    22: {'description':'Normal (neither bold nor faint)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
-    24: {'description':'Not underlined', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
-    25: {'description':'Steady (not blinking)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
-    27: {'description':'Positive (not inverse)', 'attributes': {'cterm':'NONE','gui':'NONE'}, 'normal':True},
-    28: {'description':'Visible (not hidden)', 'attributes': {'ctermfg':'NONE','ctermbg':'NONE','guifg':'NONE','guibg':'NONE'}, 'normal':True},
-    30: {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'16','guifg':'#000000'}, 'normal':False},
-    31: {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'1','guifg':'#ff0000'}, 'normal':False},
-    32: {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'2','guifg':'#00ff00'}, 'normal':False},
-    33: {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'3','guifg':'#ffff00'}, 'normal':False},
-    34: {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'4','guifg':'#0000ff'}, 'normal':False},
-    35: {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'5','guifg':'#990099'}, 'normal':False},
-    36: {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'6','guifg':'#009999'}, 'normal':False},
-    37: {'description':'Set foreground color to White', 'attributes': {'ctermfg':'7','guifg':'#ffffff'}, 'normal':False},
-    39: {'description':'Set foreground color to default (original)', 'attributes': {'ctermfg':'NONE','guifg':'NONE'}, 'normal':True},
-    40: {'description':'Set background color to Black', 'attributes': {'ctermbg':'16','guibg':'#000000'}, 'normal':False},
-    41: {'description':'Set background color to Red', 'attributes': {'ctermbg':'1','guibg':'#ff0000'}, 'normal':False},
-    42: {'description':'Set background color to Green', 'attributes': {'ctermbg':'2','guibg':'#00ff00'}, 'normal':False},
-    43: {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'3','guibg':'#ffff00'}, 'normal':False},
-    44: {'description':'Set background color to Blue', 'attributes': {'ctermbg':'4','guibg':'#0000ff'}, 'normal':False},
-    45: {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'5','guibg':'#990099'}, 'normal':False},
-    46: {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'6','guibg':'#009999'}, 'normal':False},
-    47: {'description':'Set background color to White', 'attributes': {'ctermbg':'7','guibg':'#ffffff'}, 'normal':False},
-    49: {'description':'Set background color to default (original).', 'attributes': {'ctermbg':'NONE','guibg':'NONE'}, 'normal':True},
-    90: {'description':'Set foreground color to Black', 'attributes': {'ctermfg':'8','guifg':'#000000'}, 'normal':False},
-    91: {'description':'Set foreground color to Red', 'attributes': {'ctermfg':'9','guifg':'#ff0000'}, 'normal':False},
-    92: {'description':'Set foreground color to Green', 'attributes': {'ctermfg':'10','guifg':'#00ff00'}, 'normal':False},
-    93: {'description':'Set foreground color to Yellow', 'attributes': {'ctermfg':'11','guifg':'#ffff00'}, 'normal':False},
-    94: {'description':'Set foreground color to Blue', 'attributes': {'ctermfg':'12','guifg':'#0000ff'}, 'normal':False},
-    95: {'description':'Set foreground color to Magenta', 'attributes': {'ctermfg':'13','guifg':'#990099'}, 'normal':False},
-    96: {'description':'Set foreground color to Cyan', 'attributes': {'ctermfg':'14','guifg':'#009999'}, 'normal':False},
-    97: {'description':'Set foreground color to White', 'attributes': {'ctermfg':'15','guifg':'#ffffff'}, 'normal':False},
-    100: {'description':'Set background color to Black', 'attributes': {'ctermbg':'8','guibg':'#000000'}, 'normal':False},
-    101: {'description':'Set background color to Red', 'attributes': {'ctermbg':'9','guibg':'#ff0000'}, 'normal':False},
-    102: {'description':'Set background color to Green', 'attributes': {'ctermbg':'10','guibg':'#00ff00'}, 'normal':False},
-    103: {'description':'Set background color to Yellow', 'attributes': {'ctermbg':'11','guibg':'#ffff00'}, 'normal':False},
-    104: {'description':'Set background color to Blue', 'attributes': {'ctermbg':'12','guibg':'#0000ff'}, 'normal':False},
-    105: {'description':'Set background color to Magenta', 'attributes': {'ctermbg':'13','guibg':'#990099'}, 'normal':False},
-    106: {'description':'Set background color to Cyan', 'attributes': {'ctermbg':'14','guibg':'#009999'}, 'normal':False},
-    107: {'description':'Set background color to White', 'attributes': {'ctermbg':'15','guibg':'#ffffff'}, 'normal':False}
-} 
+    0: {'description': 'Normal (default)', 'attributes': {'cterm': 'NONE', 'ctermfg': 'NONE', 'ctermbg': 'NONE', 'gui': 'NONE', 'guifg': 'NONE', 'guibg': 'NONE'}, 'normal': True},
+    1: {'description': 'Bold', 'attributes': {'cterm': 'BOLD', 'gui': 'BOLD'}, 'normal': False},
+    4: {'description': 'Underlined', 'attributes': {'cterm': 'UNDERLINE', 'gui': 'UNDERLINE'}, 'normal': False},
+    5: {'description': 'Blink (appears as Bold)', 'attributes': {'cterm': 'BOLD', 'gui': 'BOLD'}, 'normal': False},
+    7: {'description': 'Inverse', 'attributes': {'cterm': 'REVERSE', 'gui': 'REVERSE'}, 'normal': False},
+    8: {'description': 'Invisible (hidden)', 'attributes': {'ctermfg': '0', 'ctermbg': '0', 'guifg': '#000000', 'guibg': '#000000'}, 'normal': False},
+    22: {'description': 'Normal (neither bold nor faint)', 'attributes': {'cterm': 'NONE', 'gui': 'NONE'}, 'normal': True},
+    24: {'description': 'Not underlined', 'attributes': {'cterm': 'NONE', 'gui': 'NONE'}, 'normal': True},
+    25: {'description': 'Steady (not blinking)', 'attributes': {'cterm': 'NONE', 'gui': 'NONE'}, 'normal': True},
+    27: {'description': 'Positive (not inverse)', 'attributes': {'cterm': 'NONE', 'gui': 'NONE'}, 'normal': True},
+    28: {'description': 'Visible (not hidden)', 'attributes': {'ctermfg': 'NONE', 'ctermbg': 'NONE', 'guifg': 'NONE', 'guibg': 'NONE'}, 'normal': True},
+    30: {'description': 'Set foreground color to Black', 'attributes': {'ctermfg': '16', 'guifg': '#000000'}, 'normal': False},
+    31: {'description': 'Set foreground color to Red', 'attributes': {'ctermfg': '1', 'guifg': '#ff0000'}, 'normal': False},
+    32: {'description': 'Set foreground color to Green', 'attributes': {'ctermfg': '2', 'guifg': '#00ff00'}, 'normal': False},
+    33: {'description': 'Set foreground color to Yellow', 'attributes': {'ctermfg': '3', 'guifg': '#ffff00'}, 'normal': False},
+    34: {'description': 'Set foreground color to Blue', 'attributes': {'ctermfg': '4', 'guifg': '#0000ff'}, 'normal': False},
+    35: {'description': 'Set foreground color to Magenta', 'attributes': {'ctermfg': '5', 'guifg': '#990099'}, 'normal': False},
+    36: {'description': 'Set foreground color to Cyan', 'attributes': {'ctermfg': '6', 'guifg': '#009999'}, 'normal': False},
+    37: {'description': 'Set foreground color to White', 'attributes': {'ctermfg': '7', 'guifg': '#ffffff'}, 'normal': False},
+    39: {'description': 'Set foreground color to default (original)', 'attributes': {'ctermfg': 'NONE', 'guifg': 'NONE'}, 'normal': True},
+    40: {'description': 'Set background color to Black', 'attributes': {'ctermbg': '16', 'guibg': '#000000'}, 'normal': False},
+    41: {'description': 'Set background color to Red', 'attributes': {'ctermbg': '1', 'guibg': '#ff0000'}, 'normal': False},
+    42: {'description': 'Set background color to Green', 'attributes': {'ctermbg': '2', 'guibg': '#00ff00'}, 'normal': False},
+    43: {'description': 'Set background color to Yellow', 'attributes': {'ctermbg': '3', 'guibg': '#ffff00'}, 'normal': False},
+    44: {'description': 'Set background color to Blue', 'attributes': {'ctermbg': '4', 'guibg': '#0000ff'}, 'normal': False},
+    45: {'description': 'Set background color to Magenta', 'attributes': {'ctermbg': '5', 'guibg': '#990099'}, 'normal': False},
+    46: {'description': 'Set background color to Cyan', 'attributes': {'ctermbg': '6', 'guibg': '#009999'}, 'normal': False},
+    47: {'description': 'Set background color to White', 'attributes': {'ctermbg': '7', 'guibg': '#ffffff'}, 'normal': False},
+    49: {'description': 'Set background color to default (original).', 'attributes': {'ctermbg': 'NONE', 'guibg': 'NONE'}, 'normal': True},
+    90: {'description': 'Set foreground color to Black', 'attributes': {'ctermfg': '8', 'guifg': '#000000'}, 'normal': False},
+    91: {'description': 'Set foreground color to Red', 'attributes': {'ctermfg': '9', 'guifg': '#ff0000'}, 'normal': False},
+    92: {'description': 'Set foreground color to Green', 'attributes': {'ctermfg': '10', 'guifg': '#00ff00'}, 'normal': False},
+    93: {'description': 'Set foreground color to Yellow', 'attributes': {'ctermfg': '11', 'guifg': '#ffff00'}, 'normal': False},
+    94: {'description': 'Set foreground color to Blue', 'attributes': {'ctermfg': '12', 'guifg': '#0000ff'}, 'normal': False},
+    95: {'description': 'Set foreground color to Magenta', 'attributes': {'ctermfg': '13', 'guifg': '#990099'}, 'normal': False},
+    96: {'description': 'Set foreground color to Cyan', 'attributes': {'ctermfg': '14', 'guifg': '#009999'}, 'normal': False},
+    97: {'description': 'Set foreground color to White', 'attributes': {'ctermfg': '15', 'guifg': '#ffffff'}, 'normal': False},
+    100: {'description': 'Set background color to Black', 'attributes': {'ctermbg': '8', 'guibg': '#000000'}, 'normal': False},
+    101: {'description': 'Set background color to Red', 'attributes': {'ctermbg': '9', 'guibg': '#ff0000'}, 'normal': False},
+    102: {'description': 'Set background color to Green', 'attributes': {'ctermbg': '10', 'guibg': '#00ff00'}, 'normal': False},
+    103: {'description': 'Set background color to Yellow', 'attributes': {'ctermbg': '11', 'guibg': '#ffff00'}, 'normal': False},
+    104: {'description': 'Set background color to Blue', 'attributes': {'ctermbg': '12', 'guibg': '#0000ff'}, 'normal': False},
+    105: {'description': 'Set background color to Magenta', 'attributes': {'ctermbg': '13', 'guibg': '#990099'}, 'normal': False},
+    106: {'description': 'Set background color to Cyan', 'attributes': {'ctermbg': '14', 'guibg': '#009999'}, 'normal': False},
+    107: {'description': 'Set background color to White', 'attributes': {'ctermbg': '15', 'guibg': '#ffffff'}, 'normal': False}
+}
 # }}}
 
 # regular expression matching (almost) all control sequences
-CONQUE_SEQ_REGEX       = re.compile(u("(\x1b\[?\??#?[0-9;]*[a-zA-Z0-9@=>]|\x1b\][0-9];.*?\x07|[\x01-\x0f]|\x1b\([AB0])"), re.UNICODE)
-CONQUE_SEQ_REGEX_CTL   = re.compile(u("^[\x01-\x0f]$"), re.UNICODE)
-CONQUE_SEQ_REGEX_CSI   = re.compile(u("^\x1b\["), re.UNICODE)
+CONQUE_SEQ_REGEX = re.compile(u("(\x1b\[?\??#?[0-9;]*[a-zA-Z0-9@=>]|\x1b\][0-9];.*?\x07|[\x01-\x0f]|\x1b\([AB0])"), re.UNICODE)
+CONQUE_SEQ_REGEX_CTL = re.compile(u("^[\x01-\x0f]$"), re.UNICODE)
+CONQUE_SEQ_REGEX_CSI = re.compile(u("^\x1b\["), re.UNICODE)
 CONQUE_SEQ_REGEX_TITLE = re.compile(u("^\x1b\]"), re.UNICODE)
-CONQUE_SEQ_REGEX_HASH  = re.compile(u("^\x1b#"), re.UNICODE)
-CONQUE_SEQ_REGEX_ESC   = re.compile(u("^\x1b.$"), re.UNICODE)
-CONQUE_SEQ_REGEX_CHAR  = re.compile(u("^\x1b\("), re.UNICODE)
+CONQUE_SEQ_REGEX_HASH = re.compile(u("^\x1b#"), re.UNICODE)
+CONQUE_SEQ_REGEX_ESC = re.compile(u("^\x1b.$"), re.UNICODE)
+CONQUE_SEQ_REGEX_CHAR = re.compile(u("^\x1b\("), re.UNICODE)
 
 # match table output
-CONQUE_TABLE_OUTPUT   = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
+CONQUE_TABLE_OUTPUT = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
 
 # }}}
 
