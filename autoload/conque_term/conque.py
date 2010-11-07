@@ -317,6 +317,7 @@ class Conque:
                         input = input + unichr(CONQUE_GRAPHICS_SET[chrd])
                 except:
                     logging.info('failed')
+                    pass
 
         logging.debug('plain -- ' + str(self.color_changes))
         current_line = self.screen[self.l]
