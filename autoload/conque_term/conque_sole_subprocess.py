@@ -197,7 +197,7 @@ class ConqueSoleSubprocess():
 
                     break
                 except:
-                    logging.warning(traceback.format_exc())
+                    logging.info(traceback.format_exc())
                     pass
 
             # get input / output handles
@@ -230,7 +230,7 @@ class ConqueSoleSubprocess():
             return True
 
         except:
-            logging.error(traceback.format_exc())
+            logging.info(traceback.format_exc())
             return False
 
     # }}}
@@ -635,14 +635,14 @@ class ConqueSoleSubprocess():
             try:
                 self.close_pid(pid)
             except:
-                logging.warning(traceback.format_exc())
+                logging.info(traceback.format_exc())
                 pass
 
         # kill this process
         try:
             self.close_pid(current_pid)
         except:
-            logging.warning(traceback.format_exc())
+            logging.info(traceback.format_exc())
             pass
 
     def close_pid (self, pid) :
@@ -661,7 +661,7 @@ class ConqueSoleSubprocess():
         status = ctypes.windll.kernel32.WaitForSingleObject(self.handle, 1)
 
         if status == 0:
-            logging.warning('process is no longer alive!')
+            logging.info('process is no longer alive!')
             self.is_alive = False
 
         return self.is_alive

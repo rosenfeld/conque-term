@@ -192,7 +192,7 @@ class Conque:
                     if nr in CONQUE_CTL:
                         getattr(self, 'ctl_' + CONQUE_CTL[nr])()
                     else:
-                        logging.warning('escape not found for ' + str(s))
+                        logging.info('escape not found for ' + str(s))
                         pass
                     # }}}
 
@@ -204,7 +204,7 @@ class Conque:
                         logging.debug(str(csi))
                         getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
                     else:
-                        logging.warning('escape not found for ' + str(s))
+                        logging.info('escape not found for ' + str(s))
                         pass
                     # }}}
         
@@ -220,7 +220,7 @@ class Conque:
                     if s[-1] in CONQUE_ESCAPE_HASH:
                         getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])()
                     else:
-                        logging.warning('escape not found for ' + str(s))
+                        logging.info('escape not found for ' + str(s))
                         pass
                     # }}}
                 
@@ -230,7 +230,7 @@ class Conque:
                     if s[-1] in CONQUE_ESCAPE_CHARSET:
                         getattr(self, 'charset_' + CONQUE_ESCAPE_CHARSET[s[-1]])()
                     else:
-                        logging.warning('escape not found for ' + str(s))
+                        logging.info('escape not found for ' + str(s))
                         pass
                     # }}}
                 
@@ -240,7 +240,7 @@ class Conque:
                     if s[-1] in CONQUE_ESCAPE_PLAIN:
                         getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])()
                     else:
-                        logging.warning('escape not found for ' + str(s))
+                        logging.info('escape not found for ' + str(s))
                         pass
                     # }}}
                 
@@ -314,7 +314,7 @@ class Conque:
                     else:
                         input = input + unichr(CONQUE_GRAPHICS_SET[chrd])
                 except:
-                    logging.warning('failed')
+                    logging.info('failed')
 
         logging.debug('plain -- ' + str(self.color_changes))
         current_line = self.screen[self.l]

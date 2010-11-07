@@ -79,7 +79,7 @@ class ConqueSubprocess:
             self.pid, self.fd = pty.fork()
             logging.info(self.pid)
         except:
-            logging.warning("pty.fork() failed. Did you mean pty.spork() ???")
+            logging.info("pty.fork() failed. Did you mean pty.spork() ???")
             return False
 
         # child proc, replace with command after altering terminal attributes
@@ -100,7 +100,7 @@ class ConqueSubprocess:
                 attrs[6][tty.VTIME] = 0
                 tty.tcsetattr(1, tty.TCSANOW, attrs)
             except:
-                logging.warning('attribute setting failed')
+                logging.info('attribute setting failed')
                 pass
 
             # replace this process with the subprocess
@@ -148,7 +148,7 @@ class ConqueSubprocess:
             else:
                 os.write(self.fd, bytes(input, 'utf-8'))
         except:
-            logging.warning('write fail')
+            logging.info('write fail')
             pass
         # }}}
 

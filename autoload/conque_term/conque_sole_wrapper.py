@@ -102,7 +102,7 @@ class ConqueSoleWrapper():
         try:
             res = ctypes.windll.kernel32.CreateProcessW(None, u(cmd_line), None, None, 0, flags, None, u('.'), ctypes.byref(si), ctypes.byref(pi))
         except:
-            logging.error('COULD NOT START %s' % cmd_line)
+            logging.info('COULD NOT START %s' % cmd_line)
             raise
 
         # handle
@@ -172,7 +172,7 @@ class ConqueSoleWrapper():
             else:
                 return False
         except:
-            logging.warning(traceback.format_exc())
+            logging.info(traceback.format_exc())
             return False
 
         return self.stats

@@ -59,7 +59,7 @@ if __name__ == '__main__':
         # simple arg validation
         logging.debug(str(sys.argv))
         if len(sys.argv) < 5:
-            logging.error('Arg validation failed!')
+            logging.info('Arg validation failed!')
             exit()
 
         # shared memory size
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         res = proc.open(cmd, mem_key, options)
 
         if not res:
-            logging.error('process failed to open')
+            logging.info('process failed to open')
             exit()
 
         shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize = True)
@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
                 # check process health
                 if not proc.is_alive():
-                    logging.error('subprocess appears to be deadish, closing')
+                    logging.info('subprocess appears to be deadish, closing')
                     proc.close()
                     exit()
 
@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
     # if an exception was thrown, croak
     except:
-        logging.error(traceback.format_exc())
+        logging.info(traceback.format_exc())
         proc.close()
 
 
