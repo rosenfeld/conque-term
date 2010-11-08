@@ -90,11 +90,17 @@ class ConqueScreen(object):
     def __setitem__(self, key, value): # {{{
         real_line = self.get_real_idx(key)
 
+        if CONQUE_PYTHON_VERSION == 2:
+            val = value.encode('utf-8')
+        else:
+            # XXX / Vim's python3 interface doesn't accept bytes object
+            val = str(value)
+
         # if line is past end of screen, append
         if real_line == len(self.buffer):
-            self.buffer.append(value.encode('utf-8'))
+            self.buffer.append(val)
         else:
-            self.buffer[real_line] = value.encode('utf-8')
+            self.buffer[real_line] = val
     # }}}
 
     def __delitem__(self, key): # {{{

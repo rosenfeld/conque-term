@@ -730,7 +730,7 @@ function! conque_term#set_mappings(action) "{{{
     if has('gui_running') == 1
         if l:action == 'start'
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert> <Esc>:' . s:py . ' ' . b:ConqueTerm_Var . ".write(unicode(vim.eval('@+'), 'utf-8'))<CR>a"
-            sil exe 'i' . map_modifier . 'map <buffer> <S-Help> <Esc>:<C-u>python ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
+            sil exe 'i' . map_modifier . 'map <buffer> <S-Help> <Esc>:<C-u>' . s:py . ' ' . b:ConqueTerm_Var . ".write(vim.eval('@+'))<CR>a"
         else
             sil exe 'i' . map_modifier . 'map <buffer> <S-Insert>'
             sil exe 'i' . map_modifier . 'map <buffer> <S-Help>'
@@ -759,7 +759,7 @@ function! conque_term#set_mappings(action) "{{{
     " user defined mappings {{{
     for [map_from, map_to] in s:input_extra
         if l:action == 'start'
-            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from . ' <C-o>:python ' . b:ConqueTerm_Var . ".write('" . conque_term#python_escape(map_to) . "')<CR>"
+            sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from . ' <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . ".write('" . conque_term#python_escape(map_to) . "')<CR>"
         else
             sil exe 'i' . map_modifier . 'map <silent> <buffer> ' . map_from
         endif
@@ -1107,7 +1107,7 @@ endfunction "}}}
 function! s:term_obj.write(text) dict " {{{
 
     " if we're not in terminal buffer, pass flag to not position the cursor
-    sil exe 'python ' . self.var . '.write(vim.eval("a:text"), False, False)'
+    sil exe s:py . ' ' . self.var . '.write(vim.eval("a:text"), False, False)'
 
 endfunction " }}}
 
@@ -1140,15 +1140,24 @@ function! s:term_obj.read(...) dict " {{{
     let output = ''
 
     " read!
-    sil exec ":python conque_tmp = " . self.var . ".read(timeout = " . read_time . ", set_cursor = False, return_output = True, update_buffer = " . up_py . ")"
+    sil exec s:py . " conque_tmp = " . self.var . ".read(timeout = " . read_time . ", set_cursor = False, return_output = True, update_buffer = " . up_py . ")"
 
     " ftw!
-    python << EOF
+    if g:ConqueTerm_PyVersion == 2
+        python << EOF
 if conque_tmp:
     conque_tmp = re.sub('\\\\', '\\\\\\\\', conque_tmp) 
     conque_tmp = re.sub('"', '\\\\"', conque_tmp)
     vim.command('let output = "' + conque_tmp + '"')
 EOF
+    else
+        python3 << EOF
+if conque_tmp:
+    conque_tmp = re.sub('\\\\', '\\\\\\\\', conque_tmp) 
+    conque_tmp = re.sub('"', '\\\\"', conque_tmp)
+    vim.command('let output = "' + conque_tmp + '"')
+EOF
+    endif
 
     return output
 
@@ -1165,7 +1174,7 @@ endfunction " }}}
 function! s:term_obj.close() dict " {{{
 
     try
-        sil exe 'python ' . self.var . '.abort()'
+        sil exe s:py . ' ' . self.var . '.abort()'
     catch
         " probably already dead
     endtry
