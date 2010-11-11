@@ -134,7 +134,7 @@ endif " }}}
 
 let g:ConqueTerm_Loaded = 1
 let g:ConqueTerm_Idx = 0
-let g:ConqueTerm_Version = 120
+let g:ConqueTerm_Version = 200
 
 command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
 command! -nargs=+ -complete=shellcmd ConqueTermSplit call conque_term#open(<q-args>, ['belowright split'])
