@@ -1114,7 +1114,7 @@ endfunction " }}}
 " same as write() but adds a newline
 function! s:term_obj.writeln(text) dict " {{{
 
-    call self.write(a:text . "\n")
+    call self.write(a:text . "\r")
 
 endfunction " }}}
 

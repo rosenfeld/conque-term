@@ -37,11 +37,11 @@ import traceback # DEBUG
 
 # enable logging # DEBUG
 CONQUE_LOG_FILENAME = None # DEBUG
-if os.path.exists('/home/nraffo/.vim/pylog.log'): # DEBUG
+if os.path.exists('/home/nraffo/.vim/'): # DEBUG
     CONQUE_LOG_FILENAME = '/home/nraffo/.vim/pylog.log' # DEBUG
-elif os.path.exists('C:/Documents and Settings/nraffo/vimfiles/pylog.log'): # DEBUG
+elif os.path.exists('C:/Documents and Settings/nraffo/vimfiles/'): # DEBUG
     CONQUE_LOG_FILENAME = 'C:/Documents and Settings/nraffo/vimfiles/pylog.log' # DEBUG
-elif os.path.exists('/Users/nraffo/vimfiles/pylog.log'): # DEBUG
+elif os.path.exists('/Users/nraffo/vimfiles/'): # DEBUG
     CONQUE_LOG_FILENAME = '/Users/nraffo/vimfiles/pylog.log' # DEBUG
 
 CONQUE_LOG_LEVEL = logging.INFO #DEBUG
