@@ -1143,21 +1143,8 @@ function! s:term_obj.read(...) dict " {{{
     sil exec s:py . " conque_tmp = " . self.var . ".read(timeout = " . read_time . ", set_cursor = False, return_output = True, update_buffer = " . up_py . ")"
 
     " ftw!
-    if g:ConqueTerm_PyVersion == 2
-        python << EOF
-if conque_tmp:
-    conque_tmp = re.sub('\\\\', '\\\\\\\\', conque_tmp) 
-    conque_tmp = re.sub('"', '\\\\"', conque_tmp)
-    vim.command('let output = "' + conque_tmp + '"')
-EOF
-    else
-        python3 << EOF
-if conque_tmp:
-    conque_tmp = re.sub('\\\\', '\\\\\\\\', conque_tmp) 
-    conque_tmp = re.sub('"', '\\\\"', conque_tmp)
-    vim.command('let output = "' + conque_tmp + '"')
-EOF
-    endif
+    let pycode = "\nif conque_tmp:\n    conque_tmp = re.sub('\\\\\\\\', '\\\\\\\\\\\\\\\\', conque_tmp)\n    conque_tmp = re.sub('\"', '\\\\\\\\\"', conque_tmp)\n    vim.command('let output = \"' + conque_tmp + '\"')\n"
+    sil exec s:py . pycode
 
     return output
 
