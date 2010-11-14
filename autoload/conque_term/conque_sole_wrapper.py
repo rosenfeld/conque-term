@@ -50,7 +50,7 @@ class ConqueSoleWrapper():
     pid = None
 
     # queue input in this bucket
-    bucket = ''
+    bucket = None
 
     # console size
     # NOTE: columns should never change after open() is called
@@ -75,7 +75,7 @@ class ConqueSoleWrapper():
     # unused
 
     def __init__(self): # {{{
-        pass
+        self.bucket = u('')
 
         # }}}
 
@@ -180,7 +180,10 @@ class ConqueSoleWrapper():
 
         # }}}
 
-    def is_alive(self):
+    #########################################################################
+    # get process status
+
+    def is_alive(self): # {{{
         if not self.shm_stats:
             return True
 
@@ -189,13 +192,14 @@ class ConqueSoleWrapper():
             return (stats_str['is_alive'])
         else:
             return True
+        # }}}
 
     #########################################################################
     # write input to shared memory
 
     def write(self, text): # {{{
 
-        self.bucket += text
+        self.bucket += u(text, 'ascii', 'replace')
 
         logging.debug('bucket is ' + self.bucket)
 
@@ -213,7 +217,7 @@ class ConqueSoleWrapper():
 
     def write_vk(self, vk_code): # {{{
 
-        seq = u("\x1b[") + str(vk_code) + "VK"
+        seq = "\x1b[" + str(vk_code) + "VK"
         self.write(seq)
 
         # }}}
