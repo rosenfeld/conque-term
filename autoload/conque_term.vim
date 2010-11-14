@@ -624,10 +624,10 @@ function! conque_term#set_mappings(action) "{{{
     endfor
     " }}}
 
-    " map ASCII 128-255 {{{
+    " map Latin-1 128-255 {{{
     for i in range(128, 255)
         if l:action == 'start'
-            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:" . s:py . ' ' . b:ConqueTerm_Var . ".write(chr(" . i . "))<CR>"
+            sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i) . " <C-o>:" . s:py . ' ' . b:ConqueTerm_Var . ".write_latin1(chr(" . i . "))<CR>"
         else
             sil exe "i" . map_modifier . "map <silent> <buffer> " . nr2char(i)
         endif

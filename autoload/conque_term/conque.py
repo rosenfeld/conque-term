@@ -148,6 +148,21 @@ class Conque:
 
         # }}}
 
+    # convert latin-1 input into utf-8
+    # XXX - this is a hack, to be removed soon
+    def write_latin1(self, input, set_cursor=True, read=True): # {{{ 
+
+        if CONQUE_PYTHON_VERSION == 2:
+            try:
+                input_unicode = input.decode('latin-1', 'ignore')
+                self.write(input_unicode.encode('utf-8', 'ignore'), set_cursor, read)
+            except:
+                return
+        else:
+            self.write(input, set_cursor, read)
+
+        # }}}
+
     # read from pty, and update buffer
     def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True): # {{{
         output = ''
