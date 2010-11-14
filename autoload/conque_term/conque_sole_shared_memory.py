@@ -165,7 +165,11 @@ class ConqueSoleSharedMemory():
                 tb = pickle.dumps(text, 0).encode(self.encoding)
 
         else:
-            tb = text.encode(self.encoding, 'replace')
+            if CONQUE_PYTHON_VERSION == 3:
+                tb = text.encode(self.encoding, 'replace')
+            else:
+                # convert utf-8 string into ascii string
+                tb = text.decode('utf-8', 'replace').encode(self.encoding, 'replace')
 
         self.shm.seek(start)
 

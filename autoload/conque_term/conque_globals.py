@@ -76,6 +76,9 @@ CONQUE_PYTHON_VERSION = sys.version_info[0]
 def u(str_val, str_encoding='latin-1', errors='strict'):
     """foolhardy attempt to make unicode string syntax compatible with both python 2 and 3"""
 
+    if not str_val:
+        str_val = ''
+
     if CONQUE_PYTHON_VERSION == 3:
         return str_val
 

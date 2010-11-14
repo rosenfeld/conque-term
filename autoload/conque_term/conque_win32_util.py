@@ -271,6 +271,13 @@ CONQUE_WINDOWS_VK = { # {{{
 
 CONQUE_WINDOWS_VK_INV = dict([v, k] for k, v in CONQUE_WINDOWS_VK.items())
 
+CONQUE_WINDOWS_VK_ENHANCED = {
+    str(int(CONQUE_WINDOWS_VK['VK_UP'])): 1,
+    str(int(CONQUE_WINDOWS_VK['VK_DOWN'])): 1,
+    str(int(CONQUE_WINDOWS_VK['VK_LEFT'])): 1,
+    str(int(CONQUE_WINDOWS_VK['VK_RIGHT'])): 1
+}
+
 # }}}
 
 # structures used for CreateProcess
