@@ -275,7 +275,9 @@ CONQUE_WINDOWS_VK_ENHANCED = {
     str(int(CONQUE_WINDOWS_VK['VK_UP'])): 1,
     str(int(CONQUE_WINDOWS_VK['VK_DOWN'])): 1,
     str(int(CONQUE_WINDOWS_VK['VK_LEFT'])): 1,
-    str(int(CONQUE_WINDOWS_VK['VK_RIGHT'])): 1
+    str(int(CONQUE_WINDOWS_VK['VK_RIGHT'])): 1,
+    str(int(CONQUE_WINDOWS_VK['VK_HOME'])): 1,
+    str(int(CONQUE_WINDOWS_VK['VK_END'])): 1
 }
 
 # }}}
