@@ -150,119 +150,132 @@ class Conque:
 
     # read from pty, and update buffer
     def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True): # {{{
-        # read from subprocess
-        output = self.proc.read(timeout)
-        # and strip null chars
-        output = output.replace(chr(0), '')
+        output = ''
 
-        if output == '':
-            return
+        # this may not actually work
+        try:
 
-        # for bufferless terminals
-        if not update_buffer:
-            return output
+            # read from subprocess
+            output = self.proc.read(timeout)
+            # and strip null chars
+            output = output.replace(chr(0), '')
 
-        logging.debug('read *********************************************************************')
-        #logging.debug(str(output))
-        debug_profile_start = time.time()
+            if output == '':
+                return
 
-        chunks = CONQUE_SEQ_REGEX.split(output)
-        logging.debug('ouput chunking took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
-        logging.debug(str(chunks))
+            # for bufferless terminals
+            if not update_buffer:
+                return output
 
-        debug_profile_start = time.time()
+            logging.debug('read *********************************************************************')
+            #logging.debug(str(output))
+            debug_profile_start = time.time()
 
-        # don't go through all the csi regex if length is one (no matches)
-        if len(chunks) == 1:
-            logging.debug('short circuit')
-            self.plain_text(chunks[0])
+            chunks = CONQUE_SEQ_REGEX.split(output)
+            logging.debug('ouput chunking took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
+            logging.debug(str(chunks))
 
-        else:
-            for s in chunks:
-                if s == '':
-                    continue
+            debug_profile_start = time.time()
 
-                #logging.debug(str(s) + '--------------------------------------------------------------')
-                logging.debug('chgs ' + str(self.color_changes))
-                logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
+            # don't go through all the csi regex if length is one (no matches)
+            if len(chunks) == 1:
+                logging.debug('short circuit')
+                self.plain_text(chunks[0])
 
-                # Check for control character match {{{
-                if CONQUE_SEQ_REGEX_CTL.match(s[0]):
-                    logging.debug('control match')
-                    nr = ord(s[0])
-                    if nr in CONQUE_CTL:
-                        getattr(self, 'ctl_' + CONQUE_CTL[nr])()
+            else:
+                for s in chunks:
+                    if s == '':
+                        continue
+
+                    #logging.debug(str(s) + '--------------------------------------------------------------')
+                    logging.debug('chgs ' + str(self.color_changes))
+                    logging.debug('at line ' + str(self.l) + ' column ' + str(self.c))
+
+                    # Check for control character match {{{
+                    if CONQUE_SEQ_REGEX_CTL.match(s[0]):
+                        logging.debug('control match')
+                        nr = ord(s[0])
+                        if nr in CONQUE_CTL:
+                            getattr(self, 'ctl_' + CONQUE_CTL[nr])()
+                        else:
+                            logging.info('escape not found for ' + str(s))
+                            pass
+                        # }}}
+
+                    # check for escape sequence match {{{
+                    elif CONQUE_SEQ_REGEX_CSI.match(s):
+                        logging.debug('csi match')
+                        if s[-1] in CONQUE_ESCAPE:
+                            csi = self.parse_csi(s[2:])
+                            logging.debug(str(csi))
+                            getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
+                        else:
+                            logging.info('escape not found for ' + str(s))
+                            pass
+                        # }}}
+
+                    # check for title match {{{
+                    elif CONQUE_SEQ_REGEX_TITLE.match(s):
+                        logging.debug('title match')
+                        self.change_title(s[2], s[4:-1])
+                        # }}}
+
+                    # check for hash match {{{
+                    elif CONQUE_SEQ_REGEX_HASH.match(s):
+                        logging.debug('hash match')
+                        if s[-1] in CONQUE_ESCAPE_HASH:
+                            getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])()
+                        else:
+                            logging.info('escape not found for ' + str(s))
+                            pass
+                        # }}}
+
+                    # check for charset match {{{
+                    elif CONQUE_SEQ_REGEX_CHAR.match(s):
+                        logging.debug('char match')
+                        if s[-1] in CONQUE_ESCAPE_CHARSET:
+                            getattr(self, 'charset_' + CONQUE_ESCAPE_CHARSET[s[-1]])()
+                        else:
+                            logging.info('escape not found for ' + str(s))
+                            pass
+                        # }}}
+
+                    # check for other escape match {{{
+                    elif CONQUE_SEQ_REGEX_ESC.match(s):
+                        logging.debug('escape match')
+                        if s[-1] in CONQUE_ESCAPE_PLAIN:
+                            getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])()
+                        else:
+                            logging.info('escape not found for ' + str(s))
+                            pass
+                        # }}}
+
+                    # else process plain text {{{
                     else:
-                        logging.info('escape not found for ' + str(s))
-                        pass
-                    # }}}
+                        self.plain_text(s)
+                        # }}}
 
-                # check for escape sequence match {{{
-                elif CONQUE_SEQ_REGEX_CSI.match(s):
-                    logging.debug('csi match')
-                    if s[-1] in CONQUE_ESCAPE:
-                        csi = self.parse_csi(s[2:])
-                        logging.debug(str(csi))
-                        getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
-                    else:
-                        logging.info('escape not found for ' + str(s))
-                        pass
-                    # }}}
+            # check window size
+            if set_cursor:
+                self.screen.set_cursor(self.l, self.c)
 
-                # check for title match {{{
-                elif CONQUE_SEQ_REGEX_TITLE.match(s):
-                    logging.debug('title match')
-                    self.change_title(s[2], s[4:-1])
-                    # }}}
+            # we need to set the cursor position
+            self.cursor_set = False
 
-                # check for hash match {{{
-                elif CONQUE_SEQ_REGEX_HASH.match(s):
-                    logging.debug('hash match')
-                    if s[-1] in CONQUE_ESCAPE_HASH:
-                        getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])()
-                    else:
-                        logging.info('escape not found for ' + str(s))
-                        pass
-                    # }}}
+            vim.command('redraw')
 
-                # check for charset match {{{
-                elif CONQUE_SEQ_REGEX_CHAR.match(s):
-                    logging.debug('char match')
-                    if s[-1] in CONQUE_ESCAPE_CHARSET:
-                        getattr(self, 'charset_' + CONQUE_ESCAPE_CHARSET[s[-1]])()
-                    else:
-                        logging.info('escape not found for ' + str(s))
-                        pass
-                    # }}}
+            logging.info('::: read took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
 
-                # check for other escape match {{{
-                elif CONQUE_SEQ_REGEX_ESC.match(s):
-                    logging.debug('escape match')
-                    if s[-1] in CONQUE_ESCAPE_PLAIN:
-                        getattr(self, 'esc_' + CONQUE_ESCAPE_PLAIN[s[-1]])()
-                    else:
-                        logging.info('escape not found for ' + str(s))
-                        pass
-                    # }}}
-
-                # else process plain text {{{
-                else:
-                    self.plain_text(s)
-                    # }}}
-
-        # check window size
-        if set_cursor:
-            self.screen.set_cursor(self.l, self.c)
-
-        # we need to set the cursor position
-        self.cursor_set = False
-
-        vim.command('redraw')
-
-        logging.info('::: read took ' + str((time.time() - debug_profile_start) * 1000) + ' ms')
+        except:
+            logging.info('read error')
+            logging.info(traceback.format_exc())
+            pass
 
         if return_output:
-            return output
+            if CONQUE_PYTHON_VERSION == 3:
+                return output
+            else:
+                return output.encode(vim.eval('&encoding'), 'replace')
         # }}}
 
     # for polling
@@ -291,7 +304,12 @@ class Conque:
             return
 
         # otherwise set cursor position
-        self.set_cursor(self.l, self.c)
+        try:
+            self.set_cursor(self.l, self.c)
+        except:
+            logging.info('cursor set error')
+            logging.info(traceback.format_exc())
+            pass
         self.cursor_set = True
 
     # }}}
