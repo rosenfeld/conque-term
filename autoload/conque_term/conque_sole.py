@@ -81,7 +81,6 @@ class ConqueSole(Conque):
         self.buffer_redraw_ct += 1
         self.screen_redraw_ct += 1
 
-        current_line = self.l
         update_top = 0
         update_bottom = 0
         lines = []
@@ -91,7 +90,9 @@ class ConqueSole(Conque):
             self.buffer_redraw_ct = 0
             update_top = 0
             update_bottom = stats['top_offset'] + self.lines
-            (lines, attributes) = self.proc.read(0, update_bottom)
+            (lines, attributes) = self.proc.read(update_top, update_bottom)
+            if return_output:
+                output = self.get_new_output(lines, update_top, stats)
             if update_buffer:
                 for i in range(update_top, update_bottom + 1):
                     self.plain_text(i, lines[i], attributes[i], stats)
@@ -100,8 +101,10 @@ class ConqueSole(Conque):
         elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
             self.screen_redraw_ct = 0
             update_top = self.window_top
-            update_bottom = stats['top_offset'] + self.lines - 1
-            (lines, attributes) = self.proc.read(update_top, update_bottom - update_top)
+            update_bottom = stats['top_offset'] + self.lines + 1
+            (lines, attributes) = self.proc.read(update_top, update_bottom - update_top + 1)
+            if return_output:
+                output = self.get_new_output(lines, update_top, stats)
             if update_buffer:
                 for i in range(update_top, update_bottom + 1):
                     self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
@@ -112,22 +115,12 @@ class ConqueSole(Conque):
             update_top = stats['cursor_y']
             update_bottom = stats['cursor_y']
             (lines, attributes) = self.proc.read(update_top, 1)
+            if return_output:
+                output = self.get_new_output(lines, update_top, stats)
             if update_buffer:
                 if lines[0].rstrip() != self.buffer[update_top].rstrip():
                     self.plain_text(update_top, lines[0], attributes[0], stats)
 
-        if return_output:
-            output = []
-            if stats['cursor_y'] + 1 > current_line or (stats['cursor_y'] + 1 == current_line and stats['cursor_x'] + 1 > self.c):
-                logging.debug('new output')
-                for i in range(current_line, stats['cursor_y'] + 1):
-                    if i == current_line:
-                        output.append(lines[i - update_top][self.c:])
-                    elif i == stats['cursor_y']:
-                        output.append(lines[i - update_top][:stats['cursor_x']].rstrip())
-                    else:
-                        output.append(lines[i - update_top].rstrip())
-                logging.debug('new output is ' + str(output))
 
         # reset current position
         self.window_top = stats['top_offset']
@@ -139,9 +132,45 @@ class ConqueSole(Conque):
             self.set_cursor(self.l, self.c)
 
         if return_output:
-            return "\n".join(output)
+            return output
         # }}}
 
+    #########################################################################
+    # Calculate the "new" output from this read. Fake but useful
+
+    def get_new_output(self, lines, update_top, stats): # {{{
+
+        if not (stats['cursor_y'] + 1 > self.l or (stats['cursor_y'] + 1 == self.l and stats['cursor_x'] + 1 > self.c)):
+            return ""
+
+        logging.debug('read lines: ' + str(lines))
+        logging.debug('from line: ' + str(update_top))
+        logging.debug('current cursor: line ' + str(self.l) + ' col ' + str(self.c))
+        logging.debug('new cursor: ' + str(stats))
+
+        try:
+            num_to_return = stats['cursor_y'] - self.l + 2
+            logging.debug('need to return ' + str(num_to_return) + ' lines')
+            lines = lines[self.l - update_top - 1:]
+            logging.debug('relevant lines are ' + str(lines))
+
+            new_output = []
+
+            # first line
+            new_output.append(lines[0][self.c - 1:].rstrip())
+
+            # the rest
+            for i in range(1, num_to_return):
+                new_output.append(lines[i].rstrip())
+
+        except:
+            logging.info(traceback.format_exc())
+            pass
+
+        logging.info('return output is ' + str(new_output))
+
+        return "\n".join(new_output)
+        # }}}
 
     #########################################################################
     # update the buffer

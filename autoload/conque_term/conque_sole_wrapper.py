@@ -227,6 +227,7 @@ class ConqueSoleWrapper():
 
     def idle(self): # {{{
 
+        logging.info('writing idle shm')
         self.shm_command.write({'cmd': 'idle', 'data': {}})
 
         # }}}

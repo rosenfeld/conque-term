@@ -87,14 +87,25 @@ if __name__ == '__main__':
         console_height = int(sys.argv[3])
 
         # the actual subprocess to run
-        cmd = " ".join(sys.argv[4:])
-        logging.info('opening command: ' + cmd)
+        cmd_line = " ".join(sys.argv[4:])
+        logging.info('opening command: ' + cmd_line)
 
         # width and height
         options = {'LINES': console_height, 'COLUMNS': console_width}
 
         logging.info('with options: ' + str(options))
 
+        # set initial idle status
+        shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize=True)
+        shm_command.create('write')
+
+        cmd = shm_command.read()
+        if cmd:
+            logging.info('has command')
+            if cmd['cmd'] == 'idle':
+                is_idle = True
+                shm_command.clear()
+                logging.info('idling')
         # }}}
 
         ##############################################################
@@ -102,15 +113,11 @@ if __name__ == '__main__':
 
         # {{{
         proc = ConqueSoleSubprocess()
-        res = proc.open(cmd, mem_key, options)
+        res = proc.open(cmd_line, mem_key, options)
 
         if not res:
             logging.info('process failed to open')
             exit()
-
-        shm_command = ConqueSoleSharedMemory(CONQUE_SOLE_COMMANDS_SIZE, 'command', mem_key, serialize=True)
-        shm_command.create('write')
-        shm_command.clear()
 
         # }}}
 
@@ -133,6 +140,7 @@ if __name__ == '__main__':
                 # check for change in buffer focus
                 cmd = shm_command.read()
                 if cmd:
+                    logging.info('has command')
                     if cmd['cmd'] == 'idle':
                         is_idle = True
                         shm_command.clear()

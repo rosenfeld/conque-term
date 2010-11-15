@@ -410,8 +410,8 @@ function! conque_term#open(...) "{{{
     try
         let l:config = '{"color":' . string(g:ConqueTerm_Color) . ',"TERM":"' . g:ConqueTerm_TERM . '"}'
         if s:platform == 'nix'
-            execute s:py . ' ' . b:ConqueTerm_Var . ' = Conque()'
-            execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
+            execute s:py . ' ' . g:ConqueTerm_Var . ' = Conque()'
+            execute s:py . ' ' . g:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ")"
         else
             " find python.exe and communicator
             let py_exe = conque_term#python_escape(conque_term#find_python_exe())
@@ -419,13 +419,13 @@ function! conque_term#open(...) "{{{
             if py_exe == ''
                 return 0
             endif
-            execute s:py . ' ' . b:ConqueTerm_Var . ' = ConqueSole()'
-            execute s:py . ' ' . b:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . py_vim . "')"
+            execute s:py . ' ' . g:ConqueTerm_Var . ' = ConqueSole()'
+            execute s:py . ' ' . g:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . l:config . ", '" . py_exe . "', '" . py_vim . "')"
 
             "call conque_term#init_conceal_color()
         endif
     catch
-        echohl WarningMsg | echomsg "Unable to open command: " . command | echohl None
+        echohl WarningMsg | echomsg "An error occurred: " . command | echohl None
         return
     endtry
 
@@ -452,6 +452,7 @@ function! conque_term#subprocess(command) " {{{
     let t_obj = conque_term#open(a:command, [], 0, 0)
     if !exists('b:ConqueTerm_Var')
         call conque_term#on_blur()
+        sil exe s:py . ' ' . g:ConqueTerm_Var . '.idle()'
     endif
     return t_obj
 
@@ -878,7 +879,7 @@ function! conque_term#on_focus(...) " {{{
     " set poll interval to 50ms
     set updatetime=50
 
-    if startup == 0
+    if startup == 0 && exists('b:ConqueTerm_Var')
         sil exe s:py . ' ' . g:ConqueTerm_Var . '.resume()'
     endif
 
@@ -896,8 +897,10 @@ function! conque_term#on_blur() " {{{
     if exists('s:NeoComplCache_WasEnabled') && exists(':NeoComplCacheUnlock') && s:NeoComplCache_WasEnabled == 2
         NeoComplCacheUnlock
     endif
- 
-    sil exe s:py . ' ' . b:ConqueTerm_Var . '.idle()'
+
+    if exists('b:ConqueTerm_Var')
+        sil exe s:py . ' ' . b:ConqueTerm_Var . '.idle()'
+    endif
 
     " reset poll interval
     if g:ConqueTerm_ReadUnfocused == 1

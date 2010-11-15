@@ -175,9 +175,9 @@ class ConqueSoleSubprocess():
             # create the process!
             res = ctypes.windll.kernel32.CreateProcessW(None, u(cmd), None, None, 0, flags, None, u('.'), ctypes.byref(si), ctypes.byref(pi))
 
-            logging.debug(str(res))
-            logging.debug(str(ctypes.GetLastError()))
-            logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
+            logging.info(str(res))
+            logging.info(str(ctypes.GetLastError()))
+            logging.info(str(ctypes.FormatError(ctypes.GetLastError())))
             self.pid = pi.dwProcessId
             self.handle = pi.hProcess
             logging.info('process pid is ' + str(self.pid))
@@ -287,11 +287,12 @@ class ConqueSoleSubprocess():
 
         if cmd:
 
-            # clear command
-            self.shm_command.clear()
-
             # shut it all down
             if cmd['cmd'] == 'close':
+
+                # clear command
+                self.shm_command.clear()
+
                 self.close()
                 return
 
