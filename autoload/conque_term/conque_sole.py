@@ -73,66 +73,71 @@ class ConqueSole(Conque):
 
     def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True): # {{{
 
-        stats = self.proc.get_stats()
+        try:
+            stats = self.proc.get_stats()
 
-        if not stats:
-            return
+            if not stats:
+                return
 
-        self.buffer_redraw_ct += 1
-        self.screen_redraw_ct += 1
+            self.buffer_redraw_ct += 1
+            self.screen_redraw_ct += 1
 
-        update_top = 0
-        update_bottom = 0
-        lines = []
-
-        # full buffer redraw, our favorite!
-        if self.buffer_redraw_ct == CONQUE_SOLE_BUFFER_REDRAW:
-            self.buffer_redraw_ct = 0
             update_top = 0
-            update_bottom = stats['top_offset'] + self.lines
-            (lines, attributes) = self.proc.read(update_top, update_bottom)
+            update_bottom = 0
+            lines = []
+
+            # full buffer redraw, our favorite!
+            if self.buffer_redraw_ct == CONQUE_SOLE_BUFFER_REDRAW:
+                self.buffer_redraw_ct = 0
+                update_top = 0
+                update_bottom = stats['top_offset'] + self.lines
+                (lines, attributes) = self.proc.read(update_top, update_bottom)
+                if return_output:
+                    output = self.get_new_output(lines, update_top, stats)
+                if update_buffer:
+                    for i in range(update_top, update_bottom + 1):
+                        self.plain_text(i, lines[i], attributes[i], stats)
+
+            # full screen redraw
+            elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
+                self.screen_redraw_ct = 0
+                update_top = self.window_top
+                update_bottom = stats['top_offset'] + self.lines + 1
+                (lines, attributes) = self.proc.read(update_top, update_bottom - update_top + 1)
+                if return_output:
+                    output = self.get_new_output(lines, update_top, stats)
+                if update_buffer:
+                    for i in range(update_top, update_bottom + 1):
+                        self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
+
+
+            # single line redraw
+            else:
+                update_top = stats['cursor_y']
+                update_bottom = stats['cursor_y']
+                (lines, attributes) = self.proc.read(update_top, 1)
+                if return_output:
+                    output = self.get_new_output(lines, update_top, stats)
+                if update_buffer:
+                    if lines[0].rstrip() != self.buffer[update_top].rstrip():
+                        self.plain_text(update_top, lines[0], attributes[0], stats)
+
+
+            # reset current position
+            self.window_top = stats['top_offset']
+            self.l = stats['cursor_y'] + 1
+            self.c = stats['cursor_x'] + 1
+
+            # reposition cursor if this seems plausible
+            if set_cursor:
+                self.set_cursor(self.l, self.c)
+
             if return_output:
-                output = self.get_new_output(lines, update_top, stats)
-            if update_buffer:
-                for i in range(update_top, update_bottom + 1):
-                    self.plain_text(i, lines[i], attributes[i], stats)
+                return output
 
-        # full screen redraw
-        elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
-            self.screen_redraw_ct = 0
-            update_top = self.window_top
-            update_bottom = stats['top_offset'] + self.lines + 1
-            (lines, attributes) = self.proc.read(update_top, update_bottom - update_top + 1)
-            if return_output:
-                output = self.get_new_output(lines, update_top, stats)
-            if update_buffer:
-                for i in range(update_top, update_bottom + 1):
-                    self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
-
-
-        # single line redraw
-        else:
-            update_top = stats['cursor_y']
-            update_bottom = stats['cursor_y']
-            (lines, attributes) = self.proc.read(update_top, 1)
-            if return_output:
-                output = self.get_new_output(lines, update_top, stats)
-            if update_buffer:
-                if lines[0].rstrip() != self.buffer[update_top].rstrip():
-                    self.plain_text(update_top, lines[0], attributes[0], stats)
-
-
-        # reset current position
-        self.window_top = stats['top_offset']
-        self.l = stats['cursor_y'] + 1
-        self.c = stats['cursor_x'] + 1
-
-        # reposition cursor if this seems plausible
-        if set_cursor:
-            self.set_cursor(self.l, self.c)
-
-        if return_output:
-            return output
+        except:
+            logging.info(traceback.format_exc())
+            pass
         # }}}
 
     #########################################################################

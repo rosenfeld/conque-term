@@ -3,11 +3,11 @@
 The ConqueTerm plugin will turn a Vim buffer into a terminal emulator, allowing
 you to run and interact with a shell or shell application inside the buffer.
 
-1. Installation     |conque-term-installation|
-2. Usage            |conque-term-usage|
-3. Config Options   |conque-term-options|
-4. VimScript API    |conque-term-api|
-5. Misc             |conque-term-misc|
+ 1. Installation     |conque-term-installation|
+ 2. Usage            |conque-term-usage|
+ 3. Config Options   |conque-term-options|
+ 4. VimScript API    |conque-term-api|
+ 5. Misc             |conque-term-misc|
 
 ==============================================================================
 
