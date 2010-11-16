@@ -72,7 +72,7 @@ if __name__ == '__main__':
         sleep_time = 0.01
 
         # idle read interval, in seconds
-        idle_sleep_time = 1
+        idle_sleep_time = 0.10
 
         # are we idled?
         is_idle = False
