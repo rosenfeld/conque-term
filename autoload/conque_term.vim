@@ -212,6 +212,11 @@ function! conque_term#dependency_check() " {{{
         echohl WarningMsg | echomsg "Warning: Global CursorHoldI and CursorMovedI autocommands may cause ConqueTerm to run slowly." | echohl None
     endfor
 
+    " check for compatible mode
+    if &compatible == 1
+        echohl WarningMsg | echomsg "Warning: Conque may not function normally in 'compatible' mode." | echohl None
+    endif
+
     " if we're all good, load python files
     call conque_term#load_python()
 
@@ -467,12 +472,8 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     endfor
     sil exe 'edit ++enc=utf-8 ' . g:ConqueTerm_BufName
 
-    " showcmd gets altered by nocompatible
-    let sc_save = &showcmd
-
     " buffer settings 
     setlocal fileencoding=utf-8 " file encoding, even tho there's no file
-    setlocal nocompatible      " conque won't work in compatible mode
     setlocal nopaste           " conque won't work in paste mode
     setlocal buftype=nofile    " this buffer is not a file, you can't save it
     setlocal nonumber          " hide line numbers
@@ -494,13 +495,6 @@ function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
     endif
     setfiletype conque_term    " useful
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
-
-    " reset showcmd
-    if sc_save
-      set showcmd
-    else
-      set noshowcmd
-    endif
 
     " temporary global settings go in here
     call conque_term#on_focus(1)
