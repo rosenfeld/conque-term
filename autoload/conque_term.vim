@@ -42,8 +42,20 @@ let s:scriptdirpy = expand("<sfile>:h") . '/conque_term/'
 " Extra key codes
 let s:input_extra = []
 
-let s:term_obj = { 'idx' : 1, 'var' : '', 'is_buffer' : 1, 'active' : 1, 'buffer_name' : '' }
-let s:terminals = {}
+let s:term_obj = {'idx': 1, 'var': '', 'is_buffer': 1, 'active': 1, 'buffer_name': '', 'command': ''}
+let g:ConqueTerm_Terminals = {}
+
+" required for session support
+if g:ConqueTerm_SessionSupport == 1
+    set sessionoptions+=globals
+    try
+        sil! let s:saved_terminals = eval(g:ConqueTerm_TerminalsString)
+    catch
+        let s:saved_terminals = {}
+    endtry
+endif
+let g:ConqueTerm_TerminalsString = ''
+let g:ConqueTerm_Idx = 0
 
 let s:save_updatetime = &updatetime
 
@@ -408,8 +420,11 @@ function! conque_term#open(...) "{{{
     endif
 
     " save handle
-    let t_obj = conque_term#create_terminal_object(g:ConqueTerm_Idx, is_buffer, g:ConqueTerm_BufName)
-    let s:terminals[g:ConqueTerm_Idx] = t_obj
+    let t_obj = conque_term#create_terminal_object(g:ConqueTerm_Idx, is_buffer, g:ConqueTerm_BufName, command)
+    let g:ConqueTerm_Terminals[g:ConqueTerm_Idx] = t_obj
+
+    " required for session support
+    let g:ConqueTerm_TerminalsString = string(g:ConqueTerm_Terminals)
 
     " open command
     try
@@ -807,14 +822,14 @@ function! conque_term#read_all(insert_mode) "{{{
 
     for i in range(1, g:ConqueTerm_Idx)
         try
-            if !s:terminals[i].active
+            if !g:ConqueTerm_Terminals[i].active
                 continue
             endif
 
-            let output = s:terminals[i].read(1)
+            let output = g:ConqueTerm_Terminals[i].read(1)
 
-            if !s:terminals[i].is_buffer && exists('*s:terminals[i].callback')
-                call s:terminals[i].callback(output)
+            if !g:ConqueTerm_Terminals[i].is_buffer && exists('*g:ConqueTerm_Terminals[i].callback')
+                call g:ConqueTerm_Terminals[i].callback(output)
             endif
         catch
             " probably a deleted buffer
@@ -835,7 +850,7 @@ function! conque_term#close_all() "{{{
 
     for i in range(1, g:ConqueTerm_Idx)
         try
-            call s:terminals[i].close()
+            call g:ConqueTerm_Terminals[i].close()
         catch
             " probably a deleted buffer
         endtry
@@ -1072,6 +1087,8 @@ endfunction " }}}
 " **** Add-on features *************************************************************************************
 " **********************************************************************************************************
 
+" {{{
+
 " send selected text from another buffer
 function! conque_term#send_selected(type) "{{{
     let reg_save = @@
@@ -1099,6 +1116,40 @@ function! conque_term#send_selected(type) "{{{
     startinsert!
     normal 0zH
 endfunction "}}}
+
+" called on SessionLoadPost event
+function! conque_term#resume_session() " {{{
+    if g:ConqueTerm_SessionSupport == 1
+
+        " make sure terminals exist
+        if !exists('s:saved_terminals') || type(s:saved_terminals) != 4
+            return
+        endif
+
+        " rebuild terminals
+        for idx in keys(s:saved_terminals)
+
+            " don't recreate inactive terminals
+            if s:saved_terminals[idx].active == 0
+                continue
+            endif
+
+            " check we're in the right buffer
+            let bufname = substitute(s:saved_terminals[idx].buffer_name, '\', '', 'g')
+            if bufname != bufname("%")
+                continue
+            endif
+
+            " reopen command
+            call conque_term#open(s:saved_terminals[idx].command)
+
+            return
+        endfor
+
+    endif
+endfunction " }}}
+
+" }}}
 
 " **********************************************************************************************************
 " **** "API" functions *************************************************************************************
@@ -1160,19 +1211,21 @@ endfunction " }}}
 " set output callback
 function! s:term_obj.set_callback(callback_func) dict " {{{
 
-    let s:terminals[self.idx].callback = function(a:callback_func)
+    let g:ConqueTerm_Terminals[self.idx].callback = function(a:callback_func)
 
 endfunction " }}}
 
 " close subprocess with ABORT signal
 function! s:term_obj.close() dict " {{{
 
+    " kill process
     try
         sil exe s:py . ' ' . self.var . '.abort()'
     catch
         " probably already dead
     endtry
 
+    " delete buffer if option is set
     if self.is_buffer
         call conque_term#set_mappings('stop')
         if exists('g:ConqueTerm_CloseOnEnd') && g:ConqueTerm_CloseOnEnd
@@ -1180,6 +1233,12 @@ function! s:term_obj.close() dict " {{{
             stopinsert!
         endif
     endif
+
+    " mark ourselves as inactive
+    let self.active = 0
+
+    " rebuild session options
+    let g:ConqueTerm_TerminalsString = string(g:ConqueTerm_Terminals)
 
 endfunction " }}}
 
@@ -1204,11 +1263,15 @@ function! conque_term#create_terminal_object(...) " {{{
     " the buffer name
     let bname = get(a:000, 2, '')
 
+    " the command
+    let command = get(a:000, 3, '')
+
     let l:t_obj = copy(s:term_obj)
     let l:t_obj.is_buffer = is_buffer
     let l:t_obj.idx = buf_num
     let l:t_obj.buffer_name = bname
     let l:t_obj.var = pvar
+    let l:t_obj.command = command
 
     return l:t_obj
 
@@ -1220,7 +1283,7 @@ function! conque_term#get_instance(...) " {{{
     " find conque buffer to update
     let buf_num = get(a:000, 0, 0)
 
-    if exists('s:terminals[buf_num]')
+    if exists('g:ConqueTerm_Terminals[buf_num]')
         
     elseif exists('b:ConqueTerm_Var')
         let buf_num = b:ConqueTerm_Idx
@@ -1228,7 +1291,7 @@ function! conque_term#get_instance(...) " {{{
         let buf_num = g:ConqueTerm_Idx
     endif
 
-    return s:terminals[buf_num]
+    return g:ConqueTerm_Terminals[buf_num]
 
 endfunction " }}}
 

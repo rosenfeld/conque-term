@@ -117,6 +117,11 @@ if !exists('g:ConqueTerm_SendFunctionKeys')
     let g:ConqueTerm_SendFunctionKeys = 0
 endif " }}}
 
+" Session support {{{
+if !exists('g:ConqueTerm_SessionSupport')
+    let g:ConqueTerm_SessionSupport = 0
+endif " }}}
+
 " }}}
 
 " **********************************************************************************************************
@@ -133,6 +138,10 @@ command! -nargs=+ -complete=shellcmd ConqueTerm call conque_term#open(<q-args>)
 command! -nargs=+ -complete=shellcmd ConqueTermSplit call conque_term#open(<q-args>, ['belowright split'])
 command! -nargs=+ -complete=shellcmd ConqueTermVSplit call conque_term#open(<q-args>, ['belowright vsplit'])
 command! -nargs=+ -complete=shellcmd ConqueTermTab call conque_term#open(<q-args>, ['tabnew'])
+
+if g:ConqueTerm_SessionSupport == 1
+    autocmd SessionLoadPost * call conque_term#resume_session()
+endif
 
 " }}}
 

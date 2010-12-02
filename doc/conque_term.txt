@@ -267,6 +267,21 @@ you set this option to 1.
 >
     let g:ConqueTerm_SendFunctionKeys = 0
 <
+3.15 Session Support                               *ConqueTerm_SessionSupport*
+
+Vim's :mksession command allows you to save your current buffer configuration
+to a file, which can be loaded at a later time after you've closed Vim.
+
+By default, Conque buffers are not restored. This is mostly for safety
+reasons; you may not want Vim to automatically re-run a destructive command.
+
+However, if you're not working with missile launch code, and want Vim to
+restart your Conque buffers when you load a session file, set this variable 
+to 1. Note your original subprocess and shell output will not be restored, but
+the same command will be started in your buffer.
+>
+    let g:ConqueTerm_SessionSupport = 0
+<
 
 ==============================================================================
 
