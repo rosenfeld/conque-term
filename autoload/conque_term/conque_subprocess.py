@@ -52,6 +52,7 @@ if CONQUE_PLATFORM == 'nix':
     import fcntl
     import termios
     import struct
+    import shlex
 
 
 class ConqueSubprocess:
@@ -71,7 +72,7 @@ class ConqueSubprocess:
     def open(self, command, env={}): # {{{
 
         # parse command
-        command_arr = command.split()
+        command_arr = shlex.split(command)
         executable = command_arr[0]
         args = command_arr
 
