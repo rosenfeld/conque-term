@@ -120,6 +120,7 @@ class ConqueSubprocess:
 
         output = ''
         read_timeout = float(timeout) / 1000
+        read_ct = 0
 
         try:
             # read from fd until no more output
@@ -129,12 +130,19 @@ class ConqueSubprocess:
                 lines = ''
                 for s_fd in s_read:
                     try:
-                        lines = os.read(self.fd, 32)
+                        # increase read buffer so huge reads don't slow down
+                        if read_ct < 10:
+                            lines = os.read(self.fd, 32)
+                        elif read_ct < 50:
+                            lines = os.read(self.fd, 512)
+                        else:
+                            lines = os.read(self.fd, 2048)
+                        read_ct += 1
                     except:
                         pass
                     output = output + lines.decode('utf-8')
 
-                if lines == '':
+                if lines == '' or read_ct > 100:
                     break
         except:
             pass
