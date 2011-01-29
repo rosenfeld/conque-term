@@ -266,7 +266,7 @@ CONQUE_SEQ_REGEX_CSI = re.compile(u("^\x1b\["), re.UNICODE)
 CONQUE_SEQ_REGEX_TITLE = re.compile(u("^\x1b\]"), re.UNICODE)
 CONQUE_SEQ_REGEX_HASH = re.compile(u("^\x1b#"), re.UNICODE)
 CONQUE_SEQ_REGEX_ESC = re.compile(u("^\x1b.$"), re.UNICODE)
-CONQUE_SEQ_REGEX_CHAR = re.compile(u("^\x1b\("), re.UNICODE)
+CONQUE_SEQ_REGEX_CHAR = re.compile(u("^\x1b[()]"), re.UNICODE)
 
 # match table output
 CONQUE_TABLE_OUTPUT = re.compile("^\s*\|\s.*\s\|\s*$|^\s*\+[=+-]+\+\s*$")
