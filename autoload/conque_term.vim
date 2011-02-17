@@ -611,6 +611,11 @@ function! conque_term#set_mappings(action) "{{{
         inoremap <silent> <buffer> <C-w>k <Esc><C-w>k
         inoremap <silent> <buffer> <C-w>h <Esc><C-w>h
         inoremap <silent> <buffer> <C-w>l <Esc><C-w>l
+        inoremap <silent> <buffer> <C-w><Up> <Esc><C-w><Up>
+        inoremap <silent> <buffer> <C-w><Down> <Esc><C-w><Down>
+        inoremap <silent> <buffer> <C-w><Left> <Esc><C-w><Left>
+        inoremap <silent> <buffer> <C-w><Right> <Esc><C-w><Right>
+        inoremap <silent> <buffer> <C-w><C-w> <Esc><C-w><C-w>
         inoremap <silent> <buffer> <C-w>w <Esc><C-w>w
     endif
     " }}}
