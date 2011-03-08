@@ -116,7 +116,7 @@ class ConqueScreen(object):
         if len(self.buffer) > self.screen_top + self.screen_height - 1:
             self.screen_top += 1
         if vim.current.buffer.number == self.buffer.number:
-            vim.command('normal G')
+            vim.command('normal! G')
     # }}}
 
     def insert(self, line, value): # {{{
@@ -151,7 +151,7 @@ class ConqueScreen(object):
     ###############################################################################################
     def clear(self): # {{{
         self.buffer.append(' ')
-        vim.command('normal Gzt')
+        vim.command('normal! Gzt')
         self.screen_top = len(self.buffer)
     # }}}
 
@@ -195,7 +195,7 @@ class ConqueScreen(object):
         logging.debug('new screen top is  ' + str(self.screen_top))
 
         # align bottom of buffer to bottom of screen
-        vim.command('normal ' + str(self.screen_height) + 'kG')
+        vim.command('normal! ' + str(self.screen_height) + 'kG')
 
         # return new relative line number
         return (real_line - self.screen_top)
@@ -207,7 +207,7 @@ class ConqueScreen(object):
 
     def align(self): # {{{
         # align bottom of buffer to bottom of screen
-        vim.command('normal ' + str(self.screen_height) + 'kG')
+        vim.command('normal! ' + str(self.screen_height) + 'kG')
     # }}}
 
 # vim:foldmethod=marker
