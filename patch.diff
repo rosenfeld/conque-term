@@ -1,0 +1,75 @@
+diff -r 840c3cadb842 src/edit.c
+--- a/src/edit.c	Tue Nov 16 20:34:40 2010 +0100
++++ b/src/edit.c	Sun Nov 21 20:14:43 2010 -0800
+@@ -309,6 +309,7 @@
+     long	count;
+ {
+     int		c = 0;
++    char_u	*s;
+     char_u	*ptr;
+     int		lastc;
+     int		mincol;
+@@ -1385,6 +1386,29 @@
+ 	     * Insert a nomal character.
+ 	     */
+ normalchar:
++#ifdef FEAT_AUTOCMD
++	    /* trigger InsertCharPre event */
++	    set_vim_var_char(c);
++	    if (apply_autocmds(EVENT_INSERTCHARPRE, NULL, NULL, FALSE, curbuf))
++	    {
++                /* get new value of v:char */
++                s = get_vim_var_str(VV_CHAR);
++
++                /* if new value is empty string, don't add to buffer */
++                if (*s == NUL)
++                {
++	            set_vim_var_string(VV_CHAR, NULL, -1);
++		    break;
++                }
++                /* get the new value from autocommand function */
++#ifdef FEAT_MBYTE
++		c = (*mb_ptr2char)(s);
++#else
++		c = *s;
++#endif
++	    }
++	    set_vim_var_string(VV_CHAR, NULL, -1);
++#endif
+ #ifdef FEAT_SMARTINDENT
+ 	    /* Try to perform smart-indenting. */
+ 	    ins_try_si(c);
+diff -r 840c3cadb842 src/eval.c
+--- a/src/eval.c	Tue Nov 16 20:34:40 2010 +0100
++++ b/src/eval.c	Sun Nov 21 20:14:43 2010 -0800
+@@ -355,7 +355,7 @@
+     {VV_NAME("swapname",	 VAR_STRING), VV_RO},
+     {VV_NAME("swapchoice",	 VAR_STRING), 0},
+     {VV_NAME("swapcommand",	 VAR_STRING), VV_RO},
+-    {VV_NAME("char",		 VAR_STRING), VV_RO},
++    {VV_NAME("char",		 VAR_STRING), 0},
+     {VV_NAME("mouse_win",	 VAR_NUMBER), 0},
+     {VV_NAME("mouse_lnum",	 VAR_NUMBER), 0},
+     {VV_NAME("mouse_col",	 VAR_NUMBER), 0},
+diff -r 840c3cadb842 src/fileio.c
+--- a/src/fileio.c	Tue Nov 16 20:34:40 2010 +0100
++++ b/src/fileio.c	Sun Nov 21 20:14:43 2010 -0800
+@@ -7682,6 +7682,7 @@
+     {"InsertChange",	EVENT_INSERTCHANGE},
+     {"InsertEnter",	EVENT_INSERTENTER},
+     {"InsertLeave",	EVENT_INSERTLEAVE},
++    {"InsertCharPre",	EVENT_INSERTCHARPRE},
+     {"MenuPopup",	EVENT_MENUPOPUP},
+     {"QuickFixCmdPost",	EVENT_QUICKFIXCMDPOST},
+     {"QuickFixCmdPre",	EVENT_QUICKFIXCMDPRE},
+diff -r 840c3cadb842 src/vim.h
+--- a/src/vim.h	Tue Nov 16 20:34:40 2010 +0100
++++ b/src/vim.h	Sun Nov 21 20:14:43 2010 -0800
+@@ -1269,6 +1269,7 @@
+     EVENT_WINENTER,		/* after entering a window */
+     EVENT_WINLEAVE,		/* before leaving a window */
+     EVENT_ENCODINGCHANGED,	/* after changing the 'encoding' option */
++    EVENT_INSERTCHARPRE,	/* before inserting a char */
+     EVENT_CURSORHOLD,		/* cursor in same position for a while */
+     EVENT_CURSORHOLDI,		/* idem, in Insert mode */
+     EVENT_FUNCUNDEFINED,	/* if calling a function which doesn't exist */

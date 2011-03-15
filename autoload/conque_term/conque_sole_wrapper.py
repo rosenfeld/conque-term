@@ -82,20 +82,20 @@ class ConqueSoleWrapper():
     #########################################################################
     # run communicator process which will in turn run cmd
 
-    def open(self, cmd, options={}, python_exe='python.exe', communicator_py='conque_sole_communicator.py'): # {{{
+    def open(self, cmd, lines, columns, python_exe='python.exe', communicator_py='conque_sole_communicator.py', options={}): # {{{
 
-        self.lines = options['LINES']
-        self.columns = options['COLUMNS']
+        self.lines = lines
+        self.columns = columns
 
         # create a shm key
         self.shm_key = 'mk' + str(time.time())
 
         # python command
-        cmd_line = '%s "%s" %s %d %d %s' % (python_exe, communicator_py, self.shm_key, int(self.columns), int(self.lines), cmd)
+        cmd_line = '%s "%s" %s %d %d %d %d %s' % (python_exe, communicator_py, self.shm_key, int(self.columns), int(self.lines), int(options['CODE_PAGE']), int(CONQUE_FAST_MODE), cmd)
         logging.info('python command: ' + cmd_line)
 
         # console window attributes
-        flags = NORMAL_PRIORITY_CLASS | DETACHED_PROCESS
+        flags = NORMAL_PRIORITY_CLASS | DETACHED_PROCESS | CREATE_UNICODE_ENVIRONMENT
         si = STARTUPINFO()
         pi = PROCESS_INFORMATION()
 
@@ -133,7 +133,8 @@ class ConqueSoleWrapper():
         # get output
         for i in range(start_line, start_line + num_lines + 1):
             output.append(self.shm_output.read(self.columns, i * self.columns))
-            attributes.append(self.shm_attributes.read(self.columns, i * self.columns))
+            if not CONQUE_FAST_MODE:
+                attributes.append(self.shm_attributes.read(self.columns, i * self.columns))
 
         return (output, attributes)
 
@@ -156,16 +157,18 @@ class ConqueSoleWrapper():
                 self.shm_output.close()
                 self.shm_output = None
 
-                self.shm_attributes.close()
-                self.shm_attributes = None
+                if not CONQUE_FAST_MODE:
+                    self.shm_attributes.close()
+                    self.shm_attributes = None
 
                 # reallocate memory
                 logging.debug('new output size: ' + str(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks']) + ' = ' + rescroll['data']['mem_key'])
                 self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks'], 'output', rescroll['data']['mem_key'], True)
                 self.shm_output.create('read')
 
-                self.shm_attributes = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks'], 'attributes', rescroll['data']['mem_key'], True, encoding='latin-1')
-                self.shm_attributes.create('read')
+                if not CONQUE_FAST_MODE:
+                    self.shm_attributes = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns * rescroll['data']['blocks'], 'attributes', rescroll['data']['mem_key'], True, encoding='latin-1')
+                    self.shm_attributes.create('read')
 
             stats_str = self.shm_stats.read()
             if stats_str != '':
@@ -199,9 +202,7 @@ class ConqueSoleWrapper():
 
     def write(self, text): # {{{
 
-        self.bucket += u(text, 'ascii', 'replace')
-
-        logging.debug('bucket is ' + self.bucket)
+        self.bucket += text
 
         istr = self.shm_input.read()
 
@@ -217,7 +218,7 @@ class ConqueSoleWrapper():
 
     def write_vk(self, vk_code): # {{{
 
-        seq = "\x1b[" + str(vk_code) + "VK"
+        seq = u("\x1b[") + u(str(vk_code)) + u("VK")
         self.write(seq)
 
         # }}}
@@ -278,8 +279,9 @@ class ConqueSoleWrapper():
         self.shm_output = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'output', mem_key, True)
         self.shm_output.create('write')
 
-        self.shm_attributes = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'attributes', mem_key, True, encoding='latin-1')
-        self.shm_attributes.create('write')
+        if not CONQUE_FAST_MODE:
+            self.shm_attributes = ConqueSoleSharedMemory(CONQUE_SOLE_BUFFER_LENGTH * self.columns, 'attributes', mem_key, True, encoding='latin-1')
+            self.shm_attributes.create('write')
 
         self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key, serialize=True)
         self.shm_stats.create('write')

@@ -86,12 +86,18 @@ if __name__ == '__main__':
         # console height
         console_height = int(sys.argv[3])
 
+        # code page
+        code_page = int(sys.argv[4])
+
+        # code page
+        fast_mode = int(sys.argv[5])
+
         # the actual subprocess to run
-        cmd_line = " ".join(sys.argv[4:])
+        cmd_line = " ".join(sys.argv[6:])
         logging.info('opening command: ' + cmd_line)
 
         # width and height
-        options = {'LINES': console_height, 'COLUMNS': console_width}
+        options = {'LINES': console_height, 'COLUMNS': console_width, 'CODE_PAGE': code_page, 'FAST_MODE': fast_mode}
 
         logging.info('with options: ' + str(options))
 
@@ -135,7 +141,7 @@ if __name__ == '__main__':
                 if not proc.is_alive():
                     logging.info('subprocess appears to be deadish, closing')
                     proc.close()
-                    exit()
+                    break
 
                 # check for change in buffer focus
                 cmd = shm_command.read()

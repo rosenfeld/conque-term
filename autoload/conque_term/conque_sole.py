@@ -36,14 +36,19 @@ class ConqueSole(Conque):
     window_bottom = None
 
     color_cache = {}
+    attribute_cache = {}
     color_mode = None
     color_conceals = {}
 
     buffer = None
+    encoding = None
 
     # counters for periodic rendering
-    buffer_redraw_ct = 0
-    screen_redraw_ct = 0
+    buffer_redraw_ct = 1
+    screen_redraw_ct = 1
+
+    # line offset, shifts output down
+    offset = 0
 
     # *********************************************************************************************
     # start program and initialize this instance
@@ -56,14 +61,21 @@ class ConqueSole(Conque):
         self.window_top = 0
         self.window_bottom = vim.current.window.height - 1
 
+        # color mode
+        self.color_mode = vim.eval('g:ConqueTerm_ColorMode')
+
+        # line offset
+        self.offset = options['offset']
+
         # init color
-        self.enable_colors = options['color']
+        self.enable_colors = options['color'] and not CONQUE_FAST_MODE
 
         # open command
         self.proc = ConqueSoleWrapper()
-        self.proc.open(command, {'TERM': options['TERM'], 'CONQUE': '1', 'LINES': self.lines, 'COLUMNS': self.columns}, python_exe, communicator_py)
+        self.proc.open(command, self.lines, self.columns, python_exe, communicator_py, options)
 
         self.buffer = vim.current.buffer
+        self.screen_encoding = vim.eval('&fileencoding')
 
         # }}}
 
@@ -79,8 +91,10 @@ class ConqueSole(Conque):
             if not stats:
                 return
 
-            self.buffer_redraw_ct += 1
-            self.screen_redraw_ct += 1
+            # disable screen and buffer redraws in fast mode
+            if not CONQUE_FAST_MODE:
+                self.buffer_redraw_ct += 1
+                self.screen_redraw_ct += 1
 
             update_top = 0
             update_bottom = 0
@@ -96,7 +110,10 @@ class ConqueSole(Conque):
                     output = self.get_new_output(lines, update_top, stats)
                 if update_buffer:
                     for i in range(update_top, update_bottom + 1):
-                        self.plain_text(i, lines[i], attributes[i], stats)
+                        if CONQUE_FAST_MODE:
+                            self.plain_text(i, lines[i], None, stats)
+                        else:
+                            self.plain_text(i, lines[i], attributes[i], stats)
 
             # full screen redraw
             elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
@@ -108,7 +125,10 @@ class ConqueSole(Conque):
                     output = self.get_new_output(lines, update_top, stats)
                 if update_buffer:
                     for i in range(update_top, update_bottom + 1):
-                        self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
+                        if CONQUE_FAST_MODE:
+                            self.plain_text(i, lines[i - update_top], None, stats)
+                        else:
+                            self.plain_text(i, lines[i - update_top], attributes[i - update_top], stats)
 
 
             # single line redraw
@@ -119,8 +139,11 @@ class ConqueSole(Conque):
                 if return_output:
                     output = self.get_new_output(lines, update_top, stats)
                 if update_buffer:
-                    if lines[0].rstrip() != self.buffer[update_top].rstrip():
-                        self.plain_text(update_top, lines[0], attributes[0], stats)
+                    if lines[0].rstrip() != u(self.buffer[update_top].rstrip()):
+                        if CONQUE_FAST_MODE:
+                            self.plain_text(update_top, lines[0], None, stats)
+                        else:
+                            self.plain_text(update_top, lines[0], attributes[0], stats)
 
 
             # reset current position
@@ -186,7 +209,10 @@ class ConqueSole(Conque):
         #logging.debug('attributes ' + str(line_nr) + ": " + attributes)
         #logging.debug('default attr ' + str(stats['default_attribute']))
 
-        self.l = line_nr + 1
+        # handle line offset
+        line_nr += self.offset
+
+        self.l = line_nr + 1 
 
         # remove trailing whitespace
         text = text.rstrip()
@@ -197,15 +223,24 @@ class ConqueSole(Conque):
             text = self.add_conceal_color(text, attributes, stats, line_nr)
             #logging.debug('added color to ' + str(text))
 
+        # deal with character encoding
+        if CONQUE_PYTHON_VERSION == 2:
+            val = text.encode(self.screen_encoding)
+        else:
+            # XXX / Vim's python3 interface doesn't accept bytes object
+            val = str(text)
+
         # update vim buffer
         if len(self.buffer) <= line_nr:
-            self.buffer.append(text)
+            self.buffer.append(val)
         else:
-            self.buffer[line_nr] = text
+            self.buffer[line_nr] = val
 
-        if not self.color_mode == 'conceal':
-            self.do_color(attributes=attributes, stats=stats)
-
+        if self.enable_colors and not self.color_mode == 'conceal' and line_nr > self.l - CONQUE_MAX_SYNTAX_LINES:
+            relevant = attributes[0:len(text)]
+            if line_nr not in self.attribute_cache or self.attribute_cache[line_nr] != relevant:
+                self.do_color(attributes=relevant, stats=stats)
+                self.attribute_cache[line_nr] = relevant
         # }}}
 
     #########################################################################
@@ -222,59 +257,37 @@ class ConqueSole(Conque):
             return text
 
         new_text = ''
-
-        # if text attribute is different, call add_color()
-        attr = None
-        start = 0
         self.color_conceals[line_nr] = []
+
+        attribute_chunks = CONQUE_WIN32_REGEX_ATTR.findall(attributes)
+        offset = 0
         ends = []
-        for i in range(0, len(attributes)):
-            c = ord(attributes[i])
-            #logging.debug('attr char ' + str(c))
-            if c != attr:
-                if attr and attr != stats['default_attribute']:
+        for attr in attribute_chunks:
+            attr_num = ord(attr[1])
+            ends = []
+            if attr_num != stats['default_attribute']:
 
-                    color = self.translate_color(attr)
+                color = self.translate_color(attr_num)
 
-                    new_text += chr(27) + 'sf' + color['fg_code'] + ';'
-                    ends.append(chr(27) + 'ef' + color['fg_code'] + ';')
-                    self.color_conceals[line_nr].append(start)
+                new_text += chr(27) + 'sf' + color['fg_code'] + ';'
+                ends.append(chr(27) + 'ef' + color['fg_code'] + ';')
+                self.color_conceals[line_nr].append(offset)
 
-                    if c > 15:
-                        new_text += chr(27) + 'sf' + color['bg_code'] + ';'
-                        ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
-                        self.color_conceals[line_nr].append(start)
+                if attr_num > 15:
+                    new_text += chr(27) + 'sb' + color['bg_code'] + ';'
+                    ends.append(chr(27) + 'eb' + color['bg_code'] + ';')
+                    self.color_conceals[line_nr].append(offset)
 
-                new_text += text[start:i]
+            new_text += text[offset:offset + len(attr[0])]
 
-                # close color regions
-                ends.reverse()
-                for j in range(0, len(ends)):
-                    new_text += ends[j]
-                    self.color_conceals[line_nr].append(i)
-                ends = []
+            # close color regions
+            ends.reverse()
+            for i in range(0, len(ends)):
+                self.color_conceals[line_nr].append(len(new_text))
+                new_text += ends[i]
 
-                start = i
-                attr = c
+            offset += len(attr[0])
 
-
-        if attr and attr != stats['default_attribute']:
-
-            color = self.translate_color(attr)
-
-            new_text += chr(27) + 'sf' + color['fg_code'] + ';'
-            ends.append(chr(27) + 'ef' + color['fg_code'] + ';')
-
-            if c > 15:
-                new_text += chr(27) + 'sf' + color['bg_code'] + ';'
-                ends.append(chr(27) + 'ef' + color['bg_code'] + ';')
-
-        new_text += text[start:]
-
-        # close color regions
-        ends.reverse()
-        for i in range(0, len(ends)):
-            new_text += ends[i]
 
         return new_text
 
@@ -284,33 +297,20 @@ class ConqueSole(Conque):
 
     def do_color(self, start=0, end=0, attributes='', stats=None): # {{{
 
-        # stop here if coloration is disabled
-        if not self.enable_colors:
-            return
-
         # if no colors for this line, clear everything out
         if len(attributes) == 0 or attributes == u(chr(stats['default_attribute'])) * len(attributes):
             self.color_changes = {}
             self.apply_color(1, len(attributes), self.l)
             return
 
-        # if text attribute is different, call add_color()
-        attr = None
-        start = 0
-        for i in range(0, len(attributes)):
-            c = ord(attributes[i])
-            #logging.debug('attr char ' + str(c))
-            if c != attr:
-                if attr and attr != stats['default_attribute']:
-                    self.color_changes = self.translate_color(attr)
-                    self.apply_color(start + 1, i + 1, self.l)
-                start = i
-                attr = c
-
-        if attr and attr != stats['default_attribute']:
-            self.color_changes = self.translate_color(attr)
-            self.apply_color(start + 1, len(attributes), self.l)
-
+        attribute_chunks = CONQUE_WIN32_REGEX_ATTR.findall(attributes)
+        offset = 0
+        for attr in attribute_chunks:
+            attr_num = ord(attr[1])
+            if attr_num != stats['default_attribute']:
+                self.color_changes = self.translate_color(attr_num)
+                self.apply_color(offset + 1, offset + len(attr[0]) + 1, self.l)
+            offset += len(attr[0])
 
         # }}}
 
@@ -396,6 +396,10 @@ class ConqueSole(Conque):
     # resize if needed
 
     def set_cursor(self, line, column): # {{{
+        logging.debug('setting cursor at line ' + str(line) + ' column ' + str(column))
+
+        # handle offset
+        line += self.offset
 
         # shift cursor position to handle concealed text
         if self.enable_colors and self.color_mode == 'conceal':
@@ -406,22 +410,24 @@ class ConqueSole(Conque):
                     else:
                         break
 
+        logging.debug('column is now ' + str(column))
+
         # figure out line
-        real_line = line
-        if real_line > len(self.buffer):
-            for l in range(len(self.buffer) - 1, real_line):
+        buffer_line = line
+        if buffer_line > len(self.buffer):
+            for l in range(len(self.buffer) - 1, buffer_line):
                 self.buffer.append('')
 
         # figure out column
         real_column = column
-        if len(self.buffer[real_line - 1]) < real_column:
-            self.buffer[real_line - 1] = self.buffer[real_line - 1] + ' ' * (real_column - len(self.buffer[real_line - 1]))
+        if len(self.buffer[buffer_line - 1]) < real_column:
+            self.buffer[buffer_line - 1] = self.buffer[buffer_line - 1] + ' ' * (real_column - len(self.buffer[buffer_line - 1]))
 
         # python version is occasionally grumpy
         try:
-            vim.current.window.cursor = (real_line, real_column - 1)
+            vim.current.window.cursor = (buffer_line, real_column - 1)
         except:
-            vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
+            vim.command('call cursor(' + str(buffer_line) + ', ' + str(real_column) + ')')
     # }}}
 
 
@@ -455,5 +461,11 @@ class ConqueSole(Conque):
     def abort(self):
         self.proc.close()
 
+    # *********************************************************************************************
+    # get buffer line
+
+    def get_buffer_line(self, line): # {{{
+        return line
+    # }}}
 
 # vim:foldmethod=marker

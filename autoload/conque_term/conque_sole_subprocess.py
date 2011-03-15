@@ -117,6 +117,9 @@ class ConqueSoleSubprocess():
     # are we still a valid process?
     is_alive = True
 
+    # running in fast mode
+    fast_mode = 0
+
     # used for periodic execution of screen and memory redrawing
     screen_redraw_ct = 0
     mem_redraw_ct = 0
@@ -150,11 +153,14 @@ class ConqueSoleSubprocess():
 
             # set buffer height
             self.buffer_height = CONQUE_SOLE_BUFFER_LENGTH
-            logging.debug(str(options))
+            logging.info(str(options))
             if 'LINES' in options and 'COLUMNS' in options:
                 self.window_width = options['COLUMNS']
                 self.window_height = options['LINES']
                 self.buffer_width = options['COLUMNS']
+
+            # fast mode
+            self.fast_mode = options['FAST_MODE']
 
             # console window options
             si = STARTUPINFO()
@@ -221,6 +227,13 @@ class ConqueSoleSubprocess():
             # set window size
             self.set_window_size(self.window_width, self.window_height)
 
+            # set utf-8 code page
+            if 'CODE_PAGE' in options and options['CODE_PAGE'] > 0:
+                if ctypes.windll.kernel32.IsValidCodePage(ctypes.c_uint(options['CODE_PAGE'])):
+                    logging.info('setting code page to ' + str(options['CODE_PAGE']))
+                    ctypes.windll.kernel32.SetConsoleCP(ctypes.c_uint(options['CODE_PAGE']))
+                    ctypes.windll.kernel32.SetConsoleOutputCP(ctypes.c_uint(options['CODE_PAGE']))
+
             # init shared memory
             self.init_shared_memory(mem_key)
 
@@ -254,9 +267,10 @@ class ConqueSoleSubprocess():
         self.shm_output.create('write')
         self.shm_output.clear()
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width, 'attributes', mem_key, True, chr(buf_info.wAttributes), encoding='latin-1')
-        self.shm_attributes.create('write')
-        self.shm_attributes.clear()
+        if not self.fast_mode:
+            self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width, 'attributes', mem_key, True, chr(buf_info.wAttributes), encoding='latin-1')
+            self.shm_attributes.create('write')
+            self.shm_attributes.clear()
 
         self.shm_stats = ConqueSoleSharedMemory(CONQUE_SOLE_STATS_SIZE, 'stats', mem_key, serialize=True)
         self.shm_stats.create('write')
@@ -351,7 +365,7 @@ class ConqueSoleSubprocess():
         # set update range
         if curs_line != self.cursor_line or self.top != buf_info.srWindow.Top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
             self.screen_redraw_ct = 0
-            logging.info('screen redraw')
+            logging.debug('screen redraw')
             read_start = self.top
             read_end = buf_info.srWindow.Bottom + 1
         else:
@@ -373,9 +387,6 @@ class ConqueSoleSubprocess():
 
             t = self.tc.value
             a = self.ac.value
-            #logging.debug(str(chars_read))
-            #logging.debug("line " + str(i) + " is: " + str(self.tc.value))
-            #logging.debug("attributes " + str(i) + " is: " + str(a))
 
             # add data
             if i >= len(self.data):
@@ -385,16 +396,30 @@ class ConqueSoleSubprocess():
                 self.data[i] = t
                 self.attributes[i] = a
 
+            #logging.debug(str(chars_read))
+            #logging.info('---')
+            #logging.info(t)
+            #for i in range(0, len(t)):
+            #    logging.info("char " + t[i])
+            #    logging.info("char " + str(ord(t[i])))
+            #logging.debug("attributes " + str(i) + " is: " + str(a))
+
         # write new output to shared memory
         if self.mem_redraw_ct == CONQUE_SOLE_MEM_REDRAW:
             self.mem_redraw_ct = 0
-            logging.info('mem redraw')
-            self.shm_output.write(''.join(self.data))
-            self.shm_attributes.write(''.join(self.attributes))
+            logging.debug('mem redraw')
+            for i in range(0, len(self.data)):
+                self.shm_output.write(text=self.data[i], start=self.buffer_width * i)
+                if not self.fast_mode:
+                    self.shm_attributes.write(text=self.attributes[i], start=self.buffer_width * i)
         else:
             logging.debug('no mem redraw')
-            self.shm_output.write(text=''.join(self.data[read_start:read_end]), start=read_start * self.buffer_width)
-            self.shm_attributes.write(text=''.join(self.attributes[read_start:read_end]), start=read_start * self.buffer_width)
+            for i in range(read_start, read_end):
+                self.shm_output.write(text=self.data[i], start=self.buffer_width * i)
+                if not self.fast_mode:
+                    self.shm_attributes.write(text=self.attributes[i], start=self.buffer_width * i)
+                #self.shm_output.write(text=''.join(self.data[read_start:read_end]), start=read_start * self.buffer_width)
+                #self.shm_attributes.write(text=''.join(self.attributes[read_start:read_end]), start=read_start * self.buffer_width)
 
         # write cursor position to shared memory
         stats = {'top_offset': buf_info.srWindow.Top, 'default_attribute': buf_info.wAttributes, 'cursor_x': curs_col, 'cursor_y': curs_line, 'is_alive': 1}
@@ -431,8 +456,9 @@ class ConqueSoleSubprocess():
         self.shm_output.close()
         self.shm_output = None
 
-        self.shm_attributes.close()
-        self.shm_attributes = None
+        if not self.fast_mode:
+            self.shm_attributes.close()
+            self.shm_attributes = None
 
         # new shared memory key
         mem_key = 'mk' + str(time.time())
@@ -448,15 +474,17 @@ class ConqueSoleSubprocess():
                 self.data[i] = self.data[i] + ' ' * (self.buffer_width - len(self.data[i]))
         self.shm_output.write(''.join(self.data))
 
-        self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'attributes', mem_key, True, chr(buf_info.wAttributes), encoding='latin-1')
-        self.shm_attributes.create('write')
-        self.shm_attributes.clear()
+        if not self.fast_mode:
+            self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width * self.output_blocks, 'attributes', mem_key, True, chr(buf_info.wAttributes), encoding='latin-1')
+            self.shm_attributes.create('write')
+            self.shm_attributes.clear()
 
         # backfill attributes
         if len(self.attributes[0]) < self.buffer_width:
             for i in range(0, len(self.attributes)):
                 self.attributes[i] = self.attributes[i] + chr(buf_info.wAttributes) * (self.buffer_width - len(self.attributes[i]))
-        self.shm_attributes.write(''.join(self.attributes))
+        if not self.fast_mode:
+            self.shm_attributes.write(''.join(self.attributes))
 
         # notify wrapper of new output block
         self.shm_rescroll.write({'cmd': 'new_output', 'data': {'blocks': self.output_blocks, 'mem_key': mem_key}})
@@ -493,16 +521,16 @@ class ConqueSoleSubprocess():
         text = self.shm_input.read()
 
         # nothing to do here
-        if text == '':
+        if text == u(''):
             return
 
-        logging.debug('writing: ' + text)
+        logging.info(u('writing: ') + text)
 
         # clear input queue
         self.shm_input.clear()
 
         # split on VK codes
-        chunks = CONQUE_SEQ_REGEX_VK.split(text)
+        chunks = CONQUE_WIN32_REGEX_VK.split(text)
 
         # if len() is one then no vks
         if len(chunks) == 1:
@@ -517,7 +545,7 @@ class ConqueSoleSubprocess():
             if t == '':
                 continue
 
-            if CONQUE_SEQ_REGEX_VK.match(t):
+            if CONQUE_WIN32_REGEX_VK.match(t):
                 logging.debug('match!: ' + str(t[2:-2]))
                 self.write_vk(t[2:-2])
             else:
@@ -533,29 +561,34 @@ class ConqueSoleSubprocess():
         list_input = li()
 
         for i in range(0, len(text)):
+
             # create keyboard input
             ke = KEY_EVENT_RECORD()
             ke.bKeyDown = ctypes.c_byte(1)
             ke.wRepeatCount = ctypes.c_short(1)
 
             cnum = ord(text[i])
+            logging.debug('writing char: ' + str(cnum))
             ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanW(cnum)
             ke.wVirtualScanCode = ctypes.c_short(ctypes.windll.user32.MapVirtualKeyW(int(cnum), 0))
 
             if cnum > 31:
-                ke.uChar.UnicodeChar = u(chr(cnum))
+                ke.uChar.UnicodeChar = uchr(cnum)
             elif cnum == 3:
                 ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, self.pid)
-                ke.uChar.UnicodeChar = u(chr(cnum))
+                ke.uChar.UnicodeChar = uchr(cnum)
                 ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanW(cnum + 96)
-                ke.dwControlKeyState = LEFT_CTRL_PRESSED
+                ke.dwControlKeyState |= LEFT_CTRL_PRESSED
             else:
-                ke.uChar.UnicodeChar = u(chr(cnum))
+                ke.uChar.UnicodeChar = uchr(cnum)
                 if cnum in CONQUE_WINDOWS_VK_INV:
                     ke.wVirtualKeyCode = cnum
                 else:
                     ke.wVirtualKeyCode = ctypes.windll.user32.VkKeyScanW(cnum + 96)
-                    ke.dwControlKeyState = LEFT_CTRL_PRESSED
+                    ke.dwControlKeyState |= LEFT_CTRL_PRESSED
+
+            logging.info(str(ord(text[i])) + ' ' + text[i])
+            logging.info(ke.dwControlKeyState)
 
             kc = INPUT_RECORD(KEY_EVENT)
             kc.Event.KeyEvent = ke
@@ -581,20 +614,36 @@ class ConqueSoleSubprocess():
     def write_vk(self, vk_code): # {{{
         logging.debug('virtual key code' + str(vk_code))
 
+        code = None
+        ctrl_pressed = False
+
+        # this could be made more generic when more attributes
+        # other than ctrl_pressed are available
+        vk_attributes = vk_code.split(';')
+        logging.debug(vk_attributes)
+        for attr in vk_attributes:
+            if attr == CONQUE_VK_ATTR_CTRL_PRESSED:
+                ctrl_pressed = True
+            else:
+                code = attr
+
         li = INPUT_RECORD * 1
 
         # create keyboard input
         ke = KEY_EVENT_RECORD()
-        ke.uChar.UnicodeChar = u(chr(0))
-        ke.wVirtualKeyCode = ctypes.c_short(int(vk_code))
-        ke.wVirtualScanCode = ctypes.c_short(ctypes.windll.user32.MapVirtualKeyW(int(vk_code), 0))
+        ke.uChar.UnicodeChar = uchr(0)
+        ke.wVirtualKeyCode = ctypes.c_short(int(code))
+        ke.wVirtualScanCode = ctypes.c_short(ctypes.windll.user32.MapVirtualKeyW(int(code), 0))
         ke.bKeyDown = ctypes.c_byte(1)
         ke.wRepeatCount = ctypes.c_short(1)
 
         # set enhanced key mode for arrow keys
-        if vk_code in CONQUE_WINDOWS_VK_ENHANCED:
+        if code in CONQUE_WINDOWS_VK_ENHANCED:
             logging.debug('enhanced key!')
-            ke.dwControlKeyState = ENHANCED_KEY
+            ke.dwControlKeyState |= ENHANCED_KEY
+
+        if ctrl_pressed:
+            ke.dwControlKeyState |= LEFT_CTRL_PRESSED
 
         kc = INPUT_RECORD(KEY_EVENT)
         kc.Event.KeyEvent = ke
@@ -604,7 +653,6 @@ class ConqueSoleSubprocess():
         events_written = ctypes.c_int()
         res = ctypes.windll.kernel32.WriteConsoleInputW(self.stdin, list_input, 1, ctypes.byref(events_written))
 
-        logging.debug('bar')
         logging.debug('events written ' + str(events_written))
         logging.debug(str(res))
         logging.debug(str(ctypes.GetLastError()))

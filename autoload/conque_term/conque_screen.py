@@ -59,6 +59,9 @@ class ConqueScreen(object):
     screen_width = 80
     screen_height = 80
 
+    # char encoding for vim buffer
+    screen_encoding = 'utf-8'
+
     # }}}
 
     def __init__(self): # {{{
@@ -67,6 +70,8 @@ class ConqueScreen(object):
         self.screen_top = 1
         self.screen_width = vim.current.window.width
         self.screen_height = vim.current.window.height
+
+        self.screen_encoding = vim.eval('&fileencoding')
     # }}}
 
     ###############################################################################################
@@ -77,30 +82,30 @@ class ConqueScreen(object):
     # }}}
 
     def __getitem__(self, key): # {{{
-        real_line = self.get_real_idx(key)
+        buffer_line = self.get_real_idx(key)
 
         # if line is past buffer end, add lines to buffer
-        if real_line >= len(self.buffer):
-            for i in range(len(self.buffer), real_line + 1):
-                self.append(' ' * self.screen_width)
+        if buffer_line >= len(self.buffer):
+            for i in range(len(self.buffer), buffer_line + 1):
+                self.append(' ')
 
-        return u(self.buffer[real_line], 'utf-8')
+        return u(self.buffer[buffer_line], 'utf-8')
     # }}}
 
     def __setitem__(self, key, value): # {{{
-        real_line = self.get_real_idx(key)
+        buffer_line = self.get_real_idx(key)
 
         if CONQUE_PYTHON_VERSION == 2:
-            val = value.encode('utf-8')
+            val = value.encode(self.screen_encoding)
         else:
             # XXX / Vim's python3 interface doesn't accept bytes object
             val = str(value)
 
         # if line is past end of screen, append
-        if real_line == len(self.buffer):
+        if buffer_line == len(self.buffer):
             self.buffer.append(val)
         else:
-            self.buffer[real_line] = val
+            self.buffer[buffer_line] = val
     # }}}
 
     def __delitem__(self, key): # {{{
@@ -138,7 +143,7 @@ class ConqueScreen(object):
         return (self.screen_top + line - 2)
     # }}}
 
-    def get_real_line(self, line): # {{{
+    def get_buffer_line(self, line): # {{{
         return (self.screen_top + line - 1)
     # }}}
 
@@ -157,25 +162,27 @@ class ConqueScreen(object):
 
     def set_cursor(self, line, column): # {{{
         # figure out line
-        real_line = self.screen_top + line - 1
-        if real_line > len(self.buffer):
-            for l in range(len(self.buffer) - 1, real_line):
+        buffer_line = self.screen_top + line - 1
+        if buffer_line > len(self.buffer):
+            for l in range(len(self.buffer) - 1, buffer_line):
                 self.buffer.append('')
 
         # figure out column
         real_column = column
-        if len(self.buffer[real_line - 1]) < real_column:
-            self.buffer[real_line - 1] = self.buffer[real_line - 1] + ' ' * (real_column - len(self.buffer[real_line - 1]))
+        if len(self.buffer[buffer_line - 1]) < real_column:
+            self.buffer[buffer_line - 1] = self.buffer[buffer_line - 1] + ' ' * (real_column - len(self.buffer[buffer_line - 1]))
 
-        # set cursor at byte index of real_column'th character
-        vim.command('call cursor(' + str(real_line) + ', byteidx(getline(' + str(real_line) + '), ' + str(real_column) + '))')
+        if not CONQUE_FAST_MODE:
+            # set cursor at byte index of real_column'th character
+            vim.command('call cursor(' + str(buffer_line) + ', byteidx(getline(' + str(buffer_line) + '), ' + str(real_column) + '))')
 
-        # old version
-        # python version is occasionally grumpy
-        #try:
-        #    vim.current.window.cursor = (real_line, real_column - 1)
-        #except:
-        #    vim.command('call cursor(' + str(real_line) + ', ' + str(real_column) + ')')
+        else:
+            # old version
+            # python version is occasionally grumpy
+            try:
+                vim.current.window.cursor = (buffer_line, real_column - 1)
+            except:
+                vim.command('call cursor(' + str(buffer_line) + ', ' + str(real_column) + ')')
     # }}}
 
     def reset_size(self, line): # {{{
@@ -184,7 +191,7 @@ class ConqueScreen(object):
         logging.debug('old screen top was ' + str(self.screen_top))
 
         # save cursor line number
-        real_line = self.screen_top + line
+        buffer_line = self.screen_top + line
 
         # reset screen size
         self.screen_width = vim.current.window.width
@@ -198,7 +205,7 @@ class ConqueScreen(object):
         vim.command('normal! ' + str(self.screen_height) + 'kG')
 
         # return new relative line number
-        return (real_line - self.screen_top)
+        return (buffer_line - self.screen_top)
     # }}}
 
     def scroll_to_bottom(self): # {{{
