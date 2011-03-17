@@ -877,7 +877,9 @@ function! conque_term#set_mappings(action) "{{{
     " }}}
 
     " call user defined functions
-    call conque_term#call_hooks('after_keymap', conque_term#get_instance())
+    if l:action == 'start'
+        call conque_term#call_hooks('after_keymap', conque_term#get_instance())
+    endif
 
 endfunction " }}}
 
