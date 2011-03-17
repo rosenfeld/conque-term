@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_sole.py {{{
+# FILE:     autoload/conque_term/conque_sole.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,7 +25,14 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
+
+"""
+Windows Console Emulator
+
+This is the main interface to the Windows emulator. It reads new output from the background console
+and updates the Vim buffer.
+"""
 
 import vim
 
@@ -50,10 +57,9 @@ class ConqueSole(Conque):
     # line offset, shifts output down
     offset = 0
 
-    # *********************************************************************************************
-    # start program and initialize this instance
 
-    def open(self, command, options={}, python_exe='', communicator_py=''): # {{{
+    def open(self, command, options={}, python_exe='', communicator_py=''):
+        """ start program and initialize this instance """
 
         # init size
         self.columns = vim.current.window.width
@@ -77,13 +83,9 @@ class ConqueSole(Conque):
         self.buffer = vim.current.buffer
         self.screen_encoding = vim.eval('&fileencoding')
 
-        # }}}
 
-
-    # *********************************************************************************************
-    # read and update screen
-
-    def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True): # {{{
+    def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True):
+        """ Read from console and update Vim buffer """
 
         try:
             stats = self.proc.get_stats()
@@ -161,12 +163,10 @@ class ConqueSole(Conque):
         except:
             logging.info(traceback.format_exc())
             pass
-        # }}}
 
-    #########################################################################
-    # Calculate the "new" output from this read. Fake but useful
 
-    def get_new_output(self, lines, update_top, stats): # {{{
+    def get_new_output(self, lines, update_top, stats):
+        """ Calculate the "new" output from this read. Fake but useful """
 
         if not (stats['cursor_y'] + 1 > self.l or (stats['cursor_y'] + 1 == self.l and stats['cursor_x'] + 1 > self.c)):
             return ""
@@ -198,12 +198,10 @@ class ConqueSole(Conque):
         logging.info('return output is ' + str(new_output))
 
         return "\n".join(new_output)
-        # }}}
 
-    #########################################################################
-    # update the buffer
 
-    def plain_text(self, line_nr, text, attributes, stats): # {{{
+    def plain_text(self, line_nr, text, attributes, stats):
+        """ Write plain text to Vim buffer. """
 
         #logging.debug('line ' + str(line_nr) + ": " + text)
         #logging.debug('attributes ' + str(line_nr) + ": " + attributes)
@@ -241,12 +239,10 @@ class ConqueSole(Conque):
             if line_nr not in self.attribute_cache or self.attribute_cache[line_nr] != relevant:
                 self.do_color(attributes=relevant, stats=stats)
                 self.attribute_cache[line_nr] = relevant
-        # }}}
 
-    #########################################################################
-    # add conceal color
 
-    def add_conceal_color(self, text, attributes, stats, line_nr): # {{{
+    def add_conceal_color(self, text, attributes, stats, line_nr):
+        """ Add 'conceal' color strings to output text """
 
         # stop here if coloration is disabled
         if not self.enable_colors:
@@ -288,14 +284,11 @@ class ConqueSole(Conque):
 
             offset += len(attr[0])
 
-
         return new_text
 
-        # }}}
 
-    #########################################################################
-
-    def do_color(self, start=0, end=0, attributes='', stats=None): # {{{
+    def do_color(self, start=0, end=0, attributes='', stats=None):
+        """ Convert Windows console attributes into Vim syntax highlighting """
 
         # if no colors for this line, clear everything out
         if len(attributes) == 0 or attributes == u(chr(stats['default_attribute'])) * len(attributes):
@@ -312,11 +305,9 @@ class ConqueSole(Conque):
                 self.apply_color(offset + 1, offset + len(attr[0]) + 1, self.l)
             offset += len(attr[0])
 
-        # }}}
 
-    #########################################################################
-
-    def translate_color(self, attr): # {{{
+    def translate_color(self, attr):
+        """ Convert Windows console attributes into RGB colors """
 
         # check for cached color
         if attr in self.color_cache:
@@ -363,21 +354,15 @@ class ConqueSole(Conque):
 
         return color
 
-        # }}}
 
-    #########################################################################
-    # write virtual key code to shared memory using proprietary escape seq
-
-    def write_vk(self, vk_code): # {{{
+    def write_vk(self, vk_code):
+        """ write virtual key code to shared memory using proprietary escape seq """
 
         self.proc.write_vk(vk_code)
 
-        # }}}
 
-    # *********************************************************************************************
-    # resize if needed
-
-    def update_window_size(self): # {{{
+    def update_window_size(self):
+        """ Resize underlying console if Vim buffer size has changed """
 
         if vim.current.window.width != self.columns or vim.current.window.height != self.lines:
 
@@ -390,12 +375,10 @@ class ConqueSole(Conque):
 
             self.proc.window_resize(vim.current.window.height, vim.current.window.width)
 
-        # }}}
 
-    # *********************************************************************************************
-    # resize if needed
+    def set_cursor(self, line, column):
+        """ Update cursor position in Vim buffer """
 
-    def set_cursor(self, line, column): # {{{
         logging.debug('setting cursor at line ' + str(line) + ' column ' + str(column))
 
         # handle offset
@@ -428,44 +411,33 @@ class ConqueSole(Conque):
             vim.current.window.cursor = (buffer_line, real_column - 1)
         except:
             vim.command('call cursor(' + str(buffer_line) + ', ' + str(real_column) + ')')
-    # }}}
 
 
-    # *********************************************************************************************
-    # go into idle mode
-
-    def idle(self): # {{{
+    def idle(self):
+        """ go into idle mode """
 
         self.proc.idle()
 
-        # }}}
 
-    # *********************************************************************************************
-    # resume from idle mode
-
-    def resume(self): # {{{
+    def resume(self):
+        """ resume from idle mode """
 
         self.proc.resume()
 
-        # }}}
-
-    # *********************************************************************************************
-    # end subprocess
 
     def close(self):
+        """ end console subprocess """
         self.proc.close()
 
-    # *********************************************************************************************
-    # end subprocess forcefully
 
     def abort(self):
+        """ end subprocess forcefully """
         self.proc.close()
 
-    # *********************************************************************************************
-    # get buffer line
 
-    def get_buffer_line(self, line): # {{{
+    def get_buffer_line(self, line):
+        """ get buffer line """
         return line
-    # }}}
+
 
 # vim:foldmethod=marker

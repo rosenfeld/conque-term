@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_globals.py {{{
+# FILE:     autoload/conque_term/conque_globals.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,7 +25,7 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
 
 """Common global constants and functions for Conque."""
 
@@ -38,7 +38,7 @@ import traceback # DEBUG
 # PYTHON VERSION
 CONQUE_PYTHON_VERSION = sys.version_info[0]
 
-# Encoding {{{
+# Encoding
 
 try:
     import vim
@@ -69,9 +69,8 @@ def uchr(str):
     else:
         return unichr(str)
 
-# }}}
 
-# Logging {{{
+# Logging
 
 # enable logging # DEBUG
 CONQUE_LOG_FILENAME = None # DEBUG
@@ -87,9 +86,8 @@ CONQUE_LOG_LEVEL = logging.INFO #DEBUG
 if CONQUE_LOG_FILENAME: # DEBUG
     logging.basicConfig(filename=CONQUE_LOG_FILENAME, level=CONQUE_LOG_LEVEL) # DEBUG
 
-# }}}
 
-# Unix escape sequence settings  {{{
+# Unix escape sequence settings
 
 CONQUE_CTL = {
      1: 'soh', # start of heading
@@ -213,7 +211,7 @@ CONQUE_GRAPHICS_SET = [
     0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF
 ]
 
-# Font codes {{{
+# Font codes
 CONQUE_FONT = {
     0: {'description': 'Normal (default)', 'attributes': {'cterm': 'NONE', 'ctermfg': 'NONE', 'ctermbg': 'NONE', 'gui': 'NONE', 'guifg': 'NONE', 'guibg': 'NONE'}, 'normal': True},
     1: {'description': 'Bold', 'attributes': {'cterm': 'BOLD', 'gui': 'BOLD'}, 'normal': False},
@@ -261,7 +259,7 @@ CONQUE_FONT = {
     106: {'description': 'Set background color to Cyan', 'attributes': {'ctermbg': '14', 'guibg': '#009999'}, 'normal': False},
     107: {'description': 'Set background color to White', 'attributes': {'ctermbg': '15', 'guibg': '#ffffff'}, 'normal': False}
 }
-# }}}
+
 
 # regular expression matching (almost) all control sequences
 CONQUE_SEQ_REGEX = re.compile("(\x1b\[?\??#?[0-9;]*[a-zA-Z0-9@=>]|\x1b\][0-9];.*?\x07|[\x01-\x0f]|\x1b\([AB0])")
@@ -281,9 +279,8 @@ CONQUE_COLOR_SEQUENCE = (
     '000', '00f', '0f0', '0ff', 'f00', 'f0f', 'ff0', 'fff'
 )
 
-# }}}
 
-# Windows subprocess constants {{{
+# Windows subprocess constants
 
 # shared memory size
 CONQUE_SOLE_BUFFER_LENGTH = 1000
@@ -318,6 +315,5 @@ CONQUE_WIN32_REGEX_ATTR = re.compile("((.)\\2*)", re.DOTALL)
 # special key attributes
 CONQUE_VK_ATTR_CTRL_PRESSED = u('1024')
 
-# }}}
 
 # vim:foldmethod=marker

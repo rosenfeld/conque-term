@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_sole_subprocess.py {{{
+# FILE:     autoload/conque_term/conque_sole_subprocess.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,9 +25,9 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
 
-""" ConqueSoleSubprocess {{{
+""" ConqueSoleSubprocess
 
 Creates a new subprocess with it's own (hidden) console window.
 
@@ -52,7 +52,7 @@ Requirements:
     * Python for Windows extensions. Available at http://sourceforge.net/projects/pywin32/
     * Must be run from process attached to an existing console.
 
-}}} """
+"""
 
 import time
 import re
@@ -66,9 +66,7 @@ from conque_sole_shared_memory import *
 
 class ConqueSoleSubprocess():
 
-    # Class properties {{{
-
-    #window = None
+    # subprocess handle and pid
     handle = None
     pid = None
 
@@ -124,21 +122,9 @@ class ConqueSoleSubprocess():
     screen_redraw_ct = 0
     mem_redraw_ct = 0
 
-    # }}}
 
-    # ****************************************************************************
-    # initialize class instance
-
-    def __init__(self): # {{{
-
-        pass
-
-    # }}}
-
-    # ****************************************************************************
-    # Create proccess cmd
-
-    def open(self, cmd, mem_key, options={}): # {{{
+    def open(self, cmd, mem_key, options={}):
+        """ Create subproccess """
 
         logging.debug('cmd is: ' + cmd)
 
@@ -247,12 +233,10 @@ class ConqueSoleSubprocess():
             logging.info(traceback.format_exc())
             return False
 
-    # }}}
 
-    # ****************************************************************************
-    # create shared memory objects
 
-    def init_shared_memory(self, mem_key): # {{{
+    def init_shared_memory(self, mem_key):
+        """ create shared memory objects """
 
         buf_info = self.get_buffer_info()
         logging.debug('-------------------------------------')
@@ -290,12 +274,9 @@ class ConqueSoleSubprocess():
 
         return True
 
-    # }}}
 
-    # ****************************************************************************
-    # check for and process commands
-
-    def check_commands(self): # {{{
+    def check_commands(self):
+        """ check for and process commands """
 
         cmd = self.shm_command.read()
 
@@ -334,12 +315,9 @@ class ConqueSoleSubprocess():
                 buf_info = self.get_buffer_info()
                 self.reset_console(buf_info, add_block=False)
 
-        # }}}
 
-    # ****************************************************************************
-    # read from windows console and update output buffer
-
-    def read(self, timeout=0): # {{{
+    def read(self, timeout=0):
+        """ read from windows console and update output buffer """
 
         # no point really
         if self.screen_redraw_ct == 0 and not self.is_alive():
@@ -440,12 +418,9 @@ class ConqueSoleSubprocess():
 
         return None
 
-    # }}}
 
-    # ****************************************************************************
-    # clear the console and set cursor at home position
-
-    def reset_console(self, buf_info, add_block=True): # {{{
+    def reset_console(self, buf_info, add_block=True):
+        """ clear the console and set cursor at home position """
 
         # sometimes we just want to change the buffer width,
         # in which case no need to add another block
@@ -509,13 +484,11 @@ class ConqueSoleSubprocess():
         self.tc = ctypes.create_unicode_buffer(self.buffer_width)
         self.ac = ctypes.create_unicode_buffer(self.buffer_width)
 
-    # }}}
 
-    # ****************************************************************************
-    # write text to console. this function just parses out special sequences for
-    # special key events and passes on the text to the plain or virtual key functions
 
-    def write(self): # {{{
+    def write(self):
+        """ write text to console. this function just parses out special sequences for
+            special key events and passes on the text to the plain or virtual key functions """
 
         # get input from shared mem
         text = self.shm_input.read()
@@ -551,11 +524,9 @@ class ConqueSoleSubprocess():
             else:
                 self.write_plain(t)
 
-    # }}}
 
-    # ****************************************************************************
-
-    def write_plain(self, text): # {{{
+    def write_plain(self, text):
+        """ Write simple text to subprocess """
 
         li = INPUT_RECORD * len(text)
         list_input = li()
@@ -607,11 +578,9 @@ class ConqueSoleSubprocess():
         logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
 
 
-    # }}}
+    def write_vk(self, vk_code):
+        """ Write special characters to console subprocess """
 
-    # ****************************************************************************
-
-    def write_vk(self, vk_code): # {{{
         logging.debug('virtual key code' + str(vk_code))
 
         code = None
@@ -658,11 +627,9 @@ class ConqueSoleSubprocess():
         logging.debug(str(ctypes.GetLastError()))
         logging.debug(str(ctypes.FormatError(ctypes.GetLastError())))
 
-    # }}}
 
-    # ****************************************************************************
-
-    def close(self): # {{{
+    def close(self):
+        """ Close all running subproccesses """
 
         # record status
         self.is_alive = False
@@ -704,18 +671,18 @@ class ConqueSoleSubprocess():
             logging.info(traceback.format_exc())
             pass
 
+
     def close_pid(self, pid):
+        """ Terminate a single process """
+
         logging.info('killing pid ' + str(pid))
         handle = ctypes.windll.kernel32.OpenProcess(PROCESS_TERMINATE, 0, pid)
         ctypes.windll.kernel32.TerminateProcess(handle, -1)
         ctypes.windll.kernel32.CloseHandle(handle)
 
-    # }}}
 
-    # ****************************************************************************
-    # check process health
-
-    def is_alive(self): # {{{
+    def is_alive(self):
+        """ check process health """
 
         status = ctypes.windll.kernel32.WaitForSingleObject(self.handle, 1)
 
@@ -725,21 +692,15 @@ class ConqueSoleSubprocess():
 
         return self.is_alive
 
-        # }}}
 
-
-    # ****************************************************************************
-    # return screen data as string
-
-    def get_screen_text(self): # {{{
+    def get_screen_text(self):
+        """ return screen data as string """
 
         return "\n".join(self.data)
 
-        # }}}
 
-    # ****************************************************************************
-
-    def set_window_size(self, width, height): # {{{
+    def set_window_size(self, width, height):
+        """ Change Windows console size """
 
         logging.debug('*** setting window size')
 
@@ -783,19 +744,15 @@ class ConqueSoleSubprocess():
         self.window_width = buf_info.srWindow.Right + 1
         self.window_height = buf_info.srWindow.Bottom + 1
 
-        # }}}
 
-    # ****************************************************************************
-    # get buffer info, used a lot
-
-    def get_buffer_info(self): # {{{
+    def get_buffer_info(self):
+        """ Retrieve commonly-used buffer information """
 
         buf_info = CONSOLE_SCREEN_BUFFER_INFO()
         ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
 
         return buf_info
 
-        # }}}
 
 
 # vim:foldmethod=marker

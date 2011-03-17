@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_screen.py {{{
+# FILE:     autoload/conque_term/conque_screen.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,7 +25,7 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
 
 """
 ConqueScreen is an extention of the vim.current.buffer object
@@ -47,8 +47,6 @@ import vim
 
 class ConqueScreen(object):
 
-    # CLASS PROPERTIES  {{{
-
     # the buffer
     buffer = None
 
@@ -62,26 +60,25 @@ class ConqueScreen(object):
     # char encoding for vim buffer
     screen_encoding = 'utf-8'
 
-    # }}}
 
-    def __init__(self): # {{{
+    def __init__(self):
+
         self.buffer = vim.current.buffer
 
+        # initialize screen size
         self.screen_top = 1
         self.screen_width = vim.current.window.width
         self.screen_height = vim.current.window.height
 
+        # save screen character encoding type
         self.screen_encoding = vim.eval('&fileencoding')
-    # }}}
 
-    ###############################################################################################
-    # List overload {{{
 
-    def __len__(self): # {{{
+    def __len__(self):
         return len(self.buffer)
-    # }}}
 
-    def __getitem__(self, key): # {{{
+
+    def __getitem__(self, key):
         buffer_line = self.get_real_idx(key)
 
         # if line is past buffer end, add lines to buffer
@@ -90,9 +87,9 @@ class ConqueScreen(object):
                 self.append(' ')
 
         return u(self.buffer[buffer_line], 'utf-8')
-    # }}}
 
-    def __setitem__(self, key, value): # {{{
+
+    def __setitem__(self, key, value):
         buffer_line = self.get_real_idx(key)
 
         if CONQUE_PYTHON_VERSION == 2:
@@ -106,13 +103,13 @@ class ConqueScreen(object):
             self.buffer.append(val)
         else:
             self.buffer[buffer_line] = val
-    # }}}
 
-    def __delitem__(self, key): # {{{
+
+    def __delitem__(self, key):
         del self.buffer[self.screen_top + key - 2]
-    # }}}
 
-    def append(self, value): # {{{
+
+    def append(self, value):
         if len(self.buffer) > self.screen_top + self.screen_height - 1:
             self.buffer[len(self.buffer) - 1] = value
         else:
@@ -122,45 +119,38 @@ class ConqueScreen(object):
             self.screen_top += 1
         if vim.current.buffer.number == self.buffer.number:
             vim.command('normal! G')
-    # }}}
 
-    def insert(self, line, value): # {{{
+
+    def insert(self, line, value):
         logging.debug('insert at line ' + str(self.screen_top + line - 2))
         l = self.screen_top + line - 2
         self.buffer.append(value, l)
 
-    # }}}
-    # }}}
 
-    ###############################################################################################
-    # Util {{{
-
-    def get_top(self): # {{{
+    def get_top(self):
         return self.screen_top
-    # }}}
 
-    def get_real_idx(self, line): # {{{
+
+    def get_real_idx(self, line):
         return (self.screen_top + line - 2)
-    # }}}
 
-    def get_buffer_line(self, line): # {{{
+
+    def get_buffer_line(self, line):
         return (self.screen_top + line - 1)
-    # }}}
 
-    def set_screen_width(self, width): # {{{
+
+    def set_screen_width(self, width):
         self.screen_width = width
-    # }}}
 
-    # }}}
 
-    ###############################################################################################
-    def clear(self): # {{{
+    def clear(self):
         self.buffer.append(' ')
         vim.command('normal! Gzt')
         self.screen_top = len(self.buffer)
-    # }}}
 
-    def set_cursor(self, line, column): # {{{
+
+    def set_cursor(self, line, column):
+
         # figure out line
         buffer_line = self.screen_top + line - 1
         if buffer_line > len(self.buffer):
@@ -183,9 +173,11 @@ class ConqueScreen(object):
                 vim.current.window.cursor = (buffer_line, real_column - 1)
             except:
                 vim.command('call cursor(' + str(buffer_line) + ', ' + str(real_column) + ')')
-    # }}}
 
-    def reset_size(self, line): # {{{
+
+    def reset_size(self, line):
+        """ Change screen size """
+
         logging.debug('buffer len is ' + str(len(self.buffer)))
         logging.debug('buffer height ' + str(vim.current.window.height))
         logging.debug('old screen top was ' + str(self.screen_top))
@@ -206,15 +198,11 @@ class ConqueScreen(object):
 
         # return new relative line number
         return (buffer_line - self.screen_top)
-    # }}}
 
-    def scroll_to_bottom(self): # {{{
-        vim.current.window.cursor = (len(self.buffer) - 1, 1)
-    # }}}
 
-    def align(self): # {{{
-        # align bottom of buffer to bottom of screen
+    def align(self):
+        """ align bottom of buffer to bottom of screen """
         vim.command('normal! ' + str(self.screen_height) + 'kG')
-    # }}}
+
 
 # vim:foldmethod=marker

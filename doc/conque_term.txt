@@ -34,6 +34,7 @@ you to run and interact with a shell or shell application inside the buffer.
     3.18 Session Support                          |ConqueTerm_SessionSupport|
     3.19 Hide start messages                      |ConqueTerm_StartMessages|
     3.20 Windows character code page              |ConqueTerm_CodePage|
+    3.21 Fast Mode                                |ConqueTerm_FastMode|
  4. VimScript API                                 |conque-term-api|
     4.1 conque_term#open()                        |conque-term-open|
     4.2 conque_term#subprocess()                  |conque-term-subprocess|
@@ -390,6 +391,13 @@ zero to use the environment code page.
 Note: Displaying unicode characters on Conque for Windows needs work.
 >
       let g:ConqueTerm_CodePage = 0
+<
+3.21 Fast Mode                                           *ConqueTerm_FastMode*
+
+Disable features which could make Conque run slowly. This includes most
+terminal colors and some unicode support. Set this to 1 to enable fast mode.
+>
+      let g:ConqueTerm_FastMode = 0
 <
 ==============================================================================
 

@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_sole_communicator.py {{{
+# FILE:     autoload/conque_term/conque_sole_communicator.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,7 +25,7 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
 
 """
 ConqueSoleCommunicator
@@ -54,16 +54,11 @@ if __name__ == '__main__':
     # attempt to catch ALL exceptions to fend of zombies
     try:
 
-        # startup and config {{{
-
         # simple arg validation
         logging.debug(str(sys.argv))
         if len(sys.argv) < 5:
             logging.info('Arg validation failed!')
             exit()
-
-        # shared memory size
-        CONQUE_SOLE_COMMANDS_SIZE = 255
 
         # maximum time this thing reads. 0 means no limit. Only for testing.
         max_loops = 0
@@ -112,20 +107,16 @@ if __name__ == '__main__':
                 is_idle = True
                 shm_command.clear()
                 logging.info('idling')
-        # }}}
 
         ##############################################################
         # Create the subprocess
 
-        # {{{
         proc = ConqueSoleSubprocess()
         res = proc.open(cmd_line, mem_key, options)
 
         if not res:
             logging.info('process failed to open')
             exit()
-
-        # }}}
 
         ##############################################################
         # main loop!

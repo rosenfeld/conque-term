@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_subprocess.py {{{
+# FILE:     autoload/conque_term/conque_subprocess.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,7 +25,7 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
 
 """
 ConqueSubprocess
@@ -63,13 +63,9 @@ class ConqueSubprocess:
     # stdout+stderr file descriptor
     fd = None
 
-    # constructor
-    def __init__(self): # {{{
-        self.pid = 0
-        # }}}
 
-    # create pty + subprocess
-    def open(self, command, env={}): # {{{
+    def open(self, command, env={}):
+        """ Create subprocess using forkpty() """
 
         # parse command
         command_arr = shlex.split(command)
@@ -91,7 +87,7 @@ class ConqueSubprocess:
             for k in env.keys():
                 os.environ[k] = env[k]
 
-            # set some attributes
+            # set tty attributes
             try:
                 attrs = tty.tcgetattr(1)
                 attrs[0] = attrs[0] ^ tty.IGNBRK
@@ -112,11 +108,9 @@ class ConqueSubprocess:
         else:
             pass
 
-        # }}}
 
-    # read from pty
-    # XXX - select.poll() doesn't work in OS X!!!!!!!
-    def read(self, timeout=1): # {{{
+    def read(self, timeout=1):
+        """ Read from subprocess and return new output """
 
         output = ''
         read_timeout = float(timeout) / 1000
@@ -149,10 +143,11 @@ class ConqueSubprocess:
             pass
 
         return output
-        # }}}
 
-    # I guess this one's not bad
-    def write(self, input): # {{{
+
+    def write(self, input):
+        """ Write new input to subprocess """
+
         try:
             if CONQUE_PYTHON_VERSION == 2:
                 os.write(self.fd, input.encode('utf-8', 'ignore'))
@@ -160,28 +155,28 @@ class ConqueSubprocess:
                 os.write(self.fd, bytes(input, 'utf-8'))
         except:
             logging.info(traceback.format_exc())
-            logging.info('write fail')
             pass
-        # }}}
 
-    # signal process
-    def signal(self, signum): # {{{
+
+    def signal(self, signum):
+        """ signal process """
+
         try:
             os.kill(self.pid, signum)
         except:
             pass
-        # }}}
 
-    # close process
-    def close(self): # {{{
+
+    def close(self):
+        """ close process with sigterm signal """
+
         self.signal(15)
-        # }}}
 
-    # get process status
-    def is_alive(self): #{{{
+
+    def is_alive(self):
+        """ get process status """
 
         p_status = True
-
         try:
             if os.waitpid(self.pid, os.WNOHANG)[0]:
                 p_status = False
@@ -190,17 +185,15 @@ class ConqueSubprocess:
 
         return p_status
 
-        # }}}
 
-    # update window size in kernel, then send SIGWINCH to fg process
-    def window_resize(self, lines, columns): # {{{
+    def window_resize(self, lines, columns):
+        """ update window size in kernel, then send SIGWINCH to fg process """
+
         try:
             fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", lines, columns, 0, 0))
             os.kill(self.pid, signal.SIGWINCH)
         except:
             pass
-
-        # }}}
 
 
 # vim:foldmethod=marker

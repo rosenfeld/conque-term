@@ -1,4 +1,4 @@
-# FILE:     autoload/conque_term/conque_sole_shared_memory.py {{{
+# FILE:     autoload/conque_term/conque_sole_shared_memory.py
 # AUTHOR:   Nico Raffo <nicoraffo@gmail.com>
 # WEBSITE:  http://conque.googlecode.com
 # MODIFIED: __MODIFIED__
@@ -25,7 +25,7 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE. }}}
+# THE SOFTWARE.
 
 """Wrapper class for shared memory between Windows python processes"""
 
@@ -44,11 +44,6 @@ else:
 
 
 class ConqueSoleSharedMemory():
-
-    # ****************************************************************************
-    # class properties
-
-    # {{{
 
     # is the data being stored not fixed length
     fixed_length = False
@@ -80,12 +75,9 @@ class ConqueSoleSharedMemory():
     # pickle terminator
     TERMINATOR = None
 
-    # }}}
 
-    # ****************************************************************************
-    # constructor I guess
-
-    def __init__(self, mem_size, mem_type, mem_key, fixed_length=False, fill_char=' ', serialize=False, encoding='utf-8'): # {{{
+    def __init__(self, mem_size, mem_type, mem_key, fixed_length=False, fill_char=' ', serialize=False, encoding='utf-8'):
+        """ constructor I guess """
 
         self.mem_size = mem_size
         self.mem_type = mem_type
@@ -104,12 +96,9 @@ class ConqueSoleSharedMemory():
         if fixed_length and encoding == 'utf-8':
             self.char_width = 4
 
-    # }}}
 
-    # ****************************************************************************
-    # create memory block
-
-    def create(self, access='write'): # {{{
+    def create(self, access='write'):
+        """ create memory block """
 
         if access == 'write':
             mmap_access = mmap.ACCESS_WRITE
@@ -125,12 +114,9 @@ class ConqueSoleSharedMemory():
         else:
             return True
 
-        # }}}
 
-    # ****************************************************************************
-    # read data
-
-    def read(self, chars=1, start=0): # {{{
+    def read(self, chars=1, start=0):
+        """ read data """
 
         # go to start position
         self.shm.seek(start * self.char_width)
@@ -159,12 +145,9 @@ class ConqueSoleSharedMemory():
 
         return shm_str
 
-        # }}}
 
-    # ****************************************************************************
-    # write data
-
-    def write(self, text, start=0): # {{{
+    def write(self, text, start=0):
+        """ write data """
 
         # simple scenario, let pickle create bytes
         if self.serialize:
@@ -183,12 +166,10 @@ class ConqueSoleSharedMemory():
             self.shm.write(tb)
         else:
             self.shm.write(tb + self.TERMINATOR)
-        # }}}
 
-    # ****************************************************************************
-    # clear
 
-    def clear(self, start=0): # {{{
+    def clear(self, start=0):
+        """ clear """
 
         self.shm.seek(start)
 
@@ -197,12 +178,9 @@ class ConqueSoleSharedMemory():
         else:
             self.shm.write(self.TERMINATOR)
 
-        # }}}
-
-    # ****************************************************************************
-    # close
 
     def close(self):
+        """ close """
 
         self.shm.close()
 
