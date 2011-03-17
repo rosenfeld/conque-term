@@ -65,7 +65,7 @@ let s:save_updatetime = &updatetime
 
 let s:initialized = 0
 
-let s:hooks = { 'after_startup': [], 'buffer_enter': [], 'buffer_leave': [] }
+let s:hooks = { 'after_startup': [], 'buffer_enter': [], 'buffer_leave': [], 'after_keymap': [] }
 
 " }}}
 
@@ -875,6 +875,9 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'nnoremap ' . g:ConqueTerm_ToggleKey . ' :<C-u>call conque_term#set_mappings("toggle")<CR>'
     endif
     " }}}
+
+    " call user defined functions
+    call conque_term#call_hooks('after_keymap', conque_term#get_instance())
 
 endfunction " }}}
 
