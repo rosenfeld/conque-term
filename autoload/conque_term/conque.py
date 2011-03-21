@@ -30,19 +30,25 @@
 """
 Vim terminal emulator.
 
-The Conque class does two things. First, it handles communication between Vim and
-the terminal/console subprocess. For example, Vim uses the Conque.write()
-method to send input, and Conque.read() to update the terminal buffer.
+This class is the main interface between Vim and the terminal application. It 
+handles both updating the Vim buffer with new output and accepting new keyboard
+input from the Vim user.
 
-Second, the Conque class handles Unix terminal escape sequence parsing.
+Although this class was originally designed for a Unix terminal environment, it
+has been extended by the ConqueSole class for Windows.
+
+Usage:
+    term = Conque()
+    term.open('/bin/bash', {'TERM': 'vt100'})
+    term.write("ls -lha\r")
+    term.read()
+    term.close()
 """
 
 import vim
 import re
 import math
-
 import time # DEBUG
-
 
 class Conque:
 
@@ -107,8 +113,13 @@ class Conque:
 
 
     def open(self, command, options):
-        """ Start program and initialize this instance """
+        """ Start program and initialize this instance. 
 
+        Arguments:
+        command -- Command string to execute, e.g. '/bin/bash --login'
+        options -- Dictionary of environment vars to set and other options.
+
+        """
         # create terminal screen instance
         self.screen = ConqueScreen()
 
@@ -138,8 +149,12 @@ class Conque:
 
 
     def write(self, input, set_cursor=True, read=True):
-        """ Write unicode string to program """
+        """ Write a unicode string to the subprocess. 
 
+        set_cursor -- Position the cursor in the current buffer when finished
+        read -- Check program for new output when finished
+
+        """
         # check if window size has changed
         if read:
             self.update_window_size()
@@ -154,7 +169,7 @@ class Conque:
 
 
     def write_ord(self, input, set_cursor=True, read=True):
-        """ Write single character to program, using unicode ordinal """
+        """ Write a single character to the subprocess, using an unicode ordinal. """
 
         if CONQUE_PYTHON_VERSION == 2:
             self.write(unichr(input), set_cursor, read)
@@ -164,7 +179,7 @@ class Conque:
 
 
     def write_expr(self, expr, set_cursor=True, read=True):
-        """ Write value of Vim expression to program """
+        """ Write the value of a Vim expression to the subprocess. """
 
         if CONQUE_PYTHON_VERSION == 2:
             try:
@@ -198,8 +213,20 @@ class Conque:
 
 
     def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True):
-        """ Read from program and update buffer """
+        """ Read new output from the subprocess and update the Vim buffer.
 
+        Arguments:
+        timeout -- Milliseconds to wait before reading input
+        set_cursor -- Set the cursor position in the current buffer when finished
+        return_output -- Return new subprocess STDOUT + STDERR as a string
+        update_buffer -- Update the current Vim buffer with the new output
+
+        This method goes through the following rough steps:
+            1. Get new output from subprocess
+            2. Split output string into control codes, escape sequences, or plain text
+            3. Loop over and process each chunk, updating the Vim buffer as we go
+
+        """
         output = ''
 
         # this may not actually work
@@ -319,8 +346,17 @@ class Conque:
 
 
     def auto_read(self):
-        """ Poll program for more output. Called many times a second, so it should be fast. """
+        """ Poll program for more output. 
 
+        Since Vim doesn't have a reliable event system that can be triggered when new
+        output is available, we have to continually poll the subprocess instead. This
+        method is called many times a second when the terminal buffer is active, so it
+        needs to be very fast and efficient.
+
+        The feedkeys portion is required to reset Vim's timer system. The timer is used
+        to execute this command, typically set to go off after 50 ms of inactivity.
+
+        """
         # check subprocess status, but not every time since it's CPU expensive
         if self.read_count % 32 == 0:
             if not self.proc.is_alive():
@@ -360,13 +396,17 @@ class Conque:
         self.cursor_set = True
 
 
-
-    ###############################################################################################
-    # Plain text and color codes
-
     def plain_text(self, input):
-        """ Write text output to screen """
+        """ Write text output to Vim buffer.
 
+  
+        This method writes a string of characters without any control characters or escape sequences
+        to the Vim buffer. In simple terms, it writes the input string to the buffer starting at the
+        current cursor position, wrapping the text to a new line if needed. It also triggers the 
+        terminal coloring methods if needed.
+
+
+        """
         # translate input into graphics character set if needed
         if self.character_set == 'graphics':
             old_input = input
@@ -430,8 +470,18 @@ class Conque:
 
 
     def apply_color(self, start, end, line=0):
-        """ Apply terminal colors to screen for a single line """
-        
+        """ Apply terminal colors to buffer for a range of characters in a single line. 
+
+        When a text attribute escape sequence is encountered during input processing, the
+        attributes are recorded in the dictionary self.color_changes. After those attributes
+        have been applied, the changes are recorded in a second dictionary self.color_history.
+
+  
+        This method inspects both dictionaries to calculate any syntax highlighting 
+        that needs to be executed to render the text attributes in the Vim buffer.
+
+
+        """
         logging.debug('applying colors ' + str(self.color_changes))
 
         # stop here if coloration is disabled
@@ -488,6 +538,7 @@ class Conque:
 
 
     def exec_highlight(self, buffer_line, start, end, highlight):
+        """ Execute the Vim commands for a single syntax highlight """
 
         syntax_name = 'ConqueHighLightAt_%d_%d_%d_%d' % (self.proc.pid, self.l, start, len(self.color_history) + 1)
         syntax_options = 'contains=ALLBUT,ConqueString,MySQLString,MySQLKeyword oneline'
@@ -516,7 +567,13 @@ class Conque:
 
 
     def prune_colors(self):
-        """ remove syntax highlighting older than CONQUE_MAX_SYNTAX_LINES up the screen"""
+        """ Remove old syntax highlighting from the Vim buffer
+
+        The kind of syntax highlighting required for terminal colors can make
+        Conque run slowly. The prune_colors() method will remove old highlight definitions
+        to keep the maximum number of highlight rules within a reasonable range.
+
+        """
         logging.info('pruning colors ' + str(len(self.color_history.keys())))
 
         buffer_line = self.get_buffer_line(self.l)
@@ -534,6 +591,7 @@ class Conque:
     # Control functions 
 
     def ctl_nl(self):
+        """ Process the newline control character. """
         # if we're in a scrolling region, scroll instead of moving cursor down
         if self.lines != self.working_lines and self.l == self.bottom:
             del self.screen[self.top]
@@ -546,24 +604,29 @@ class Conque:
         self.color_changes = {}
 
     def ctl_cr(self):
+        """ Process the carriage return control character. """
         self.c = 1
 
         self.color_changes = {}
 
     def ctl_bs(self):
+        """ Process the backspace control character. """
         if self.c > 1:
             self.c += -1
 
     def ctl_soh(self):
+        """ Process the start of heading control character. """
         pass
 
     def ctl_stx(self):
         pass
 
     def ctl_bel(self):
+        """ Process the bell control character. """
         vim.command('call conque_term#bell()')
 
     def ctl_tab(self):
+        """ Process the tab control character. """
         # default tabstop location
         ts = self.working_columns
 
@@ -578,9 +641,11 @@ class Conque:
         self.c = ts
 
     def ctl_so(self):
+        """ Process the shift out control character. """
         self.character_set = 'graphics'
 
     def ctl_si(self):
+        """ Process the shift in control character. """
         self.character_set = 'ascii'
 
 
@@ -589,6 +654,7 @@ class Conque:
     # CSI functions 
 
     def csi_font(self, csi):
+        """ Process the text attribute escape sequence. """
         if not self.enable_colors:
             return
 
@@ -630,6 +696,7 @@ class Conque:
 
 
     def csi_clear_line(self, csi):
+        """ Process the line clear escape sequence. """
         logging.debug(str(csi))
 
         # this escape defaults to 0
@@ -663,6 +730,7 @@ class Conque:
 
 
     def csi_cursor_right(self, csi):
+        """ Process the move cursor right escape sequence. """
         # we use 1 even if escape explicitly specifies 0
         if csi['val'] == 0:
             csi['val'] = 1
@@ -679,6 +747,7 @@ class Conque:
 
 
     def csi_cursor_left(self, csi):
+        """ Process the move cursor left escape sequence. """
         # we use 1 even if escape explicitly specifies 0
         if csi['val'] == 0:
             csi['val'] = 1
@@ -692,22 +761,26 @@ class Conque:
 
 
     def csi_cursor_to_column(self, csi):
+        """ Process the move cursor to column escape sequence. """
         self.c = self.bound(csi['val'], 1, self.working_columns)
 
 
     def csi_cursor_up(self, csi):
+        """ Process the move cursor up escape sequence. """
         self.l = self.bound(self.l - csi['val'], self.top, self.bottom)
 
         self.color_changes = {}
 
 
     def csi_cursor_down(self, csi):
+        """ Process the move cursor down escape sequence. """
         self.l = self.bound(self.l + csi['val'], self.top, self.bottom)
 
         self.color_changes = {}
 
 
     def csi_clear_screen(self, csi):
+        """ Process the clear screen escape sequence. """
         # default to 0
         if len(csi['vals']) == 0:
             csi['val'] = 0
@@ -888,7 +961,6 @@ class Conque:
 
 
 
-
     ###############################################################################################
     # CHARSET functions 
 
@@ -907,9 +979,16 @@ class Conque:
     # Random stuff 
 
     def set_cursor(self, line, col):
+        """ Set cursor position in the Vim buffer.
+
+        Note: the line and column numbers are relative to the top left corner of the 
+        visible screen. Not the line number in the Vim buffer.
+
+        """
         self.screen.set_cursor(line, col)
 
     def change_title(self, key, val):
+        """ Change the Vim window title. """
         logging.debug(key)
         logging.debug(val)
         if key == '0' or key == '2':
@@ -921,6 +1000,13 @@ class Conque:
                 pass
 
     def update_window_size(self, force=False):
+        """ Check and save the current buffer dimensions.
+
+        If the buffer size has changed, the update_window_size() method both updates
+        the Conque buffer size attributes as well as sending the new dimensions to the
+        subprocess pty.
+
+        """
         # resize if needed
         if force or vim.current.window.width != self.columns or vim.current.window.height != self.lines:
 
@@ -943,6 +1029,7 @@ class Conque:
             self.proc.window_resize(self.lines, self.columns)
 
     def insert_enter(self):
+        """ Run commands when user enters insert mode. """
 
         # check window size
         self.update_window_size()
@@ -951,6 +1038,7 @@ class Conque:
         self.cursor_set = False
 
     def init_tabstops(self):
+        """ Intitialize terminal tabstop positions. """
         for i in range(0, self.columns + 1):
             if i % 8 == 0:
                 self.tabstops.append(True)
@@ -958,15 +1046,20 @@ class Conque:
                 self.tabstops.append(False)
 
     def idle(self):
+        """ Called when this terminal becomes idle. """
         pass
 
     def resume(self):
+        """ Called when this terminal is no longer idle. """
+        pass
         pass
 
     def close(self):
+        """ End the process running in the terminal. """
         self.proc.close()
 
     def abort(self):
+        """ Forcefully end the process running in the terminal. """
         self.proc.signal(1)
 
 
@@ -975,6 +1068,8 @@ class Conque:
     # Utility 
 
     def parse_csi(self, s):
+        """ Parse an escape sequence into it's meaningful values. """
+
         attr = {'key': s[-1], 'flag': '', 'val': 1, 'vals': []}
 
         if len(s) == 1:
@@ -1002,6 +1097,7 @@ class Conque:
 
 
     def bound(self, val, min, max):
+        """ TODO: This probably exists as a builtin function. """
         if val > max:
             return max
 
@@ -1012,6 +1108,7 @@ class Conque:
 
 
     def xterm_to_rgb(self, color_code):
+        """ Translate a terminal color number into a RGB string. """
         if color_code < 16:
             ascii_colors = ['000000', 'CD0000', '00CD00', 'CDCD00', '0000EE', 'CD00CD', '00CDCD', 'E5E5E5',
                    '7F7F7F', 'FF0000', '00FF00', 'FFFF00', '5C5CFF', 'FF00FF', '00FFFF', 'FFFFFF']
@@ -1033,6 +1130,7 @@ class Conque:
 
 
     def get_buffer_line(self, line):
+        """ Get the buffer line number corresponding to the supplied screen line number. """
         return self.screen.get_buffer_line(line)
 
 

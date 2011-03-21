@@ -47,11 +47,6 @@ Sample Usage:
     shm_in.write("dir\r")
     output = shm_out.read(...)
 
-Requirements:
-
-    * Python for Windows extensions. Available at http://sourceforge.net/projects/pywin32/
-    * Must be run from process attached to an existing console.
-
 """
 
 import time
@@ -124,7 +119,7 @@ class ConqueSoleSubprocess():
 
 
     def open(self, cmd, mem_key, options={}):
-        """ Create subproccess """
+        """ Create subproccess running in hidden console window. """
 
         logging.debug('cmd is: ' + cmd)
 
@@ -178,7 +173,7 @@ class ConqueSoleSubprocess():
             # attach ourselves to the new console
             # console is not immediately available
             for i in range(10):
-                time.sleep(1)
+                time.sleep(0.25)
                 try:
                     logging.debug('attempt ' + str(i))
                     res = ctypes.windll.kernel32.AttachConsole(self.pid)

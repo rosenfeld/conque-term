@@ -195,15 +195,15 @@ function! conque_term#dependency_check() " {{{
 
     " quick and dirty platform declaration
     if has('unix') == 1
-        let s:platform = 'nix'
-        sil exe s:py . " CONQUE_PLATFORM = 'nix'"
+        let s:platform = 'unix'
+        sil exe s:py . " CONQUE_PLATFORM = 'unix'"
     else
-        let s:platform = 'dos'
-        sil exe s:py . " CONQUE_PLATFORM = 'dos'"
+        let s:platform = 'windows'
+        sil exe s:py . " CONQUE_PLATFORM = 'windows'"
     endif
 
     " if we're using Windows, make sure ctypes is available
-    if s:platform == 'dos'
+    if s:platform == 'windows'
         try
             sil exe s:py . " import ctypes"
         catch
@@ -213,7 +213,7 @@ function! conque_term#dependency_check() " {{{
     endif
 
     " if we're using Windows, make sure we can finde python executable
-    if s:platform == 'dos' && conque_term#find_python_exe() == ''
+    if s:platform == 'windows' && conque_term#find_python_exe() == ''
         call conque_term#fail('python_exe')
         return 0
     endif
@@ -492,7 +492,7 @@ function! conque_term#open(...) "{{{
         let l:config["color"] = g:ConqueTerm_Color
         let l:config["offset"] = g:ConqueTerm_StartMessages * 10
 
-        if s:platform == 'nix'
+        if s:platform == 'unix'
             execute s:py . ' ' . g:ConqueTerm_Var . ' = Conque()'
             execute s:py . ' ' . g:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . string(l:config) . ")"
         else
@@ -723,7 +723,7 @@ function! conque_term#set_mappings(action) "{{{
 
     " Special keys {{{
     if l:action == 'start'
-        if s:platform == 'nix'
+        if s:platform == 'unix'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <BS> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x08"))<CR>'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Space> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u(" "))<CR>'
             sil exe 'i' . map_modifier . 'map <silent> <buffer> <Up> <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[A"))<CR>'
@@ -765,7 +765,7 @@ function! conque_term#set_mappings(action) "{{{
     " <F-> keys {{{
     if g:ConqueTerm_SendFunctionKeys
         if l:action == 'start'
-            if s:platform == 'nix'
+            if s:platform == 'unix'
                 sil exe 'i' . map_modifier . 'map <silent> <buffer> <F1>  <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[11~"))<CR>'
                 sil exe 'i' . map_modifier . 'map <silent> <buffer> <F2>  <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("\x1b[12~"))<CR>'
                 sil exe 'i' . map_modifier . 'map <silent> <buffer> <F3>  <C-o>:' . s:py . ' ' . b:ConqueTerm_Var . '.write(u("1b[13~"))<CR>'
@@ -1495,13 +1495,14 @@ function! conque_term#load_python() " {{{
 
     exec s:py . "file " . s:scriptdirpy . "conque_globals.py"
     exec s:py . "file " . s:scriptdirpy . "conque.py"
-    exec s:py . "file " . s:scriptdirpy . "conque_screen.py"
-    exec s:py . "file " . s:scriptdirpy . "conque_subprocess.py"
-    if s:platform == 'dos'
+    if s:platform == 'windows'
         exec s:py . "file " . s:scriptdirpy . "conque_win32_util.py"
         exec s:py . "file " . s:scriptdirpy . "conque_sole_shared_memory.py"
         exec s:py . "file " . s:scriptdirpy . "conque_sole.py"
         exec s:py . "file " . s:scriptdirpy . "conque_sole_wrapper.py"
+    else
+        exec s:py . "file " . s:scriptdirpy . "conque_screen.py"
+        exec s:py . "file " . s:scriptdirpy . "conque_subprocess.py"
     endif
 
 endfunction " }}}

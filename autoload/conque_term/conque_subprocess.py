@@ -43,16 +43,15 @@ Usage:
     p.close()
 """
 
-if CONQUE_PLATFORM == 'nix':
-    import os
-    import signal
-    import pty
-    import tty
-    import select
-    import fcntl
-    import termios
-    import struct
-    import shlex
+import os
+import signal
+import pty
+import tty
+import select
+import fcntl
+import termios
+import struct
+import shlex
 
 
 class ConqueSubprocess:
