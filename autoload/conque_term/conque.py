@@ -112,7 +112,7 @@ class Conque:
     read_count = 0
 
 
-    def open(self, command, options):
+    def open(self):
         """ Start program and initialize this instance. 
 
         Arguments:
@@ -120,6 +120,10 @@ class Conque:
         options -- Dictionary of environment vars to set and other options.
 
         """
+        # get arguments
+        command = vim.eval('command')
+        options = vim.eval('options')
+
         # create terminal screen instance
         self.screen = ConqueScreen()
 
@@ -131,8 +135,8 @@ class Conque:
         self.bottom = vim.current.window.height
 
         # offset first line to make room for startup messages
-        if options['offset'] > 0:
-            self.l = options['offset']
+        if int(options['offset']) > 0:
+            self.l = int(options['offset'])
 
         # init color
         self.enable_colors = options['color'] and not CONQUE_FAST_MODE

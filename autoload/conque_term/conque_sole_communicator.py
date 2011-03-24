@@ -28,14 +28,17 @@
 # THE SOFTWARE.
 
 """
+
 ConqueSoleCommunicator
 
-Script to transfer communications between python being run in Vim and a
-subprocess run inside a Windows console. This is required since interactive
-programs in Windows appear to require a console, and python run in Vim is
-not attached to any console. So a console version of python must be initiated
-for the subprocess. Communication is then done with the use of shared memory
-objects. Good times!
+This script will create a new Windows console and start the requested program 
+inside of it. This process is launched independently from the parent Vim
+program, so it has no access to the vim module.
+
+The main loop in this script reads data from the console and syncs it onto 
+blocks of memory shared with the Vim process. In this way the Vim process
+and this script can communicate with each other.
+
 """
 
 import time

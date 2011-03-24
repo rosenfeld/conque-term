@@ -28,26 +28,27 @@
 " THE SOFTWARE.
 " }}}
 
-if !exists('g:ConqueTerm_Loaded')
-    runtime! plugin/conque_term.vim
-endif
-
 " **********************************************************************************************************
-" **** CROSS-TERMINAL SETTINGS *****************************************************************************
+" **** GLOBAL INITIALIZATION *******************************************************************************
 " **********************************************************************************************************
 
 " {{{
 
-" path to this file
-let s:scriptfile = expand("<sfile>") 
+" load plugin file if it hasn't already been loaded (e.g. conque_term#foo() is used in .vimrc)
+if !exists('g:ConqueTerm_Loaded')
+    runtime! plugin/conque_term.vim
+endif
+
+" path to conque install directories
 let s:scriptdir = expand("<sfile>:h") . '/'
 let s:scriptdirpy = expand("<sfile>:h") . '/conque_term/'
 
-" Extra key codes
-let s:input_extra = []
-
+" global list of terminal instances
 let s:term_obj = {'idx': 1, 'var': '', 'is_buffer': 1, 'active': 1, 'buffer_name': '', 'command': ''}
 let g:ConqueTerm_Terminals = {}
+
+" global lists of registered functions
+let s:hooks = { 'after_startup': [], 'buffer_enter': [], 'buffer_leave': [], 'after_keymap': [] }
 
 " required for session support
 if g:ConqueTerm_SessionSupport == 1
@@ -58,14 +59,19 @@ if g:ConqueTerm_SessionSupport == 1
         let s:saved_terminals = {}
     endtry
 endif
+
+" more session support
 let g:ConqueTerm_TerminalsString = ''
+
+" init terminal counter
 let g:ConqueTerm_Idx = 0
 
+" we clobber this value later
 let s:save_updatetime = &updatetime
 
+" have we called the init() function yet?
 let s:initialized = 0
 
-let s:hooks = { 'after_startup': [], 'buffer_enter': [], 'buffer_leave': [], 'after_keymap': [] }
 
 " }}}
 
@@ -75,6 +81,7 @@ let s:hooks = { 'after_startup': [], 'buffer_enter': [], 'buffer_leave': [], 'af
 
 " {{{
 
+" Display various error messages
 function! conque_term#fail(feature) " {{{
 
     " create a new buffer
@@ -121,7 +128,7 @@ function! conque_term#fail(feature) " {{{
         call append('$', "")
         call append('$', "Conque needs to know the full path to python.exe on Windows systems. By default, ")
         call append('$', "Conque will check your system path as well as the most common installation path ")
-        call append('$', "C:\\PythonXX\\. To fix this error either:")
+        call append('$', "C:\\PythonXX\\python.exe. To fix this error either:")
         call append('$', "")
         call append('$', "Set the g:ConqueTerm_PyExe option in your .vimrc. E.g.")
         call append('$', "        let g:ConqueTerm_PyExe = 'C:\Program Files\Python27\python.exe'")
@@ -144,6 +151,7 @@ function! conque_term#fail(feature) " {{{
 
 endfunction " }}}
 
+" Go through various system checks before attempting to launch conque
 function! conque_term#dependency_check() " {{{
 
     " don't recheck the second time 'round
@@ -151,18 +159,18 @@ function! conque_term#dependency_check() " {{{
         return 1
     endif
 
-    " choose a python version and define a string unicoding function
+    " choose a python version
     let s:py = ''
     if g:ConqueTerm_PyVersion == 3
-        let s:pytest = 'python3'
+        let pytest = 'python3'
     else
-        let s:pytest = 'python'
+        let pytest = 'python'
         let g:ConqueTerm_PyVersion = 2
     endif
 
-    " first the requested version
-    if has(s:pytest)
-        if s:pytest == 'python3'
+    " first test the requested version
+    if has(pytest)
+        if pytest == 'python3'
             let s:py = 'py3'
         else
             let s:py = 'py'
@@ -170,16 +178,16 @@ function! conque_term#dependency_check() " {{{
 
     " otherwise use the other version
     else
-        let s:py_alternate = 5 - g:ConqueTerm_PyVersion
-        if s:py_alternate == 3
-            let s:pytest = 'python3'
+        let py_alternate = 5 - g:ConqueTerm_PyVersion
+        if py_alternate == 3
+            let pytest = 'python3'
         else
-            let s:pytest = 'python'
+            let pytest = 'python'
         endif
-        if has(s:pytest)
-            echohl WarningMsg | echomsg "Python " . g:ConqueTerm_PyVersion . " interface is not installed, using Python " . s:py_alternate . " instead" | echohl None
-            let g:ConqueTerm_PyVersion = s:py_alternate
-            if s:pytest == 'python3'
+        if has(pytest)
+            echohl WarningMsg | echomsg "Python " . g:ConqueTerm_PyVersion . " interface is not installed, using Python " . py_alternate . " instead" | echohl None
+            let g:ConqueTerm_PyVersion = py_alternate
+            if pytest == 'python3'
                 let s:py = 'py3'
             else
                 let s:py = 'py'
@@ -425,43 +433,40 @@ let s:windows_vk = {
 " launch conque
 function! conque_term#open(...) "{{{
     let command = get(a:000, 0, '')
-    let hooks   = get(a:000, 1, [])
+    let vim_startup_commands = get(a:000, 1, [])
     let return_to_current  = get(a:000, 2, 0)
     let is_buffer  = get(a:000, 3, 1)
 
     " dependency check
-    if conque_term#dependency_check() == 0
+    if !conque_term#dependency_check()
         return 0
     endif
 
     " switch to buffer if needed
     if is_buffer && return_to_current
       let save_sb = &switchbuf
-
-      "use an agressive sb option
       sil set switchbuf=usetab
-
-      " current buffer name
       let current_buffer = bufname("%")
     endif
 
     " bare minimum validation
     if s:py == ''
-        echohl WarningMsg | echomsg "Conque requires the Python interface to be installed" | echohl None
+        echohl WarningMsg | echomsg "Conque requires the Python interface to be installed. See :help ConqueTerm for more information." | echohl None
         return 0
     endif
     if empty(command)
-        echohl WarningMsg | echomsg "No command found" | echohl None
+        echohl WarningMsg | echomsg "Invalid usage: no program path given. Use :ConqueTerm YOUR PROGRAM, e.g. :ConqueTerm ipython" | echohl None
         return 0
     else
-        let l:cargs = split(command, '[^\\]\@<=\s')
-        let l:cargs[0] = substitute(l:cargs[0], '\\ ', ' ', 'g')
-        if !executable(l:cargs[0])
-            echohl WarningMsg | echomsg "Not an executable: " . l:cargs[0] | echohl None
+        let cmd_args = split(command, '[^\\]\@<=\s')
+        let cmd_args[0] = substitute(cmd_args[0], '\\ ', ' ', 'g')
+        if !executable(cmd_args[0])
+            echohl WarningMsg | echomsg "Not an executable: " . cmd_args[0] | echohl None
             return 0
         endif
     endif
 
+    " initialize global identifiers
     let g:ConqueTerm_Idx += 1
     let g:ConqueTerm_Var = 'ConqueTerm_' . g:ConqueTerm_Idx
     let g:ConqueTerm_BufName = substitute(command, ' ', '\\ ', 'g') . "\\ -\\ " . g:ConqueTerm_Idx
@@ -469,15 +474,15 @@ function! conque_term#open(...) "{{{
     " initialize global mappings if needed
     call conque_term#init()
 
-    " set buffer window options
+    " set Vim buffer window options
     if is_buffer
-        call conque_term#set_buffer_settings(command, hooks)
+        call conque_term#set_buffer_settings(command, vim_startup_commands)
 
         let b:ConqueTerm_Idx = g:ConqueTerm_Idx
         let b:ConqueTerm_Var = g:ConqueTerm_Var
     endif
 
-    " save handle
+    " save terminal instance
     let t_obj = conque_term#create_terminal_object(g:ConqueTerm_Idx, is_buffer, g:ConqueTerm_BufName, command)
     let g:ConqueTerm_Terminals[g:ConqueTerm_Idx] = t_obj
 
@@ -486,24 +491,21 @@ function! conque_term#open(...) "{{{
 
     " open command
     try
-        let l:config = {}
-        let l:config["TERM"] = g:ConqueTerm_TERM
-        let l:config["CODE_PAGE"] = g:ConqueTerm_CodePage
-        let l:config["color"] = g:ConqueTerm_Color
-        let l:config["offset"] = g:ConqueTerm_StartMessages * 10
+        let options = {}
+        let options["TERM"] = g:ConqueTerm_TERM
+        let options["CODE_PAGE"] = g:ConqueTerm_CodePage
+        let options["color"] = g:ConqueTerm_Color
+        let options["offset"] = g:ConqueTerm_StartMessages * 10
 
         if s:platform == 'unix'
             execute s:py . ' ' . g:ConqueTerm_Var . ' = Conque()'
-            execute s:py . ' ' . g:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . string(l:config) . ")"
+            execute s:py . ' ' . g:ConqueTerm_Var . ".open()"
         else
             " find python.exe and communicator
-            let py_exe = conque_term#python_escape(conque_term#find_python_exe())
-            let py_vim = conque_term#python_escape(s:scriptdirpy . 'conque_sole_communicator.py')
-            if py_exe == ''
-                return 0
-            endif
+            let py_exe = conque_term#find_python_exe()
+            let py_vim = s:scriptdirpy . 'conque_sole_communicator.py'
             execute s:py . ' ' . g:ConqueTerm_Var . ' = ConqueSole()'
-            execute s:py . ' ' . g:ConqueTerm_Var . ".open('" . conque_term#python_escape(command) . "', " . string(l:config) . ", '" . py_exe . "', '" . py_vim . "')"
+            execute s:py . ' ' . g:ConqueTerm_Var . ".open()"
 
             if g:ConqueTerm_ColorMode == 'conceal'
                 call conque_term#init_conceal_color()
@@ -511,10 +513,10 @@ function! conque_term#open(...) "{{{
         endif
     catch
         echohl WarningMsg | echomsg "An error occurred: " . command | echohl None
-        return
+        return 0
     endtry
 
-    " set buffer mappings and auto commands 
+    " set key mappings and auto commands 
     if is_buffer
         call conque_term#set_mappings('start')
     endif
@@ -524,7 +526,6 @@ function! conque_term#open(...) "{{{
 
     " switch to buffer if needed
     if is_buffer && return_to_current
-        " jump back to code buffer
         sil exe ":sb " . current_buffer
         sil exe ":set switchbuf=" . save_sb
     elseif is_buffer
@@ -532,6 +533,7 @@ function! conque_term#open(...) "{{{
     endif
 
     return t_obj
+
 endfunction "}}}
 
 " open(), but no buffer
@@ -547,10 +549,10 @@ function! conque_term#subprocess(command) " {{{
 endfunction " }}}
 
 " set buffer options
-function! conque_term#set_buffer_settings(command, pre_hooks) "{{{
+function! conque_term#set_buffer_settings(command, vim_startup_commands) "{{{
 
     " optional hooks to execute, e.g. 'split'
-    for h in a:pre_hooks
+    for h in a:vim_startup_commands
         sil exe h
     endfor
     sil exe 'edit ++enc=utf-8 ' . g:ConqueTerm_BufName
@@ -891,6 +893,8 @@ function! conque_term#init() " {{{
     endif
 
     augroup ConqueTerm
+
+    " abort any remaining running terminals when Vim exits
     autocmd ConqueTerm VimLeave * call conque_term#close_all()
 
     " read more output when this isn't the current buffer
@@ -941,16 +945,6 @@ function! conque_term#close_all() "{{{
         endtry
     endfor
 
-endfunction "}}}
-
-" util function to add enough \s to pass a string to python
-function! conque_term#python_escape(input) "{{{
-    let l:cleaned = a:input
-    let l:cleaned = substitute(l:cleaned, '\\', '\\\\', 'g')
-    let l:cleaned = substitute(l:cleaned, '\n', '\\n', 'g')
-    let l:cleaned = substitute(l:cleaned, '\r', '\\r', 'g')
-    let l:cleaned = substitute(l:cleaned, "'", "\\\\'", 'g')
-    return l:cleaned
 endfunction "}}}
 
 " gets called when user enters conque buffer.
@@ -1473,16 +1467,6 @@ function! conque_term#get_instance(...) " {{{
 
     return g:ConqueTerm_Terminals[buf_num]
 
-endfunction " }}}
-
-" add a new default mapping
-function! conque_term#imap(map_from, map_to) " {{{
-    call add(s:input_extra, [a:map_from, a:map_to])
-endfunction " }}}
-
-" add a list of new default mappings
-function! conque_term#imap_list(map_list) " {{{
-    call extend(s:input_extra, a:map_list)
 endfunction " }}}
 
 " }}}

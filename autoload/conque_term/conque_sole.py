@@ -58,8 +58,21 @@ class ConqueSole(Conque):
     offset = 0
 
 
-    def open(self, command, options={}, python_exe='', communicator_py=''):
-        """ start program and initialize this instance """
+    def open(self):
+        """ Start command and initialize this instance
+
+        Arguments:
+        command - Command string, e.g. "Powershell.exe"
+        options - Dictionary of config options
+        python_exe - Path to the python.exe executable. Usually C:\PythonXX\python.exe
+        communicator_py - Path to subprocess controller script in user's vimfiles directory
+      
+        """
+        # get arguments
+        command = vim.eval('command')
+        options = vim.eval('options')
+        python_exe = vim.eval('py_exe')
+        communicator_py = vim.eval('py_vim')
 
         # init size
         self.columns = vim.current.window.width
@@ -71,7 +84,7 @@ class ConqueSole(Conque):
         self.color_mode = vim.eval('g:ConqueTerm_ColorMode')
 
         # line offset
-        self.offset = options['offset']
+        self.offset = int(options['offset'])
 
         # init color
         self.enable_colors = options['color'] and not CONQUE_FAST_MODE
@@ -85,7 +98,7 @@ class ConqueSole(Conque):
 
 
     def read(self, timeout=1, set_cursor=True, return_output=False, update_buffer=True):
-        """ Read from console and update Vim buffer """
+        """ Read from console and update Vim buffer. """
 
         try:
             stats = self.proc.get_stats()
@@ -365,6 +378,8 @@ class ConqueSole(Conque):
         """ Resize underlying console if Vim buffer size has changed """
 
         if vim.current.window.width != self.columns or vim.current.window.height != self.lines:
+
+            logging.info('really resizing window')
 
             # reset all window size attributes to default
             self.columns = vim.current.window.width

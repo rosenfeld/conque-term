@@ -165,8 +165,11 @@ class ConqueSoleSubprocess():
             logging.info(str(res))
             logging.info(str(ctypes.GetLastError()))
             logging.info(str(ctypes.FormatError(ctypes.GetLastError())))
+
+            # process info
             self.pid = pi.dwProcessId
             self.handle = pi.hProcess
+
             logging.info('process pid is ' + str(self.pid))
             logging.debug(str(self.handle))
 
@@ -229,14 +232,8 @@ class ConqueSoleSubprocess():
             return False
 
 
-
     def init_shared_memory(self, mem_key):
-        """ create shared memory objects """
-
-        buf_info = self.get_buffer_info()
-        logging.debug('-------------------------------------')
-        logging.debug(buf_info.to_str())
-        logging.debug('-------------------------------------')
+        """ Create shared memory objects. """
 
         self.shm_input = ConqueSoleSharedMemory(CONQUE_SOLE_INPUT_SIZE, 'input', mem_key)
         self.shm_input.create('write')
@@ -247,6 +244,7 @@ class ConqueSoleSubprocess():
         self.shm_output.clear()
 
         if not self.fast_mode:
+            buf_info = self.get_buffer_info()
             self.shm_attributes = ConqueSoleSharedMemory(self.buffer_height * self.buffer_width, 'attributes', mem_key, True, chr(buf_info.wAttributes), encoding='latin-1')
             self.shm_attributes.create('write')
             self.shm_attributes.clear()
@@ -271,7 +269,7 @@ class ConqueSoleSubprocess():
 
 
     def check_commands(self):
-        """ check for and process commands """
+        """ Check for and process commands from Vim. """
 
         cmd = self.shm_command.read()
 
@@ -311,8 +309,8 @@ class ConqueSoleSubprocess():
                 self.reset_console(buf_info, add_block=False)
 
 
-    def read(self, timeout=0):
-        """ read from windows console and update output buffer """
+    def read(self):
+        """ Read from windows console and update shared memory blocks. """
 
         # no point really
         if self.screen_redraw_ct == 0 and not self.is_alive():
@@ -323,12 +321,6 @@ class ConqueSoleSubprocess():
 
         # check for commands
         self.check_commands()
-
-        # emulate timeout by sleeping timeout time
-        if timeout > 0:
-            read_timeout = float(timeout) / 1000
-            #logging.debug("sleep " + str(read_timeout) + " seconds")
-            time.sleep(read_timeout)
 
         # get cursor position
         buf_info = self.get_buffer_info()
@@ -415,7 +407,7 @@ class ConqueSoleSubprocess():
 
 
     def reset_console(self, buf_info, add_block=True):
-        """ clear the console and set cursor at home position """
+        """ Extend the height of the current console if the cursor postion gets within 200 lines of the current size. """
 
         # sometimes we just want to change the buffer width,
         # in which case no need to add another block
