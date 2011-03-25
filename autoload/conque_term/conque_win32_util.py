@@ -27,7 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""Python constants and structures used for ctypes interaction"""
+""" Python constants and structures used for ctypes interaction. """
 
 from ctypes import *
 
@@ -446,4 +446,3 @@ class INPUT_RECORD(Structure):
         return ''
 
 
-# vim:foldmethod=marker

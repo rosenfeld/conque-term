@@ -474,9 +474,12 @@ class ConqueSoleSubprocess():
 
 
     def write(self):
-        """ write text to console. this function just parses out special sequences for
-            special key events and passes on the text to the plain or virtual key functions """
+        """ Write text to console. 
 
+        This function just parses out special sequences for special key events 
+        and passes on the text to the plain or virtual key functions.
+
+        """
         # get input from shared mem
         text = self.shm_input.read()
 
@@ -513,7 +516,7 @@ class ConqueSoleSubprocess():
 
 
     def write_plain(self, text):
-        """ Write simple text to subprocess """
+        """ Write simple text to subprocess. """
 
         li = INPUT_RECORD * len(text)
         list_input = li()
@@ -566,7 +569,7 @@ class ConqueSoleSubprocess():
 
 
     def write_vk(self, vk_code):
-        """ Write special characters to console subprocess """
+        """ Write special characters to console subprocess. """
 
         logging.debug('virtual key code' + str(vk_code))
 
@@ -660,7 +663,7 @@ class ConqueSoleSubprocess():
 
 
     def close_pid(self, pid):
-        """ Terminate a single process """
+        """ Terminate a single process. """
 
         logging.info('killing pid ' + str(pid))
         handle = ctypes.windll.kernel32.OpenProcess(PROCESS_TERMINATE, 0, pid)
@@ -669,7 +672,7 @@ class ConqueSoleSubprocess():
 
 
     def is_alive(self):
-        """ check process health """
+        """ Check process health. """
 
         status = ctypes.windll.kernel32.WaitForSingleObject(self.handle, 1)
 
@@ -681,13 +684,13 @@ class ConqueSoleSubprocess():
 
 
     def get_screen_text(self):
-        """ return screen data as string """
+        """ Return screen data as string. """
 
         return "\n".join(self.data)
 
 
     def set_window_size(self, width, height):
-        """ Change Windows console size """
+        """ Change Windows console size. """
 
         logging.debug('*** setting window size')
 
@@ -733,7 +736,7 @@ class ConqueSoleSubprocess():
 
 
     def get_buffer_info(self):
-        """ Retrieve commonly-used buffer information """
+        """ Retrieve commonly-used buffer information. """
 
         buf_info = CONSOLE_SCREEN_BUFFER_INFO()
         ctypes.windll.kernel32.GetConsoleScreenBufferInfo(self.stdout, ctypes.byref(buf_info))
@@ -742,4 +745,3 @@ class ConqueSoleSubprocess():
 
 
 
-# vim:foldmethod=marker

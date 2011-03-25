@@ -30,8 +30,8 @@
 """Common global constants and functions for Conque."""
 
 import sys
-import os
 import re
+import os # DEBUG
 import logging # DEBUG
 import traceback # DEBUG
 
@@ -41,15 +41,16 @@ CONQUE_PYTHON_VERSION = sys.version_info[0]
 # Encoding
 
 try:
-    import vim
     # Vim's character encoding
+    import vim
     CONQUE_VIM_ENCODING = vim.eval('&encoding')
 
 except:
     CONQUE_VIM_ENCODING = 'utf-8'
 
+
 def u(str_val, str_encoding='utf-8', errors='strict'):
-    """foolhardy attempt to make unicode string syntax compatible with both python 2 and 3"""
+    """ Foolhardy attempt to make unicode string syntax compatible with both python 2 and 3. """
 
     if not str_val:
         str_val = ''
@@ -61,7 +62,7 @@ def u(str_val, str_encoding='utf-8', errors='strict'):
         return unicode(str_val, str_encoding, errors)
 
 def uchr(str):
-    """foolhardy attempt to make unicode string syntax compatible with both python 2 and 3"""
+    """ Foolhardy attempt to make unicode string syntax compatible with both python 2 and 3. """
 
     if CONQUE_PYTHON_VERSION == 3:
         return chr(str)
@@ -316,4 +317,3 @@ CONQUE_WIN32_REGEX_ATTR = re.compile("((.)\\2*)", re.DOTALL)
 CONQUE_VK_ATTR_CTRL_PRESSED = u('1024')
 
 
-# vim:foldmethod=marker

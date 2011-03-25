@@ -27,15 +27,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""Wrapper class for shared memory between Windows python processes"""
+"""
+Wrapper class for shared memory between Windows python processes
+
+Adds a small amount of functionality to the standard mmap module.
+
+"""
 
 import mmap
 import sys
 
-if sys.version_info[0] == 2:
-    CONQUE_PYTHON_VERSION = 2
-else:
-    CONQUE_PYTHON_VERSION = 3
+# PYTHON VERSION
+CONQUE_PYTHON_VERSION = sys.version_info[0]
 
 if CONQUE_PYTHON_VERSION == 2:
     import cPickle as pickle
@@ -77,8 +80,18 @@ class ConqueSoleSharedMemory():
 
 
     def __init__(self, mem_size, mem_type, mem_key, fixed_length=False, fill_char=' ', serialize=False, encoding='utf-8'):
-        """ constructor I guess """
+        """ Initialize new shared memory block instance
 
+        Arguments:
+        mem_size -- Memory size in characters, depends on encoding argument to calcuate byte size
+        mem_type -- Label to identify what will be stored
+        mem_key -- Unique, probably random key to identify this block
+        fixed_length -- If set to true, assume the data stored will always fill the memory size
+        fill_char -- Initialize memory block with this character, only really helpful with fixed_length blocks
+        serialize -- Automatically serialize data passed to write. Allows storing non-byte data
+        encoding -- Character encoding to use when storing character data
+
+        """
         self.mem_size = mem_size
         self.mem_type = mem_type
         self.mem_key = mem_key
@@ -98,7 +111,7 @@ class ConqueSoleSharedMemory():
 
 
     def create(self, access='write'):
-        """ create memory block """
+        """ Create a new block of shared memory using the mmap module. """
 
         if access == 'write':
             mmap_access = mmap.ACCESS_WRITE
@@ -116,8 +129,13 @@ class ConqueSoleSharedMemory():
 
 
     def read(self, chars=1, start=0):
-        """ read data """
+        """ Read data from shared memory.
 
+        If this is a fixed length block, read 'chars' characters from memory. 
+        Otherwise read up until the TERMINATOR character (null byte).
+        If this memory is serialized, unserialize it automatically.
+
+        """
         # go to start position
         self.shm.seek(start * self.char_width)
 
@@ -147,8 +165,13 @@ class ConqueSoleSharedMemory():
 
 
     def write(self, text, start=0):
-        """ write data """
+        """ Write data to memory.
 
+        If memory is fixed length, simply write the 'text' characters at 'start' position.
+        Otherwise write 'text' characters and append a null character.
+        If memory is serializable, do so first.
+
+        """
         # simple scenario, let pickle create bytes
         if self.serialize:
             if CONQUE_PYTHON_VERSION == 3:
@@ -169,7 +192,7 @@ class ConqueSoleSharedMemory():
 
 
     def clear(self, start=0):
-        """ clear """
+        """ Clear memory block using self.fill_char. """
 
         self.shm.seek(start)
 
@@ -180,9 +203,8 @@ class ConqueSoleSharedMemory():
 
 
     def close(self):
-        """ close """
+        """ Close/destroy memory block. """
 
         self.shm.close()
 
 
-# vim:foldmethod=marker

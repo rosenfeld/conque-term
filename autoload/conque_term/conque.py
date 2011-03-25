@@ -1138,4 +1138,3 @@ class Conque:
         return self.screen.get_buffer_line(line)
 
 
-# vim:foldmethod=marker

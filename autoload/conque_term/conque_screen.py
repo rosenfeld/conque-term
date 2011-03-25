@@ -122,13 +122,15 @@ class ConqueScreen(object):
 
     def append(self, value):
         """ Define value appending for ConqueScreen objects. """
+
         if len(self.buffer) > self.screen_top + self.screen_height - 1:
             self.buffer[len(self.buffer) - 1] = value
         else:
             self.buffer.append(value)
-        logging.debug('checking new line ' + str(len(self.buffer)) + ' against top ' + str(self.screen_top) + ' + height ' + str(self.screen_height) + ' - 1 = ' + str(self.screen_top + self.screen_height - 1))
+
         if len(self.buffer) > self.screen_top + self.screen_height - 1:
             self.screen_top += 1
+
         if vim.current.buffer.number == self.buffer.number:
             vim.command('normal! G')
 
@@ -226,4 +228,3 @@ class ConqueScreen(object):
         vim.command('normal! ' + str(self.screen_height) + 'kG')
 
 
-# vim:foldmethod=marker

@@ -116,22 +116,22 @@ class ConqueSole(Conque):
             lines = []
 
             # full buffer redraw, our favorite!
-            if self.buffer_redraw_ct == CONQUE_SOLE_BUFFER_REDRAW:
-                self.buffer_redraw_ct = 0
-                update_top = 0
-                update_bottom = stats['top_offset'] + self.lines
-                (lines, attributes) = self.proc.read(update_top, update_bottom)
-                if return_output:
-                    output = self.get_new_output(lines, update_top, stats)
-                if update_buffer:
-                    for i in range(update_top, update_bottom + 1):
-                        if CONQUE_FAST_MODE:
-                            self.plain_text(i, lines[i], None, stats)
-                        else:
-                            self.plain_text(i, lines[i], attributes[i], stats)
+            #if self.buffer_redraw_ct == CONQUE_SOLE_BUFFER_REDRAW:
+            #    self.buffer_redraw_ct = 0
+            #    update_top = 0
+            #    update_bottom = stats['top_offset'] + self.lines
+            #    (lines, attributes) = self.proc.read(update_top, update_bottom)
+            #    if return_output:
+            #        output = self.get_new_output(lines, update_top, stats)
+            #    if update_buffer:
+            #        for i in range(update_top, update_bottom + 1):
+            #            if CONQUE_FAST_MODE:
+            #                self.plain_text(i, lines[i], None, stats)
+            #            else:
+            #                self.plain_text(i, lines[i], attributes[i], stats)
 
             # full screen redraw
-            elif stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct == CONQUE_SOLE_SCREEN_REDRAW:
+            if stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct >= CONQUE_SOLE_SCREEN_REDRAW:
                 self.screen_redraw_ct = 0
                 update_top = self.window_top
                 update_bottom = stats['top_offset'] + self.lines + 1
@@ -149,7 +149,6 @@ class ConqueSole(Conque):
             # single line redraw
             else:
                 update_top = stats['cursor_y']
-                update_bottom = stats['cursor_y']
                 (lines, attributes) = self.proc.read(update_top, 1)
                 if return_output:
                     output = self.get_new_output(lines, update_top, stats)
