@@ -132,9 +132,10 @@ class ConqueSole(Conque):
 
             # full screen redraw
             if stats['cursor_y'] + 1 != self.l or stats['top_offset'] != self.window_top or self.screen_redraw_ct >= CONQUE_SOLE_SCREEN_REDRAW:
+                logging.info('sc red')
                 self.screen_redraw_ct = 0
                 update_top = self.window_top
-                update_bottom = stats['top_offset'] + self.lines + 1
+                update_bottom = max([stats['top_offset'] + self.lines + 1, stats['cursor_y']])
                 (lines, attributes) = self.proc.read(update_top, update_bottom - update_top + 1)
                 if return_output:
                     output = self.get_new_output(lines, update_top, stats)

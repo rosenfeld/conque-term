@@ -293,7 +293,7 @@ CONQUE_SOLE_RESIZE_SIZE = 255
 
 # interval of screen redraw
 # larger number means less frequent
-CONQUE_SOLE_SCREEN_REDRAW = 100
+CONQUE_SOLE_SCREEN_REDRAW = 50
 
 # interval of full buffer redraw
 # larger number means less frequent
