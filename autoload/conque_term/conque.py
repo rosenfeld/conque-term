@@ -581,8 +581,9 @@ class Conque:
         logging.info('pruning colors ' + str(len(self.color_history.keys())))
 
         buffer_line = self.get_buffer_line(self.l)
+        ks = list(self.color_history.keys())
 
-        for line in self.color_history.keys():
+        for line in ks:
             if line < buffer_line - CONQUE_MAX_SYNTAX_LINES:
                 for syn in self.color_history[line]:
                     vim.command('syn clear ' + syn['name'])
