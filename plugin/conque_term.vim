@@ -171,7 +171,7 @@ endif " }}}
 
 " InsertCharPre support {{{
 " Disable this feature by default, still in Beta
-if !exists('g:ConqueTerm_CodePage')
+if !exists('g:ConqueTerm_InsertCharPre')
     let g:ConqueTerm_InsertCharPre = 0
 endif " }}}
 

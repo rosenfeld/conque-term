@@ -578,6 +578,9 @@ function! conque_term#set_buffer_settings(command, vim_startup_commands) "{{{
         setlocal conceallevel=3
         setlocal concealcursor=nic
     endif
+    if g:ConqueTerm_ReadUnfocused
+        set cpoptions+=I       " Don't remove autoindent when moving cursor up and down
+    endif
     setfiletype conque_term    " useful
     sil exe "setlocal syntax=" . g:ConqueTerm_Syntax
 
@@ -927,7 +930,14 @@ function! conque_term#read_all(insert_mode) "{{{
 
     " restart updatetime
     if a:insert_mode
-        call feedkeys("\<C-o>f\e", "n")
+        "call feedkeys("\<C-o>f\e", "n")
+        let p = getpos('.')
+        if p[1] == 1
+          sil exe 'call feedkeys("\<Down>\<Up>", "n")'
+        else
+          sil exe 'call feedkeys("\<Up>\<Down>", "n")'
+        endif
+        call setpos('.', p)
     else
         call feedkeys("f\e", "n")
     endif
