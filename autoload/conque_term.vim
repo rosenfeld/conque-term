@@ -588,7 +588,7 @@ endfunction " }}}
 
 " send normal character key press to terminal
 function! conque_term#key_press() "{{{
-    sil exe s:py . ' ' . b:ConqueTerm_Var . ".write_ord(" . char2nr(v:char) . ")"
+    sil exe s:py . ' ' . b:ConqueTerm_Var . ".write_buffered_ord(" . char2nr(v:char) . ")"
     sil let v:char = ''
 endfunction " }}}
 
@@ -697,7 +697,7 @@ function! conque_term#set_mappings(action) "{{{
     " }}}
 
     " map 33 and beyond {{{
-    if exists('##InsertCharPre')
+    if exists('##InsertCharPre') && g:ConqueTerm_InsertCharPre == 1
         if l:action == 'start'
             autocmd InsertCharPre <buffer> call conque_term#key_press()
         else

@@ -169,6 +169,11 @@ if !exists('g:ConqueTerm_CodePage')
     let g:ConqueTerm_CodePage = 0
 endif " }}}
 
+" InsertCharPre support {{{
+" Disable this feature by default, still in Beta
+if !exists('g:ConqueTerm_CodePage')
+    let g:ConqueTerm_InsertCharPre = 0
+endif " }}}
 
 " }}}
 
