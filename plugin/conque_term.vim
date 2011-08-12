@@ -159,7 +159,7 @@ endif " }}}
 " and include important Conque feature and option descriptions
 " TODO - disabled and unused for now
 if !exists('g:ConqueTerm_StartMessages')
-    let g:ConqueTerm_StartMessages = 0
+    let g:ConqueTerm_StartMessages = 1
 endif " }}}
 
 " Windows character code page {{{
