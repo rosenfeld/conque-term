@@ -628,7 +628,8 @@ function! conque_term#set_mappings(action) "{{{
         sil exe 'augroup ' . b:ConqueTerm_Var
 
         " handle unexpected closing of shell, passes HUP to parent and all child processes
-        sil exe 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.close()'
+        sil exe 'autocmd ' . b:ConqueTerm_Var . ' BufDelete <buffer> call g:ConqueTerm_Terminals[' . b:ConqueTerm_Idx . '].close()'
+        sil exe 'autocmd ' . b:ConqueTerm_Var . ' BufUnload <buffer> call g:ConqueTerm_Terminals[' . b:ConqueTerm_Idx . '].close()'
 
         " check for resized/scrolled buffer when entering buffer
         sil exe 'autocmd ' . b:ConqueTerm_Var . ' BufEnter <buffer> ' . s:py . ' ' . b:ConqueTerm_Var . '.update_window_size()'
@@ -1403,13 +1404,16 @@ function! s:term_obj.close() dict " {{{
     endtry
 
     " delete buffer if option is set
-    if self.is_buffer
-        call conque_term#set_mappings('stop')
-        if exists('g:ConqueTerm_CloseOnEnd') && g:ConqueTerm_CloseOnEnd
-            sil exe 'bwipeout! ' . self.buffer_name
-            stopinsert!
+    try
+        if self.is_buffer
+            call conque_term#set_mappings('stop')
+            if exists('g:ConqueTerm_CloseOnEnd') && g:ConqueTerm_CloseOnEnd
+                sil exe 'bwipeout! ' . self.buffer_name
+                stopinsert!
+            endif
         endif
-    endif
+    catch
+    endtry
 
     " mark ourselves as inactive
     let self.active = 0
