@@ -161,10 +161,6 @@ class Conque:
         read -- Check program for new output when finished
 
         """
-        # check if window size has changed
-        if read:
-            self.update_window_size()
-
         # write and read
         self.proc.write(input)
 
@@ -332,16 +328,16 @@ class Conque:
                     else:
                         self.plain_text(s)
 
+            # check if window size has changed
+            if not CONQUE_FAST_MODE:
+                self.update_window_size()
+
             # set cusor position
             if set_cursor:
                 self.screen.set_cursor(self.l, self.c)
 
             # we need to set the cursor position
             self.cursor_set = False
-
-            # redraw screen for immediate feedback
-            #if not CONQUE_FAST_MODE:
-            #    vim.command('redraw')
 
         except:
             logging.info('read error')
