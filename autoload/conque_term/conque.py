@@ -278,7 +278,7 @@ class Conque:
                         if nr in CONQUE_CTL:
                             getattr(self, 'ctl_' + CONQUE_CTL[nr])()
                         else:
-                            logging.info('escape not found for ' + str(s))
+                            logging.info('control not found for ' + str(s))
                             pass
 
                     # check for escape sequence match 
@@ -289,7 +289,7 @@ class Conque:
                             logging.debug(str(csi))
                             getattr(self, 'csi_' + CONQUE_ESCAPE[s[-1]])(csi)
                         else:
-                            logging.info('escape not found for ' + str(s))
+                            logging.info('csi not found for ' + str(s))
                             pass
 
                     # check for title match 
@@ -303,7 +303,7 @@ class Conque:
                         if s[-1] in CONQUE_ESCAPE_HASH:
                             getattr(self, 'hash_' + CONQUE_ESCAPE_HASH[s[-1]])()
                         else:
-                            logging.info('escape not found for ' + str(s))
+                            logging.info('hash not found for ' + str(s))
                             pass
 
                     # check for charset match 
@@ -312,7 +312,7 @@ class Conque:
                         if s[-1] in CONQUE_ESCAPE_CHARSET:
                             getattr(self, 'charset_' + CONQUE_ESCAPE_CHARSET[s[-1]])()
                         else:
-                            logging.info('escape not found for ' + str(s))
+                            logging.info('charset not found for ' + str(s))
                             pass
 
                     # check for other escape match 
@@ -327,10 +327,6 @@ class Conque:
                     # else process plain text 
                     else:
                         self.plain_text(s)
-
-            # check if window size has changed
-            if not CONQUE_FAST_MODE:
-                self.update_window_size()
 
             # set cusor position
             if set_cursor:
@@ -399,6 +395,11 @@ class Conque:
         if self.cursor_set:
             return
 
+        # check if window size has changed
+        if not CONQUE_FAST_MODE:
+            self.update_window_size()
+            logging.info('window size!')
+
         # otherwise set cursor position
         try:
             self.set_cursor(self.l, self.c)
@@ -406,6 +407,7 @@ class Conque:
             logging.info('cursor set error')
             logging.info(traceback.format_exc())
             pass
+
         self.cursor_set = True
 
 

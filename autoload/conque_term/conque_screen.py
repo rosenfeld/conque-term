@@ -139,7 +139,10 @@ class ConqueScreen(object):
         """ Define value insertion for ConqueScreen objects. """
         logging.debug('insert at line ' + str(self.screen_top + line - 2))
         l = self.screen_top + line - 2
-        self.buffer.append(value, l)
+        try:
+            self.buffer.append(value, l)
+        except:
+            self.buffer[l:l] = [value]
 
 
     def get_top(self):
