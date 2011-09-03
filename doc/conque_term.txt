@@ -415,10 +415,10 @@ buffer. Set this to an empty string '' to disable concealed highlighting.
 <
 ==============================================================================
 
-4. VimScript API (Beta)                                      *conque-term-api*
+4. VimScript API                                             *conque-term-api*
 
 The Conque scripting API allows you to create and interact with Conque
-terminals with the VimScript language. This API is still in beta stage.
+terminals with the VimScript language.
 
 4.1 conque_term#open({command}, [buf_opts], [remain])       *conque-term-open*
 
