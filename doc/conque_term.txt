@@ -294,10 +294,10 @@ syntax highlighting for the prompt line.
 <
 3.1.10 Choose Vim syntax type                              *ConqueTerm_Syntax*
 
-Set the buffer syntax. The default 'conque' has highlighting for MySQL, but 
-not much else.
+Set the buffer syntax. The default 'conque_term' has highlighting for MySQL, 
+but not much else.
 >
-    let g:ConqueTerm_Syntax = 'conque'
+    let g:ConqueTerm_Syntax = 'conque_term'
 <
 3.2 Keyboard                                          *conque-config-keyboard*
 
