@@ -168,7 +168,6 @@ class ConqueScreen(object):
     def clear(self):
         """ Clear the screen. Does not clear the buffer, just scrolls down past all text. """
 
-        self.screen_width = width
         self.buffer.append(' ')
         vim.command('normal! Gzt')
         self.screen_top = len(self.buffer)
